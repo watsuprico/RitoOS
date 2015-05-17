@@ -1,0 +1,296 @@
+--[[
+
+
+                        _________
+                       |_|_|_|_|_|
+                         |__|__|
+                         |__|__|
+                         |__|__|
+                         |__|__|
+                         |__|__|
+                         |__|__|
+                         |__|__|
+      ___________________|__|__|___
+     /                             \
+    /     Rito OS, Created By:      \
+   /          @Watsuprico            \
+  /                                   \
+ /   Bedrock API/Framwork Created By:  \
+/                                       \
+|_______________________________________|
+|                                       |
+|   _______                   _______   |
+|  |   |   |                 |   |   |  |
+|  |---|---|                 |---|---|  |
+|  |___|___|                 |___|___|  |
+|                                       |
+|                                       |
+|                                       |
+|               _________               |
+|              |         |              |
+|              |  Rito   |              |
+|              |         |              |
+|              |       σ |              |
+|              |         |              |
+|______________|_________|______________|
+]]--
+-- Vars
+local ALERTCOLOR = 16384
+local WARNCOLOR = 2
+local INFOCOLOR = 8192
+local NOTECOLOR = 512
+local ErrBGC = 32768
+local RitoOSVersion = "0.1"
+RitoLocation = Root
+local logo = {                                  --|
+  "  9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9",
+  " 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 ",
+  " 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 ",
+  " 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 ",
+  "9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9  ",
+  "9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9  ",
+  "9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9  ",
+}
+--End vars
+
+function os.version()
+    return RitoOSVersion
+end
+function os.pullEvent( sFilter )
+    local eventData = { os.pullEventRaw( sFilter ) }
+    if eventData[1] == "terminate" then
+    end
+    return unpack( eventData )
+end
+local nativeShutdown = os.shutdown
+function os.shutdown()
+    print("Shuting down . . .")
+    sleep(1)
+    term.setTextColor(colors.orange)
+    term.setBackgroundColor(colors.black)
+    term.clear()
+    local SetX,SetY = term.getSize()
+    local Y = tonumber(math.ceil(SetY / 2))
+    term.setCursorPos(SetX,Y)
+        local function PrintCentered(m)
+            local _mL = string.len(m)
+            local _scw,_ = term.getSize()
+            local _xC = tonumber(math.ceil((_scw / 2) - (_mL / 2)))
+            local _,tY = term.getCursorPos()
+            term.setCursorPos(_xC,tY)
+            print(m)
+        end -- End function
+    PrintCentered("It is now ok to turn off your computer.")
+    os.pullEvent("key")
+    nativeShutdown()
+    while true do
+        coroutine.yield()
+    end
+end
+local nativeReboot = os.reboot
+function os.reboot()
+    print("Rebooting . . .")
+    sleep(1)
+    nativeReboot()
+    while true do
+        coroutine.yield()
+    end
+end
+
+
+-- Functions
+local function trunc(s, i)
+    local mult = 10^(i or 0)
+    return math.floor(s * mult + 0.5) / mult
+end
+local function ALERT(m)
+    term.setTextColor(ALERTCOLOR)
+    print("[ "..trunc(os.time() * 50).." - ALERT] "..m)
+    print()
+    term.setTextColor(colors.black)
+end
+local function WARN(m)
+    term.setTextColor(WARNCOLOR)
+    print("[ "..trunc(os.time() * 50).." - WARN] "..m)
+    print()
+    term.setTextColor(colors.black)
+end
+local function INFO(m)
+    term.setTextColor(INFOCOLOR)
+    print("[ "..trunc(os.time() * 50).." - Info] "..m)
+    print()
+    term.setTextColor(colors.black)
+end
+local function NOTE(m)
+    term.setTextColor(NOTECOLOR)
+    print("[ "..trunc(os.time() * 50).." - Notify] "..m)
+    term.setTextColor(colors.black)
+end
+local function PrintCentered(m)
+local _mL = string.len(m)
+local _scw,_ = term.getSize()
+local _xC = tonumber(math.ceil((_scw / 2) - (_mL / 2)))
+local _,tY = term.getCursorPos()
+term.setCursorPos(_xC,tY)
+print(m)
+end -- End function
+
+
+-- Safe Mode
+
+local function safemode(m)
+    if m ~= nil then
+        if m == "normal" then
+            local load = {"''..Root..'Configs/.Rito.conf'"}
+            INFO("Loading the normal safe mode...")
+            sleep(0.1)
+            term.setBackgroundColor(colors.black)
+            term.clear()
+            term.setCursorPos(1,1)
+            term.setBackgroundColor(colors.white)
+            term.clearLine()
+            term.setTextColor(colors.black)
+            PrintCentered("Rito OS Safe Mode [Normal]")
+            term.setTextColor(colors.white)
+            term.setBackgroundColor(colors.black)
+            for key, value in pairs(load) do
+                INFO("Loading "..value)
+            end
+            INFO("Loading CodeX [Safe mode]")
+            local function safe_codex() 
+                INFO("CodeX [Safe mode] Loaded")
+                term.setTextColor(colors.white)
+                print("Username: ")           
+                username = read()
+                if fs.exists(Root.."Users/"..username.."/."..username..".codex") == true then
+                    shell.run(Root.."Users/"..username.."/."..username..".codex")
+                else
+                    WARN("No such user")
+                    sleep(1)
+                    safe_codex()
+                end
+                sleep(1)
+                while true do
+                print("Password: ")
+                pass = read("σ")
+                    if pass == password then
+                        INFO("Password correct...")
+                        sleep(2)
+                        HasUserLogged = "tajbn38wsna;3on4r00djsd0hj3n"
+                        break
+                    end
+                end
+                if HasUserLogged == "tajbn38wsna;3on4r00djsd0hj3n" then
+                    INFO("Loading...")
+                    sleep(1)
+                else
+                    WARN("Not logged in...")
+                    sleep(1)
+                    safe_codex()
+                end
+
+            end -- End codex
+            safe_codex()
+        end --End Normal
+    end --End m
+end -- End Safe Mode
+
+-- End
+
+
+local function loadConfig()
+    while true do
+        shell.run("/Configs/.Rito.conf")
+        sleep(1)
+    end
+end
+local function start()
+
+if ConfigRan == true then
+    INFO("Oh yay! System config has loaded!")
+else
+    ALERT("Could not locate the config file!")
+    ALERT("Going into safe mode...")
+    sleep(2)
+    safemode("normal")
+end
+INFO("Booting. . .")
+    local pbar = bar.init( bar.LOGO_IS_OVERLAY, logo, 8, nil, 14, nil, "Loading Rito OS", "- Rito OS -", "Rito OS Version "..RitoOSVersion )
+    local function ProgressBarB()
+        pbar:run( true )
+        sleep(0)
+    end
+    local function Start2()
+        pbar:triggerUpdate("Stats: Setting Computer Label . . .")
+        sleep(0)
+        os.setComputerLabel(ComputerLabel)
+        pbar:triggerUpdate("Stats: Computer Label Set.")
+        pbar:triggerUpdate("Stats: Loading Bedrock API . . .")
+        sleep(0)
+        local bedrockPath='APIs/Bedrock' if OneOS then OneOS.LoadAPI('/System/API/Bedrock.lua', false)elseif fs.exists(bedrockPath..'/Bedrock')then os.loadAPI(bedrockPath..'/Bedrock')else if http then print('Downloading Bedrock...')local h=http.get('http://pastebin.com/raw.php?i=0MgKNqpN')if h then local f=fs.open(bedrockPath..'/Bedrock','w')f.write(h.readAll())f.close()h.close()os.loadAPI(bedrockPath..'/Bedrock')else error('Failed to download Bedrock. Is your internet working?') end else error('This program needs to download Bedrock to work. Please enable HTTP.') end end if Bedrock then Bedrock.BasePath = bedrockPath Bedrock.ProgramPath = shell.getRunningProgram() end
+        pbar:triggerUpdate("Stats: Bedrock API loaded.")
+        pbar:triggerUpdate("Loading the Rito API . . .")
+        sleep(0)
+        if os.loadAPI("APIs/Rito/ritoos") == true then
+            pbar:triggerUpdate("The Rito API has loaded . . .")
+        else
+            ALERT("The Rito API could not be loaded! Oh noes!")
+            ALERT("Rito OS will go on, however will boot into 'safe mode'")
+            ALERT("Once there you can run 'fix auto'")
+            ALERT("Press any other key to continue.")
+            os.pullEvent("key")
+            error("No API to load... System now go into safe mode")
+            sleep(1)
+            safemode("normal")
+        end
+        pbar:triggerUpdate("Loading StrUtils . . .")
+        os.loadAPI("APIs/StrUtils/StrUtils")
+        pbar:triggerUpdate("Completed loading StrUtils . . .")
+        pbar:triggerUpdate("Starting CodeX")
+        sleep(0)
+        term.clear()
+        sleep(0)
+    end
+    parallel.waitForAny(ProgressBarB,Start2)
+    shell.run("/System/CodeX.rxf")
+end -- Ends function
+
+term.clear()
+term.setCursorPos(1,1)
+INFO("Rito OS version "..RitoOSVersion.." has loaded...")
+INFO("Will now start the boot sequence")
+INFO("Please wait . . .")
+NOTE("RitoOS was created by Watsuprico\n and uses the Bedrock API")
+print()
+sleep(0)
+INFO("Starting error catching . . . errors will display as a alert")
+local function error(m)
+    ALERT("ERROR: "..m)
+end
+if RecoverMode == true then
+safemode("recov")
+else
+INFO("Loading the Progress Bar API . . .")
+os.loadAPI("APIs/ProgressBar/bar")
+INFO("Loading the Rito API . . .")
+if os.loadAPI("APIs/Rito/ritoos") == true then
+    INFO("The Rito API has loaded . . .")
+else
+    ALERT("The Rito API could not be loaded! Oh noes!")
+    ALERT("Rito OS will go on, however will boot into 'safe mode'")
+    ALERT("Once there you can run 'fix auto'")
+    ALERT("Press any other key to continue.")
+    os.pullEvent("key")
+    error("No API to load... System now go into safe mode")
+    sleep(1)
+    if UsingMonitor == true then
+      term.clear()
+    end
+    safemode("normal")
+end
+INFO("Loading the system config . . .")
+INFO("Please wait . . .")
+parallel.waitForAll(loadConfig,start)
+term.clear()
+error("Rito OS has crashed / closed / ended")
+end

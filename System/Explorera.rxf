@@ -1,0 +1,129 @@
+-- Simple Write Script
+local function fwrite(path, text)
+        local file = assert(io.open(path, "w"))
+        file:write(text)
+        file:close()
+end
+-- End
+
+--Center Text
+local function PrintCentered(sText)
+msgLen = string.len(sText)
+screenWidth,_ = term.getSize()
+xCoords = tonumber(math.ceil((screenWidth / 2) - (msgLen / 2)))
+_,termY = term.getCursorPos()
+term.setCursorPos(xCoords,termY)
+print(sText)
+return xCoords
+end
+
+CMDVer = "0.1"
+
+local function RunCommand( _sCommand, ... )
+    local Xcord, Ycord = term.getCursorPos()
+    term.setCursorPos(1, 1)
+    term.setTextColour(UserCommandPC)
+    PrintCentered("Rito OS Command V"..os.version())
+    PrintCentered("For Help, Type 'commands'")
+    if ... ~= nil then
+        term.clearLine()
+        PrintCentered(_sCommand, ...)
+    else
+        term.clearLine()
+        PrintCentered(_sCommand)
+    end
+    term.setCursorPos(Xcord, Ycord)
+    term.setTextColour(UserCommandTC)
+    if _sCommand == "reboot" then
+        os.reboot()
+    elseif _sCommand == "shutdown" then
+        os.shutdown()
+    elseif _sCommand == "clear" then
+        term.clear()
+        term.setCursorPos(1, 1)
+    elseif _sCommand == "update" then
+        rito.update()
+    elseif _sCommand == "command" then
+        shell.run("/.PootOS/.System/.Command","NormalCommand")
+    elseif _sCommand == "__CrashMe!" then
+        error("Fine Then! God!")
+    elseif _sCommand == "list" then
+        shell.run("/rom/programs/list")
+    elseif _sCommand == "ls" then
+        shell.run("/rom/programs/list")
+    elseif _sCommand == "exit" then
+        error("Exit Command Ran")
+    elseif _sCommand == "commands" then
+        print("Rito commands:")
+        print("reboot  - Reboots The Computer")
+        print("command  - Opens A Command Prompt")
+        print("shutdown  - Shuts Down The Computer")
+        print("update  - Update The System")
+        print("exit  - Exit This Command Prompt")
+        print("recovery  - Boot The System Into Recovery Mode")
+        print("edit_conf  - Edits The System Config")
+        print("clear  - Clears The Screen")
+        print("run <program>  - Allows You To Run Programs")
+        print("help <command>  - Brings Up Help Related To That Command")
+    elseif _sCommand == "edit_conf" then
+        os.run({}, "edit","/.PootOS/.System/.System.conf")
+        print("Reloading Config...")
+        LoadConfig()
+        print("Done")
+    elseif _sCommand == "run" then
+        if ... ~= nil then
+            if shell.run(...) == true then
+            else
+                local Xcord1, Ycord1 = term.getCursorPos()
+                local Ycord1 = Ycord1 - 1
+                term.setCursorPos(Xcord1, Ycord1)
+                term.clearLine()
+                printError("Could Not Run: ".. ...)
+            end
+        else
+            printError("Please Type The Program You Want To Run After 'run'")
+        end
+    else
+        printError("Unknown Command, ".._sCommand)
+    end
+end -- End The Function
+
+local function runLine( _sLine )
+    local tWords = {}
+    for match in string.gmatch( _sLine, "[^ \t]+" ) do
+        table.insert( tWords, match )
+    end
+
+    local sCommand = tWords[1]
+    if sCommand then
+        return RunCommand( sCommand, unpack( tWords, 2 ) )
+    end
+    return false
+end
+
+term.setBackgroundColor(UserCommandBGC)
+term.setTextColour(UserCommandPC)
+term.clear()
+term.setCursorPos(1,1)
+PrintCentered("Rito OS Command V"..os.version())
+PrintCentered("For help, type 'commands'")
+print()
+
+local tCommandHistory = {}
+while not bExit do
+    term.setBackgroundColor(UserCommandBGC)
+    term.setTextColour(UserCommandPC)
+    local Xcord, Ycord = term.getCursorPos()
+    if Ycord == 1 then
+    Ycord = 4
+    term.setCursorPos(Xcord, Ycord)
+    else
+    term.setCursorPos(Xcord, Ycord)
+    end
+    write( "/" .. shell.dir() .. "/ }" )
+    term.setTextColour(UserCommandTC)
+
+    local sLine = read( nil, tCommandHistory )
+    table.insert( tCommandHistory, sLine )
+    runLine( sLine )
+end
