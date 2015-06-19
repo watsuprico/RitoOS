@@ -1,0 +1,42 @@
+function loadConfig(location)
+if shell.run(location) == true then
+return true
+else
+return false
+end
+end
+
+function shutdown(s)
+if s ~= nil then
+	if s == "22384Nwur&$2$66dna" then
+	print("Shuting down.... Please wait...")
+    	print("-|-")
+    	sleep(1)
+    	nativeShutdown()
+	    while true do
+    	    coroutine.yield()
+	    end
+	os.shutdown()
+	elseif s == "normal" then
+	local nativeShutdown = os.shutdown
+	function os.shutdown()
+		while true do
+    	    coroutine.yield()
+	    end
+	end
+	os.shutdown()
+else
+
+end
+end
+end
+
+function draw(_Path)
+if fs.exists(_Path) == true then
+  local OldX, OldY = term.getCursorPos()
+  bground = paintutils.loadImage(_Path)
+    paintutils.drawImage(bground,1,1)
+    term.setCursorPos(OldX, OldY)
+else
+end
+end

@@ -1,0 +1,483 @@
+--[[
+  Loading-Bar v3.0 [Updated: 09 January 2015]
+  
+  Copyright (c) 2013-2015 Joshua Asbury (@theoriginalbit) [theoriginalbit@gmail.com]
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+--]]
+
+--[[ PRIVATE CLASS VARIABLES AND FUNCTIONS ]]--
+
+local version = 2.0
+local apiIdentifier = string.format( "Loading Bar API v%.2f Object", version )
+local sizeX, sizeY = term.getSize()
+local isAdvanced = term.isColor and term.isColor()
+local usedIds = {}
+
+local function generateId()
+  if #usedIds > 999 then error( "Maximum load bars reached, you have used 999, how?! Tell me on the forum post! Better yet, SHOW ME!" ) end
+  local objId = #usedIds
+  while usedIds[ objId ] do
+    objId = objId + 1
+    if objId > 999 then
+      objId = 1
+    end
+  end
+  usedIds[ objId ] = true
+  return objId
+end
+
+local function modeToText( mode )
+  if mode == STANDARD then
+    return "STANDARD"
+  elseif mode == BAR_ONLY then
+    return "BAR_ONLY"
+  elseif mode == ASCII_BAR_ONLY then
+    return "ASCII_BAR_ONLY"
+  elseif mode == LOGO_IS_LOAD then
+    return "LOGO_IS_LOAD"
+  elseif mode == LOGO_IS_OVERLAY then
+    return "LOGO_IS_OVERLAY"
+  elseif mode == ASCII then
+    return "ASCII"
+  else
+    return "UNKNOWN"
+  end
+end
+
+local function hexLookup( char )
+  local value = tonumber(char, 16)
+  return ( value and math.pow(2, value) or false )
+end
+
+local function clearScreen( color )
+  term.setCursorPos(1,1)
+  if isAdvanced then
+    term.setBackgroundColor( color or colors.blue )
+  end
+  term.clear()
+end
+
+local function isValidMode( mode )
+  return mode ~= nil and ( mode >= STANDARD and mode <= ASCII )
+end
+
+local function isValidParams( mode, tLogo, count, barWidth, y, loadCol, openingMsg, headMsg, footMsg )
+  if mode == STANDARD then
+    if type( tLogo ) ~= "table" then
+      return false, "Logo must be table, got "..type( tLogo )
+    elseif type( count ) ~= "number" then
+      return false, "Event count must be a number, got "..type( count )
+    elseif type( barWidth ) ~= "number" then
+      return false, "Bar width must be a number, got "..type( barWidth )
+    elseif type( y ) ~= "number" then
+      return false, "Y position must be a number, got "..type( y )
+    elseif type( loadCol ) ~= "number" then
+      return false, "Load bar color must be a number, got "..type( loadCol )
+    elseif type( loadCol ) == "number" and ( ( loadCol < 1 ) or ( loadCol > ( 2^16 ) - 1 ) ) then
+      return false, "Invalid load bar color, must be in range 1-65535, got "..loadCol
+    elseif type( openingMsg ) ~= "string" and type( openingMsg ) ~= "nil" then
+      return false, "Invalid opening message, expected string or nil, got "..type( openingMsg )
+    elseif type( headMsg ) ~= "string" and type( headMsg ) ~= "nil" then
+      return false, "Invalid header message, expected string or nil, got "..type( headMsg )
+    elseif type( footMsg ) ~= "string" and type( footMsg ) ~= "nil" then
+      return false, "Invalid footer message, expected string or nil, got "..type( footMsg )
+    end
+    
+    return true, nil
+  elseif mode == BAR_ONLY then
+    if type( tLogo ) ~= "nil" then
+      return false, "Logo must be nil, got "..type( tLogo )
+    elseif type( count ) ~= "number" then
+      return false, "Event count must be a number, got "..type( count )
+    elseif type( barWidth ) ~= "number" then
+      return false, "Bar width must be a number, got "..type( barWidth )
+    elseif type( y ) ~= "number" then
+      return false, "Y position must be a number, got "..type( y )
+    elseif type( loadCol ) ~= "number" then
+      return false, "Load bar color must be a number, got "..type( loadCol )
+    elseif type( loadCol ) == "number" and ( ( loadCol < 1 ) or ( loadCol > ( 2^16 ) - 1 ) ) then
+      return false, "Invalid load bar color, must be in range 1-65535, got "..loadCol
+    elseif type( openingMsg ) ~= "string" and type( openingMsg ) ~= "nil" then
+      return false, "Invalid opening message, expected string or nil, got "..type( openingMsg )
+    elseif type( headMsg ) ~= "string" and type( headMsg ) ~= "nil" then
+      return false, "Invalid header message, expected string or nil, got "..type( headMsg )
+    elseif type( footMsg ) ~= "string" and type( footMsg ) ~= "nil" then
+      return false, "Invalid footer message, expected string or nil, got "..type( footMsg )
+    end
+    
+    return true, nil
+  elseif mode == ASCII_BAR_ONLY then
+    if type( tLogo ) ~= "nil" then
+      return false, "Logo must be nil, got "..type( tLogo )
+    elseif type( count ) ~= "number" then
+      return false, "Event count must be a number, got "..type( count )
+    elseif type( barWidth ) ~= "number" then
+      return false, "Bar width must be a number, got "..type( barWidth )
+    elseif type( y ) ~= "number" then
+      return false, "Y position must be a number, got "..type( y )
+    elseif type( loadCol ) ~= "nil" then
+      return false, "Load bar color must be nil, got "..type( loadCol )
+    elseif type( loadCol ) == "number" and ( ( loadCol < 1 ) or ( loadCol > ( 2^16 ) - 1 ) ) then
+      return false, "Invalid load bar color, must be in range 1-65535, got "..loadCol
+    elseif type( openingMsg ) ~= "string" and type( openingMsg ) ~= "nil" then
+      return false, "Invalid opening message, expected string or nil, got "..type( openingMsg )
+    elseif type( headMsg ) ~= "string" and type( headMsg ) ~= "nil" then
+      return false, "Invalid header message, expected string or nil, got "..type( headMsg )
+    elseif type( footMsg ) ~= "string" and type( footMsg ) ~= "nil" then
+      return false, "Invalid footer message, expected string or nil, got "..type( footMsg )
+    end
+    
+    return true, nil
+  elseif mode == LOGO_IS_LOAD or mode == LOGO_IS_OVERLAY then
+    if type( tLogo ) ~= "table" then
+      return false, "Logo must be table, got "..type( tLogo )
+    elseif type( count ) ~= "number" then
+      return false, "Event count must be a number, got "..type( count )
+    elseif type( barWidth ) ~= "nil" then
+      return false, "Bar width must be a nil, got "..type( barWidth )
+    elseif type( y ) ~= "number" then
+      return false, "Y position must be a number, got "..type( y )
+    elseif mode == LOGO_IS_LOAD and type( loadCol ) ~= "number" then
+      return false, "Load bar color must be a number, got "..type( loadCol )
+    elseif mode == LOGO_IS_OVERLAY and type( loadCol ) ~= "nil" then
+      return false, "Load bar color must be nil, got "..type( loadCol )
+    elseif type( loadCol ) == "number" and ( ( loadCol < 1 ) or ( loadCol > ( 2^16 ) - 1 ) ) then
+      return false, "Invalid load bar color, must be in range 1-65535, got "..loadCol
+    elseif type( openingMsg ) ~= "string" and type( openingMsg ) ~= "nil" then
+      return false, "Invalid opening message, expected string or nil, got "..type( openingMsg )
+    elseif type( headMsg ) ~= "string" and type( headMsg ) ~= "nil" then
+      return false, "Invalid header message, expected string or nil, got "..type( headMsg )
+    elseif type( footMsg ) ~= "string" and type( footMsg ) ~= "nil" then
+      return false, "Invalid footer message, expected string or nil, got "..type( footMsg )
+    end
+    
+    return true, nil
+  elseif mode == ASCII then
+    if type( tLogo ) ~= "table" then
+      return false, "Logo must be table, got "..type( tLogo )
+    elseif type( count ) ~= "number" then
+      return false, "Event count must be a number, got "..type( count )
+    elseif type( barWidth ) ~= "number" then
+      return false, "Bar width must be a number, got "..type( barWidth )
+    elseif type( y ) ~= "number" then
+      return false, "Y position must be a number, got "..type( y )
+    elseif type( loadCol ) ~= "nil" then
+      return false, "Load bar color must be a nil, got "..type( loadCol )
+    elseif type( loadCol ) == "number" and ( ( loadCol < 1 ) or ( loadCol > ( 2^16 ) - 1 ) ) then
+      return false, "Invalid load bar color, must be in range 1-65535, got "..loadCol
+    elseif type( openingMsg ) ~= "string" and type( openingMsg ) ~= "nil" then
+      return false, "Invalid opening message, expected string or nil, got "..type( openingMsg )
+    elseif type( headMsg ) ~= "string" and type( headMsg ) ~= "nil" then
+      return false, "Invalid header message, expected string or nil, got "..type( headMsg )
+    elseif type( footMsg ) ~= "string" and type( footMsg ) ~= "nil" then
+      return false, "Invalid footer message, expected string or nil, got "..type( footMsg )
+    end
+    
+    return true, nil
+  end
+  
+  return false, "Something went seriously wrong, please report this bug with the code 169:"..tostring( mode ).." and your call to this api."
+end
+
+local function getYFromMode( mode, logo, y )  
+  if mode == STANDARD or mode == BAR_ONLY or mode == ASCII_BAR_ONLY or mode == ASCII then
+    return ( y + 1 > sizeY and (y - 1) < 1) and sizeY - 4 or y
+  elseif mode == LOGO_IS_LOAD or mode == LOGO_IS_OVERLAY then
+    return math.ceil( sizeY / 2 - #logo / 2 )
+  end
+end
+
+local function getWidthFromMode( mode, logo, width )
+  if mode == STANDARD or mode == BAR_ONLY or mode == ASCII_BAR_ONLY or mode == ASCII then
+    return width or 20
+  elseif mode == LOGO_IS_LOAD or mode == LOGO_IS_OVERLAY then
+    return logo[1] ~= nil and #logo[1] or 20
+  end
+end
+
+local function draw_header_footer( data )
+  if isAdvanced then
+    term.setBackgroundColor( colors.white )
+    term.setTextColor( colors.black )
+  end
+  term.setCursorPos( math.ceil( sizeX / 2 ) - math.ceil( string.len( data.headerMessage ) / 2 ), 1 )
+  write( data.headerMessage )
+  term.setCursorPos( math.ceil( sizeX / 2 ) - math.ceil( string.len( data.footerMessage ) / 2 ), sizeY )
+  write( data.footerMessage )
+end
+
+local function draw_box( data )
+  for x = 1, data.barWidth + 2 do
+    for y = 1, 3 do
+      term.setCursorPos( (sizeX - data.barWidth - 1) / 2 + x - 1, data.yPos + y -2 )
+      local char = " "
+      if x == 1 and y == 1 or x == data.barWidth + 2 and y == 1 then
+        char = "."
+      elseif x == 1 and y == 3 or x == data.barWidth + 2 and y == 3 then
+        char = "'"
+      elseif x == 1 or x == data.barWidth + 2 then
+        char = "|"
+      elseif y == 1 then
+        char = "_"
+      elseif y == 3 then
+        char = "-"
+      end
+      
+      write( char )
+    end
+  end
+end
+
+local function draw_progress_bar( self )
+  if self.mode == ASCII_BAR_ONLY or self.mode == ASCII then
+    draw_box( self.data )
+  end
+  
+  for i = 1, self.data.barWidth do
+    term.setCursorPos( (sizeX - self.data.barWidth) / 2 + i, self.data.yPos)
+    local char = ' '
+    if i < (( self.data.currentEventCount / self.data.totalEventCount ) * self.data.barWidth + 1) then
+      if isAdvanced and self.data.barColor then
+        term.setBackgroundColor( self.data.barColor )
+      else
+        char = '|'
+      end
+    else
+      if isAdvanced and self.data.barColor then
+        term.setBackgroundColor( colors.gray )
+      end
+    end
+    
+    write( char )
+  end
+end
+
+local function draw_message( self )
+  if self.data.progressMessage then
+    term.setCursorPos( sizeX / 2 - self.data.progressMessage:len() / 2, sizeY - 3 )
+    if isAdvanced then
+      term.setTextColor( colors.black )
+      term.setBackgroundColor( colors.white )
+    end
+    term.clearLine()
+    term.write( self.data.progressMessage )
+  end
+end
+
+local function drawScreen( self )
+  if not ( self.mode == BAR_ONLY or self.mode == ASCII_BAR_ONLY ) then
+    draw_header_footer( self.data )
+  end
+  
+  for row = 1, #self.data.logo do
+    for col = 1, self.data.logo[row]:len() do
+      term.setCursorPos( math.ceil( sizeX / 2 - #self.data.logo[1] / 2 ) + col, self.data.isLogoLoad and self.data.yPos + row or (math.ceil( sizeY / 2 - #self.data.logo / 2 ) + row) - 2  )
+      local char = self.data.logo[row]:sub( col, col )
+      if char ~= " " then
+        if not self.data.isLogoLoad or col > ( ( self.data.currentEventCount / self.data.totalEventCount ) * self.data.logo[1]:len() + ( self.data.currentEventCount == 0 and self.data.currentEventCount or 1 ) ) then
+          if not ( self.mode == LOGO_IS_OVERLAY ) then
+            term.setBackgroundColor( hexLookup( char ) )
+          else
+            term.setBackgroundColor( colors.lightGray )
+          end
+        else
+          if not ( self.mode == LOGO_IS_OVERLAY ) then
+            term.setBackgroundColor( self.data.barColor )
+          else
+            term.setBackgroundColor( hexLookup( char ) )
+          end
+        end
+        write(" ")
+      end
+    end
+    print()
+  end
+  
+  if not self.data.isLogoLoad then
+    draw_progress_bar( self )
+  end
+  
+  if not ( self.mode == BAR_ONLY or self.mode == ASCII_BAR_ONLY ) then
+    draw_message( self )
+  end
+end
+
+local function drawScreenASCII( self )
+  if not ( self.mode == BAR_ONLY or self.mode == ASCII_BAR_ONLY ) then
+    draw_header_footer( self.data )
+  end
+  
+  for row = 1, #self.data.logo do
+    for col = 1, self.data.logo[row]:len() do
+      term.setCursorPos( math.ceil( sizeX / 2 - #self.data.logo[1] / 2 ) + col, (math.ceil( sizeY / 2 - #self.data.logo / 2 ) + row) - 2  )
+      local char = self.data.logo[row]:sub( col, col )
+      if char ~= " " then
+        if col > ( ( self.data.currentEventCount / self.data.totalEventCount ) * self.data.logo[1]:len() + ( self.data.currentEventCount == 0 and self.data.currentEventCount or 1 ) ) then
+          write( char )
+        end
+      end
+    end
+    print()
+  end
+  
+  draw_progress_bar( self )
+  
+  if not ( self.mode == BAR_ONLY or self.mode == ASCII_BAR_ONLY ) then
+    draw_message( self )
+  end
+end
+
+--[[ PUBLIC CLASS VARIABLES AND FUNCTIONS ]]--
+
+function getVersion() return version end
+
+function getApiIdentifier() return apiIdentifier end
+
+--[[ OBJECT ]]--
+
+load = {}
+
+load.__index = load
+load.__tostring = function( self ) return apiIdentifier end
+load.__gc = function( self ) usedIds[ self.id ] = nil self.data.logo = nil self.data = nil self = nil end
+
+--[[ GETTERS ]]--
+
+function load.getId( self )
+  return self.id
+end
+
+function load.getCurrentProgress( self )
+  return self.data.currentEventCount
+end
+
+function load.getFormattedProgress( self )
+  return self.data.currentEventCount.."/"..self.data.totalEventCount
+end
+
+--[[ SETTERS ]]--
+
+function load.setMessage( self, msg )
+  if not self.data then error( "Object does not exist", 2 ) end
+  self.data.progressMessage = msg
+  os.queueEvent( "load_update_"..self.id )
+end
+
+--[[ CONTRUCTORS / DESTRUCTORS ]]--
+
+function init( lmode, tLogo, count, width, y, loadColor, openingMsg, headMsg, footMsg )
+  if not isValidMode( lmode ) then error( "Bad argument: Invalid mode: "..type( lmode ).." : "..tostring( lmode ), 2 ) end
+  if not isAdvanced and ( lmode ~= ASCII_BAR_ONLY and lmode ~= ASCII ) then error( "Invalid mode: Can only run in ASCII mode, attempted "..modeToText( lmode ), 2 ) end
+  
+  local valid, errorMsg = isValidParams( lmode, tLogo, count, width, y, loadColor, openingMsg, headMsg, footMsg )
+  if not valid then error( "Bad argument: Invalid paramters for mode: "..modeToText( lmode ).." : "..errorMsg, 2 ) end
+  
+  local loadObject = { id = generateId(), data = {
+    isLogoLoad = ( lmode == LOGO_IS_LOAD or lmode == LOGO_IS_OVERLAY ),
+    isAscii = ( lmode == ASCII_BAR_ONLY or lmode == ASCII ),
+    isBarOnly = ( lmode == BAR_ONLY or lmode == ASCII_BAR_ONLY ),
+    logo = type( tLogo ) == "table" and tLogo or {},
+    barWidth  = getWidthFromMode( lmode, tLogo, width ),
+    yPos = getYFromMode( lmode, tLogo, y ),
+    barColor = loadColor,
+    totalEventCount = count,
+    currentEventCount = 0,
+    progressMessage = openingMsg or "",
+    headerMessage = headMsg or "",
+    footerMessage = footMsg or "",
+  }, mode = lmode }
+  
+  setmetatable( loadObject, load )
+  
+  return loadObject
+end
+
+function load.dealloc( self )
+  usedIds[ self.id ] = nil
+  self.data.logo = nil
+  self.data = nil
+  self = nil
+end
+
+--[[ OBJECT FUNCTIONS ]]--
+
+function load.reset( self )
+  if not self.data then error( "Object does not exist", 2 ) end
+  self.data.currentEventCount = 0
+end
+
+function load.forceStop( self )
+  if not self.data then error( "Object does not exist", 2 ) end
+  self.data.currentEventCount = self.data.totalEventCount
+  os.queueEvent( "load_update_"..self.id )
+end
+
+function load.triggerUpdate( self, msg )
+  if not self.data then error( "Object does not exist", 2 ) end
+  self.data.currentEventCount = self.data.currentEventCount + 1
+  if msg and msg:len() ~= 0 then self.data.progressMessage = msg end
+  os.queueEvent( "load_update_"..self.id )
+end
+
+function load.removeMessage( self )
+  if not self.data then error( "Object does not exist", 2 ) end
+  self.data.progressMessage = ""
+  os.queueEvent( "load_update_"..self.id )
+end
+
+function load.forceDraw( self )
+  if not self.data then return end
+  if not ( self.mode == BAR_ONLY or self.mode == ASCII_BAR_ONLY ) then error( "Object function can only be called in mode: BAR_ONLY and ASCII_BAR_ONLY", 2 ) end
+  draw_progress_bar( self )
+end
+
+function load.run( self, cleanup )
+  if not self.data then error( "Object is not initialized", 2 ) end
+  
+  if self.mode ~= BAR_ONLY and self.mode ~= ASCII_BAR_ONLY then
+    clearScreen( colors.white )
+  end
+  
+  if self.data.isAscii then
+    drawScreenASCII( self )
+  else
+    drawScreen( self )
+  end
+
+  while true do
+    if self.data.currentEventCount == self.data.totalEventCount then break end
+    
+    event = { os.pullEventRaw( "load_update_"..self.id ) }
+    
+    if self.mode == BAR_ONLY or self.mode == ASCII_BAR_ONLY then
+      draw_progress_bar( self )
+    elseif self.mode == ASCII then
+      drawScreenASCII( self )
+    else
+      drawScreen( self )
+    end
+  end
+  
+  if cleanup == true then self:dealloc() end
+end
+
+STANDARD      = 1   -- Load screen with logo, text and bar 
+BAR_ONLY      = 2   -- Progress bar only
+ASCII_BAR_ONLY    = 3   -- Progress bar only - in ascii
+LOGO_IS_LOAD    = 4   -- Load screen with logo and text - no bar, logo is progress indicator
+LOGO_IS_OVERLAY   = 5   -- Load screen with logo and text - no bar, logo is progress indicator ( initially greyed out )
+ASCII       = 6   -- Load screen with logo, text and bar - in ascii

@@ -1,0 +1,63 @@
+--[[
+
+
+                        _________
+                       |_|_|_|_|_|
+                         |__|__|
+                         |__|__|
+                         |__|__|
+                         |__|__|
+                         |__|__|
+                         |__|__|
+                         |__|__|
+      ___________________|__|__|___
+     /                             \
+    /     Rito OS, Created By:      \
+   /          @Watsuprico            \
+  /                                   \
+ /   Bedrock API/Framwork Created By:  \
+/                                       \
+|_______________________________________|
+|                                       |
+|   _______                   _______   |
+|  |   |   |                 |   |   |  |
+|  |---|---|                 |---|---|  |
+|  |___|___|                 |___|___|  |
+|                                       |
+|                                       |
+|                                       |
+|               _________               |
+|              |         |              |
+|              |  Rito   |              |
+|              |         |              |
+|              |       σ |              |
+|              |         |              |
+|______________|_________|______________|
+]]--
+
+-- Run Par.
+local tArgs = { ... }
+if #tArgs < 1 then
+term.setTextColor(colors.red)
+return nul
+else
+local RunKernelFunction = shell.resolve( tArgs[1] )
+if RunKernelFunction ~= nul then
+  if RunKernelFunction == "restart" then
+    restart()
+  elseif RunKernelFunction == "CheckReg" then
+    CheckReg() --Checks for reg changes and global changes and applies them
+  end
+else
+  return nul
+end
+end
+-- End
+
+function restart()
+  os.reboot() --Duh.
+end
+
+function CheckReg()
+  
+end

@@ -1,0 +1,138 @@
+-- Simple Write Script
+local function fwrite(path, text)
+        local file = assert(io.open(path, "w"))
+        file:write(text)
+        file:close()
+end
+-- End
+
+--Center Text
+local function PrintCentered(sText)
+msgLen = string.len(sText)
+screenWidth,_ = term.getSize()
+xCoords = tonumber(math.ceil((screenWidth / 2) - (msgLen / 2)))
+_,termY = term.getCursorPos()
+term.setCursorPos(xCoords,termY)
+print(sText)
+return xCoords
+end
+
+CMDVer = "0.1"
+
+function os.pullEvent( sFilter )
+    local eventData = { os.pullEventRaw( sFilter ) }
+    if eventData[1] == "terminate" then
+    	term.setTextColour(UserCommandPC)
+    	print("Are you sure you want to terminate?")
+    	
+    end
+    return unpack( eventData )
+end
+
+
+local function RunCommand( _sCommand, ... )
+    local Xcord, Ycord = term.getCursorPos()
+    term.setCursorPos(1, 1)
+    term.setTextColour(UserCommandPC)
+    term.clearLine()
+    PrintCentered("Rito OS Command V"..os.version())
+    term.clearLine()
+    PrintCentered("For help, type 'commands'")
+    if ... ~= nil then
+        term.clearLine()
+        PrintCentered(_sCommand, ...)
+    else
+        term.clearLine()
+        PrintCentered(_sCommand)
+    end
+    term.setCursorPos(Xcord, Ycord)
+    term.setTextColour(UserCommandTC)
+    if _sCommand == "reboot" then
+        os.reboot()
+    elseif _sCommand == "shutdown" then
+        os.shutdown()
+    elseif _sCommand == "clear" then
+        term.clear()
+        term.setCursorPos(1, 1)
+    elseif _sCommand == "update" then
+        rito.update()
+    elseif _sCommand == "command" then
+        shell.run("/.PootOS/.System/.Command","NormalCommand")
+    elseif _sCommand == "__CrashMe!" then
+        print("Okay.")
+        sleep(5)
+    	kern.run("kernel.crash")
+    elseif _sCommand == "list" then
+        shell.run("/rom/programs/list")
+    elseif _sCommand == "ls" then
+        shell.run("/rom/programs/list")
+    elseif _sCommand == "exit" then
+        error("Exit Command Ran")
+    elseif _sCommand == "commands" then
+        print("Rito commands:")
+        print("reboot  - Reboots The Computer")
+        print("command  - Opens A Command Prompt")
+        print("shutdown  - Shuts Down The Computer")
+        print("update  - Update The System")
+        print("exit  - Exit This Command Prompt")
+        print("recovery  - Boot The System Into Recovery Mode")
+        print("edit_conf  - Edits The System Config")
+        print("clear  - Clears The Screen")
+        print("run <program>  - Allows You To Run Programs")
+        print("help <command>  - Brings Up Help Related To That Command")
+    elseif _sCommand == "edit_conf" then
+        shell.run("edit","Configs/.Rito.conf")
+    elseif _sCommand ~= nil then
+    	    if ... ~=nil then
+    	    	if shell.run(_sCommand,...) == false then
+    	    		printError("Could not run ".._sCommand.." ".. ...)
+    	    	end
+    	    else
+            	if shell.run(_sCommand) == false then
+            		printError("Could not run ".._sCommand)
+        		end
+        	end
+    else
+        printError("Unknown Command, ".._sCommand)
+    end
+end -- End The Function
+
+local function runLine( _sLine )
+    local tWords = {}
+    for match in string.gmatch( _sLine, "[^ \t]+" ) do
+        table.insert( tWords, match )
+    end
+
+    local sCommand = tWords[1]
+    if sCommand then
+        return RunCommand( sCommand, unpack( tWords, 2 ) )
+    end
+    return false
+end
+
+term.setBackgroundColor(UserCommandBGC)
+term.setTextColour(UserCommandPC)
+term.clear()
+term.setCursorPos(1,1)
+PrintCentered("Rito OS Command V"..os.version())
+PrintCentered("For help, type 'commands'")
+PrintCentered("You are in your home folder, do 'cd /'")
+shell.setDir("Users/"..LogName.."")
+local tCommandHistory = {}
+while not bExit do
+    term.setBackgroundColor(UserCommandBGC)
+    term.setTextColour(UserCommandPC)
+    local Xcord, Ycord = term.getCursorPos()
+    if Ycord == 1 then
+    Ycord = 4
+    term.setCursorPos(Xcord, Ycord)
+    else
+    term.setCursorPos(Xcord, Ycord)
+    end
+    write( "/" .. shell.dir() .. "/ }" )
+    term.setTextColour(UserCommandTC)
+
+    local sLine = read( nil, tCommandHistory )
+    table.insert( tCommandHistory, sLine )
+    runLine( sLine )
+end
