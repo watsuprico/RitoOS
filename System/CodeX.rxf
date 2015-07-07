@@ -49,7 +49,7 @@ scp(1,5)
 print("Password: ")
 scp(11,5)
 stc(CodeXIC)
-local MultiKey = read("σ")
+local MultiKey = read("*")
 local Key = StrUtils.SHA1("."..MultiKey.."") -- Look mom! I can encrypt!
 local Password = StrUtils.SHA1(""..MultiKey..""..Key..""..MultiKey.."")
 local Passcode = StrUtils.SHA1(""..Password..""..Key..""..Password.."") -- Many ways...

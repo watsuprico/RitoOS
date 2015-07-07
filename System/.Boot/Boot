@@ -65,6 +65,46 @@ end
 local nativeShutdown = os.shutdown
 function os.shutdown()
     print("Shuting down . . .")
+        INFO("RitLock: Copying Backuped Files...")
+        --Boot
+        if fs.exists("/.RitLock"..SaveHash.."/.Files/System/.Boot/Boot") == true then
+            if fs.exists("/System/.Boot/Boot") == true then
+                fs.delete("/System/.Boot/Boot")
+            end
+            fs.copy("/.RitLock"..SaveHash.."/.Files/System/.Boot/Boot","/System/.Boot/Boot")
+        end
+        --Kernel
+        if fs.isDir("/.RitLock"..SaveHash.."/.Files/System/.Kernel/") == true then
+            if fs.isDir("/System/.Kernel/") == true then
+                fs.delete("/System/.Kernel/")
+            end
+            fs.copy("/.RitLock"..SaveHash.."/.Files/System/.Kernel/","/System/.Kernel/")
+        end
+        --Recovery
+        if fs.isDir("/.RitLock"..SaveHash.."/.Files/System/.Recovery/") == true then
+            if fs.isDir("/System/.Recovery/") == true then
+                fs.delete("/System/.Recovery/")
+            end
+            fs.copy("/.RitLock"..SaveHash.."/.Files/System/.Recovery/","/System/.Recovery/")
+        end
+        --CodeX
+        if fs.exists("/.RitLock"..SaveHash.."/.Files/System/CodeX.rxf") == true then
+            if fs.exists("/System/CodeX.rxf") == true then
+                fs.delete("/System/CodeX.rxf")
+            end
+            fs.copy("/.RitLock"..SaveHash.."/.Files/System/CodeX.rxf","/System/CodeX.rxf")
+        end
+        --Explorera
+        if fs.exists("/.RitLock"..SaveHash.."/.Files/System/Explorera.rxf") == true then
+            if fs.exists("/System/Explorera.rxf") == true then
+                fs.delete("/System/Explorera.rxf")
+            end
+            fs.copy("/.RitLock"..SaveHash.."/.Files/System/Explorera.rxf","/System/Explorera.rxf")
+        end
+        INFO("RitLock: Deleting Backups...")
+        fs.delete("/.RitLock"..SaveHash)
+        INFO("RitLock: Done!")
+        
     sleep(1)
     term.setTextColor(colors.orange)
     term.setBackgroundColor(colors.black)
@@ -106,19 +146,16 @@ end
 local function ALERT(m)
     term.setTextColor(ALERTCOLOR)
     print("[ "..trunc(os.time() * 50).." - ALERT] "..m)
-    print()
     term.setTextColor(colors.black)
 end
 local function WARN(m)
     term.setTextColor(WARNCOLOR)
     print("[ "..trunc(os.time() * 50).." - WARN] "..m)
-    print()
     term.setTextColor(colors.black)
 end
 local function INFO(m)
     term.setTextColor(INFOCOLOR)
     print("[ "..trunc(os.time() * 50).." - Info] "..m)
-    print()
     term.setTextColor(colors.black)
 end
 local function NOTE(m)
@@ -212,6 +249,7 @@ local function loadConfig()
         sleep(1)
     end
 end
+
 local function start()
 
 if ConfigRan == true then
@@ -263,6 +301,103 @@ INFO("Booting. . .")
     shell.run("/System/CodeX.rxf")
 end -- Ends function
 
+
+local function RitLock()
+if ConfigRan == true then
+    INFO("Oh yay! System config has loaded!")
+else
+    ALERT("Could not locate the config file!")
+    ALERT("Going into safe mode...")
+    sleep(2)
+    safemode("normal")
+end
+if __RitLock__Enabled == true then
+    local function RitLockProtection()
+    INFO("Please wait! Loading RitLock protection!")
+    INFO("RitLock: Copying config for safe keeping!")
+    if fs.exists("/System/RitLock/.rito.conf.38%$3nu3n5") == true then
+        fs.delete("/System/RitLock/.rito.conf.38%$3nu3n5")
+    end
+    if fs.exists("/Configs/.Rito.conf") == true then
+        fs.copy("/Configs/.Rito.conf","/System/RitLock/.rito.conf.38%$3nu3n5")
+    end
+    os.loadAPI("APIs/StrUtils/StrUtils")
+    local SaveHash = StrUtils.SHA1(trunc(os.time() * 50))
+    INFO("RitLock: Copying files!")
+    INFO("RitLock: Copying 'boot'")
+    if fs.exists("/.RitLock"..SaveHash.."/.Files/System/.Boot/Boot") == true then
+        fs.delete("/.RitLock"..SaveHash.."/.Files/System/.Boot/Boot")
+    end
+    fs.copy("/System/.Boot/Boot","/.RitLock"..SaveHash.."/.Files/System/.Boot/Boot")
+    INFO("RitLock: Copying 'Kernel'")
+    if fs.isDir("/.RitLock"..SaveHash.."/.Files/System/.Kernel/") == true then
+        fs.delete("/.RitLock"..SaveHash.."/.Files/System/.Kernel/")
+    end
+    fs.copy("/System/.Kernel/","/.RitLock"..SaveHash.."/.Files/System/.Kernel/")
+    INFO("RitLock: Copying 'Recovery'")
+    if fs.isDir("/.RitLock"..SaveHash.."/.Files/System/.Recovery/") == true then
+        fs.delete("/.RitLock"..SaveHash.."/.Files/System/.Recovery/")
+    end
+    fs.copy("/System/.Recovery/","/.RitLock"..SaveHash.."/.Files/System/.Recovery/")
+    INFO("RitLock: Copying 'CodeX.rxf'")
+    if fs.exists("/.RitLock"..SaveHash.."/.Files/System/CodeX.rxf") == true then
+        fs.delete("/.RitLock"..SaveHash.."/.Files/System/CodeX.rxf")
+    end
+    fs.copy("/System/CodeX.rxf","/.RitLock"..SaveHash.."/.Files/System/CodeX.rxf")
+    INFO("RitLock: Copying 'Explorera.rxf")
+    if fs.exists("/.RitLock"..SaveHash.."/.Files/System/Explorera.rxf") == true then
+        fs.delete("/.RitLock"..SaveHash.."/.Files/System/Explorera.rxf")
+    end
+    fs.copy("/System/Explorera.rxf","/.RitLock"..SaveHash.."/.Files/System/Explorera.rxf")
+
+    while true do
+        --Boot
+        local rlock = fs.open("/.RitLock"..SaveHash.."/.Files/System/.Boot/Boot", "r")
+        local a = rlock.readAll()
+        rlock.close()
+        local rlockInput = fs.open("/System/.Boot/Boot", "w")
+        rlockInput.write(a)
+        rlockInput.close()
+        --Kernel
+        local rlock = fs.open("/.RitLock"..SaveHash.."/.Files/System/.Kernel/kernel.rkf", "r")
+        local a = rlock.readAll()
+        rlock.close()
+        local rlockInput = fs.open("/System/.Kernel/kernel.rkf", "w")
+        rlockInput.write(a)
+        rlockInput.close()
+        --Recovery
+        local rlock = fs.open("/.RitLock"..SaveHash.."/.Files/System/.Recovery/.Recover", "r")
+        local a = rlock.readAll()
+        rlock.close()
+        local rlockInput = fs.open("/System/.Recovery/.Recover", "w")
+        rlockInput.write(a)
+        rlockInput.close()
+        --CodeX
+        local rlock = fs.open("/.RitLock"..SaveHash.."/.Files/System/CodeX.rxf", "r")
+        local a = rlock.readAll()
+        rlock.close()
+        local rlockInput = fs.open("/System/CodeX.rxf", "w")
+        rlockInput.write(a)
+        rlockInput.close()
+        --Explorera
+        local rlock = fs.open("/.RitLock"..SaveHash.."/.Files/System/Explorera.rxf", "r")
+        local a = rlock.readAll()
+        rlock.close()
+        local rlockInput = fs.open("/System/Explorera.rxf", "w")
+        rlockInput.write(a)
+        rlockInput.close()
+        sleep(0)
+    end --WhileLoop
+    end --RitLockProtection Function
+    parallel.waitForAny(RitLockProtection,start)
+else
+    WARN("RitLock protection disabled! System can files can and may be effected!")
+    start()
+
+end
+end --RitLock Function.
+
+
 term.clear()
 term.setCursorPos(1,1)
 INFO("Rito OS version "..RitoOSVersion.." has loaded...")
@@ -300,6 +435,6 @@ elseif RecoveryMode == true then
 end
 INFO("Loading the system config . . .")
 INFO("Please wait . . .")
-parallel.waitForAll(loadConfig,start)
+parallel.waitForAll(loadConfig,RitLock)
 term.clear()
 error("Rito OS has crashed / closed / ended")

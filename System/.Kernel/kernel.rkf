@@ -1,63 +1,127 @@
---[[
+local bedrockPath='APIs/Bedrock' if OneOS then OneOS.LoadAPI('/System/API/Bedrock.lua', false)elseif fs.exists(bedrockPath..'/Bedrock')then os.loadAPI(bedrockPath..'/Bedrock')else if http then print('Downloading Bedrock...')local h=http.get('http://pastebin.com/raw.php?i=0MgKNqpN')if h then local f=fs.open(bedrockPath..'/Bedrock','w')f.write(h.readAll())f.close()h.close()os.loadAPI(bedrockPath..'/Bedrock')else error('Failed to download Bedrock. Is your internet working?') end else error('This program needs to download Bedrock to work. Please enable HTTP.') end end if Bedrock then Bedrock.BasePath = bedrockPath Bedrock.ProgramPath = shell.getRunningProgram() end -- I'll use this in a later build
+
+local function PrintCentered(sText)
+msgLen = string.len(sText)
+screenWidth,_ = term.getSize()
+_xCoords = tonumber(math.ceil((screenWidth / 2) - (msgLen / 2)))
+_,termY = term.getCursorPos()
+term.setCursorPos(_xCoords,termY)
+print(sText)
+end
+
+local function stc(c) --Help save space...
+	term.setTextColor(c)
+end
+local function c()
+	term.clear()
+end
+local function sbc(c)
+	term.setBackgroundColor(c)
+end
+local function scp(x,y)
+	term.setCursorPos(x,y)
+end
+
+local function start()
+sbc(CodeXBGC)
+c()
+stc(CodeXTC)
+scp(1,1)
+PrintCentered("CodeX Version "..CodeXVer)
+print()
+scp(1,4)
+stc(CodeXPC)
+print("Username: ")
+scp(11,4)
+stc(CodeXIC)
+local username = read()
+if fs.exists("/Users/"..username.."/."..username..".codex") == true then
+	LogName = username
+    shell.run("/Users/"..username.."/."..username..".codex")
+else
+	stc(CodeXEC)
+	print("Unknown user.")
+	sleep(1)
+	start()
+end
+stc(CodeXPC)
+scp(1,5)
+print("Password: ")
+scp(11,5)
+stc(CodeXIC)
+local MultiKey = read("*")
+local Key = StrUtils.SHA1("."..MultiKey.."") -- Look mom! I can encrypt!
+local Password = StrUtils.SHA1(""..MultiKey..""..Key..""..MultiKey.."")
+local Passcode = StrUtils.SHA1(""..Password..""..Key..""..Password.."") -- Many ways...
+local CheckCode = StrUtils.toBinary(""..Passcode.."")
+local MultiKey = "Om nom nom."
+local Key = "Om nom nom."
+local Password = "Om nom nom."
+local Passcode = "Om nom nom."
+if pass == CheckCode then
+	print("Password correct! Loading . . .")
+    HasUserLogged = "tajbn38wsna;3on4r00djsd0hj3n"
+    c()
+    shell.run("/System/Explorera.rxf")
+else
+	stc(CodeXEC)
+	print("Password incorrect!")
+	sleep(1)
+	start()
+end
+sleep(1)
+start()
+end -- End function
 
 
-                        _________
-                       |_|_|_|_|_|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-      ___________________|__|__|___
-     /                             \
-    /     Rito OS, Created By:      \
-   /          @Watsuprico            \
-  /                                   \
- /   Bedrock API/Framwork Created By:  \
-/                                       \
-|_______________________________________|
-|                                       |
-|   _______                   _______   |
-|  |   |   |                 |   |   |  |
-|  |---|---|                 |---|---|  |
-|  |___|___|                 |___|___|  |
-|                                       |
-|                                       |
-|                                       |
-|               _________               |
-|              |         |              |
-|              |  Rito   |              |
-|              |         |              |
-|              |       σ |              |
-|              |         |              |
-|______________|_________|______________|
-]]--
+local function register()
+	print("Register. . .")
+	scp(1,1)
+	sbc(CodeXBGC)
+	c()
+	PrintCentered("Please type a system wide username.")
+	PrintCentered("E.X. Bobby Swano ")
+	local Username = read()
+	PrintCentered("Please type a login name.")
+	PrintCentered("E.X. Watsuprico")
+	local Logname = read()
+	print()
+	local function RegisterPassword()
+		local function fwrite(path, text)
+        	local file = assert(io.open(path, "w"))
+	        file:write(text)
+    	    file:close()
+		end
+		c()
+		PrintCentered("Now, type your password.")
+		local Passcode = read("*")
+		PrintCentered("Please, re-type that password.")
+		local CheckCode = read("#")
+		if CheckCode == Passcode then
+			PrintCentered("Passwords match!")
+			PrintCentered("Saving your profile . . .")
+			local Key = StrUtils.SHA1("."..CheckCode.."") -- Look mom! I can encrypt!
+			local Password = StrUtils.SHA1(""..CheckCode..""..Key..""..CheckCode.."")
+			local Passcode = StrUtils.SHA1(""..Password..""..Key..""..Password.."") -- Many ways...
+			local CheckCode = StrUtils.toBinary(""..Passcode.."")
+			fwrite("/Users/"..Logname.."/."..Logname..".codex", "Username = '"..Username.."' pass = '"..CheckCode.."' ver = '"..CodeXVer.."'")
+			PrintCentered("Complete!")
+			sleep(1)
+		else
+			PrintCentered("Passwords do not match!")
+			sleep(2)
+			RegisterPassword()
+		end --End check password
 
--- Run Par.
+	end -- Close Pass function.
+    RegisterPassword()
+end -- Close register function
 local tArgs = { ... }
 if #tArgs < 1 then
-term.setTextColor(colors.red)
-return nul
+start()
 else
-local RunKernelFunction = shell.resolve( tArgs[1] )
-if RunKernelFunction ~= nul then
-  if RunKernelFunction == "restart" then
-    restart()
-  elseif RunKernelFunction == "CheckReg" then
-    CheckReg() --Checks for reg changes and global changes and applies them
-  end
-else
-  return nul
+local CommandToUse = shell.resolve( tArgs[1] )
+if CommandToUse == "Register" then
+	register()
 end
-end
--- End
-
-function restart()
-  os.reboot() --Duh.
-end
-
-function CheckReg()
-  
 end

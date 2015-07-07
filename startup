@@ -1,2 +1,1 @@
-RecoveryMode = true
 shell.run("/System/.Boot/Boot")
