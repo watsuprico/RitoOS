@@ -40,7 +40,7 @@ local WARNCOLOR = 2
 local INFOCOLOR = 8192
 local NOTECOLOR = 512
 local ErrBGC = 32768
-local RitoOSVersion = "0.2"
+local RitoOSVersion = "0.2.3"
 local logo = {                                  --|
   "  9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9",
   " 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 ",
@@ -64,6 +64,7 @@ end
 local nativeShutdown = os.shutdown
 function os.shutdown()
     print("Shuting down . . .")
+    if __RitLock__Enabled == true then
         print("RitLock: Copying Backuped Files...")
         --Boot
         if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Boot/Boot") == true then
@@ -105,6 +106,7 @@ function os.shutdown()
             fs.delete("/.RitLock"..__RitLock___Save___Hash___Value_)
         end
         print("RitLock: Done!")
+    end
     term.setTextColor(colors.orange)
     term.setBackgroundColor(colors.black)
     term.clear()
@@ -128,6 +130,7 @@ end
 local nativeReboot = os.reboot
 function os.reboot()
     print("Rebooting . . .")
+    if __RitLock__Enabled == true then
             print("RitLock: Copying Backuped Files...")
         --Boot
         if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Boot/Boot") == true then
@@ -169,6 +172,7 @@ function os.reboot()
             fs.delete("/.RitLock"..__RitLock___Save___Hash___Value_)
         end
         print("RitLock: Done!")
+    end
     nativeReboot()
     while true do
         coroutine.yield()

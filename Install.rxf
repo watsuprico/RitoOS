@@ -1,69 +1,47 @@
 --[[
-
-Manual download list:
+Manual install:
 
 System
-http://pastebin.com/Vt0tmijA -- Boot
-http://pastebin.com/9PFFzzfG -- CodeX
-http://pastebin.com/Yw1wfr7T -- Explorera
-http://pastebin.com/Hsf0bH7y -- Kernel
-http://pastebin.com/QUVqqruf -- Recovery
+[-http://pastebin.com/Vt0tmijA -- Boot | Location: /System/.Boot/Boot
+[-http://pastebin.com/9PFFzzfG -- CodeX | Location: /System/CodeX.rxf
+[-http://pastebin.com/Yw1wfr7T -- Explorera | Location: /System/Explorera.rxf
+[-http://pastebin.com/Hsf0bH7y -- Kernel | Location: /System/.Kernel/kernel.rkf
+[-http://pastebin.com/QUVqqruf -- Recover | Location: /System/.Recovery/.Recover
 
 APIs
-http://pastebin.com/zeG34tu6 -- Loading Screen
-http://pastebin.com/pFFpyvm9 -- StrUtils
-http://pastebin.com/Pn1gPPsj -- RitoOSAPI
+[-http://pastebin.com/zeG34tu6 -- Loading Screen | Location: /APIs/Progressbar/bar
+[-http://pastebin.com/pFFpyvm9 -- StrUtils | Location: /APIs/StrUtils/StrUtils
+[-http://pastebin.com/Pn1gPPsj -- RitoOSAPI | Location: /APIs/Rito/Rito
 
 Config
-http://pastebin.com/PR8YxeZJ -- Default Config
+[-http://pastebin.com/PR8YxeZJ -- Default Config | Location: /Configs/.Rito.conf
 
 Programs
-http://pastebin.com/X5Fysdi4 -- Net Shell
+[-http://pastebin.com/X5Fysdi4 -- Net Shell | Location: /Programs/nsh -- Not Needed!
+
+Dirs
+[-APIs
+ |-Bedrock
+ |-ProgressBar
+ |-Rito
+ |-StrUtils
+ -
+[-Configs
+[-Programs
+[-System
+ |-.Boot
+ |-.Kernel
+ |-.Recovery
+ |-RitLock
+ -
+[-Users
 
 ]]--
-
---[[
-
-
-                        _________
-                       |_|_|_|_|_|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-      ___________________|__|__|___
-     /                             \
-    /     Rito OS, Created By:      \
-   /          @Watsuprico            \
-  /                                   \
- /   Bedrock API/Framwork Created By:  \
-/                                       \
-|_______________________________________|
-|                                       |
-|   _______                   _______   |
-|  |   |   |                 |   |   |  |
-|  |---|---|                 |---|---|  |
-|  |___|___|                 |___|___|  |
-|                                       |
-|                                       |
-|                                       |
-|               _________               |
-|              |         |              |
-|              |  Rito   |              |
-|              |         |              |
-|              |       σ |              |
-|              |         |              |
-|______________|_________|______________|
-]]--
-
 local ALERTCOLOR = 16384
 local WARNCOLOR = 2
 local INFOCOLOR = 8192
 local NOTECOLOR = 512
-__Installer_RitoOSVersion_ = "0.2.2"
+__Installer_RitoOSVersion_ = "0.2.3"
 
 local logo = {								  --|
   "96d 1 9 d 1 9 d7189 d 1 9 d 1 95d41 9 d 1 9  ",
@@ -215,70 +193,11 @@ local function install2()
         pbar:triggerUpdate(". - Writing startup script - .")
         fwrite("/startup","shell.run('/System/.Boot/Boot')")
         term.clear()
-        pbar:triggerUpdate(". - Complete! Loading user creator - .")
+        pbar:triggerUpdate(". - Rebooting - .")
         sleep(3)
     end
 
 parallel.waitForAny(ProgressBarB,install2)
-
-
-local function stc(c) --Help save space...
-    term.setTextColor(c)
-end
-local function c()
-    term.clear()
-end
-local function sbc(c)
-    term.setBackgroundColor(c)
-end
-local function scp(x,y)
-    term.setCursorPos(x,y)
-end
-
-    print("Register. . .")
-    os.loadAPI("/APIs/StrUtils/StrUtils ")
-    scp(1,1)
-    c()
-    PrintCentered("Please type your name.")
-    PrintCentered("(This is not the name you enter when logging in!)")
-    PrintCentered("E.X. Bobby Swano ")
-    local Username = read()
-    PrintCentered("Please type a login name.")
-    PrintCentered("(Typed when logging in)")
-    PrintCentered("E.X. Watsuprico")
-    local Logname = read()
-    print()
-    local function RegisterPassword()
-        local function fwrite(path, text)
-            local file = assert(io.open(path, "w"))
-            file:write(text)
-            file:close()
-        end
-        c()
-        PrintCentered("Now, type your password.")
-        local Passcode = read("*")
-        PrintCentered("Please, re-type that password.")
-        local CheckCode = read("#")
-        if CheckCode == Passcode then
-            PrintCentered("Passwords match!")
-            PrintCentered("Saving your profile . . .")
-            local Key = StrUtils.SHA1("."..CheckCode.."") -- Look mom! I can encrypt!
-            local Password = StrUtils.SHA1(""..CheckCode..""..Key..""..CheckCode.."")
-            local Passcode = StrUtils.SHA1(""..Password..""..Key..""..Password.."") -- Many ways...
-            local CheckCode = StrUtils.toBinary(""..Passcode.."")
-            fwrite("/Users/"..Logname.."/."..Logname..".codex", "Username = '"..Username.."' pass = '"..CheckCode.."' ver = '"..CodeXVer.."'")
-            PrintCentered("Complete!")
-            sleep(1)
-        else
-            PrintCentered("Passwords do not match!")
-            sleep(2)
-            RegisterPassword()
-        end --End check password
-
-    end -- Close Pass function.
-    RegisterPassword()
-
-    -- Close and reboot
     term.setTextColor(colors.black)
     term.setBackgroundColor(colors.lightGray)
     term.setCursorPos(1,1)
@@ -287,7 +206,7 @@ end
     if fs.isDir("/.__temp/") == true then
         fs.delete("/.__temp/")
     end
-    PrintCentered(". -- | RitoOS has been installed| -- .")
+    PrintCentered(". -- | RitoOS has been installed | -- .")
     PrintCentered(". -- | System rebooting | -- .")
     sleep(3)
     PrintCentered(". -| Goodbye  ); |- .")
