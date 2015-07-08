@@ -1,0 +1,298 @@
+--[[
+
+Manual download list:
+
+System
+http://pastebin.com/Vt0tmijA -- Boot
+http://pastebin.com/9PFFzzfG -- CodeX
+http://pastebin.com/Yw1wfr7T -- Explorera
+http://pastebin.com/Hsf0bH7y -- Kernel
+http://pastebin.com/QUVqqruf -- Recovery
+
+APIs
+http://pastebin.com/zeG34tu6 -- Loading Screen
+http://pastebin.com/pFFpyvm9 -- StrUtils
+http://pastebin.com/Pn1gPPsj -- RitoOSAPI
+
+Config
+http://pastebin.com/PR8YxeZJ -- Default Config
+
+Programs
+http://pastebin.com/X5Fysdi4 -- Net Shell
+
+]]--
+
+--[[
+
+
+                        _________
+                       |_|_|_|_|_|
+                         |__|__|
+                         |__|__|
+                         |__|__|
+                         |__|__|
+                         |__|__|
+                         |__|__|
+                         |__|__|
+      ___________________|__|__|___
+     /                             \
+    /     Rito OS, Created By:      \
+   /          @Watsuprico            \
+  /                                   \
+ /   Bedrock API/Framwork Created By:  \
+/                                       \
+|_______________________________________|
+|                                       |
+|   _______                   _______   |
+|  |   |   |                 |   |   |  |
+|  |---|---|                 |---|---|  |
+|  |___|___|                 |___|___|  |
+|                                       |
+|                                       |
+|                                       |
+|               _________               |
+|              |         |              |
+|              |  Rito   |              |
+|              |         |              |
+|              |       σ |              |
+|              |         |              |
+|______________|_________|______________|
+]]--
+
+local ALERTCOLOR = 16384
+local WARNCOLOR = 2
+local INFOCOLOR = 8192
+local NOTECOLOR = 512
+__Installer_RitoOSVersion_ = "0.2.2"
+
+local logo = {								  --|
+  "96d 1 9 d 1 9 d7189 d 1 9 d 1 95d41 9 d 1 9  ",
+  " 96d 1 9 d 1 97d 189 d 1 9 d 159 d41 9 d 1 9 ",
+  "9 d61 9 d 1 97d 1 98d 1 9 d 159 d 149 d 1 9  ",
+  " 9 d61 9 d 179 d 1 98d 1 9 d51 9 d 149 d 1 93",
+  "  9 d61 9 d71 9 d 1 98d 1 95d 1 9 d 149 d 139",
+  " 9 d 169 d71 9 d 1 9 d81 95d 1 9 d 1 94d 139 ",
+  "  9 d 1697d 1 9 d 1 9 d8159 d 1 9 d 1 94d31 9",
+}
+-- Functions
+local function trunc(s, i)
+    local mult = 10^(i or 0)
+    return math.floor(s * mult + 0.5) / mult
+end
+local function ALERT(m)
+    term.setTextColor(ALERTCOLOR)
+    print("[ "..trunc(os.time() * 50).." - ALERT] "..m)
+    term.setTextColor(colors.black)
+end
+local function WARN(m)
+    term.setTextColor(WARNCOLOR)
+    print("[ "..trunc(os.time() * 50).." - WARN] "..m)
+    term.setTextColor(colors.black)
+end
+local function INFO(m)
+    term.setTextColor(INFOCOLOR)
+    print("[ "..trunc(os.time() * 50).." - Info] "..m)
+    term.setTextColor(colors.black)
+end
+local function NOTE(m)
+    term.setTextColor(NOTECOLOR)
+    print("[ "..trunc(os.time() * 50).." - Notify] "..m)
+    term.setTextColor(colors.black)
+end
+local function fwrite(path, text)
+        local file = assert(io.open(path, "w"))
+        file:write(text)
+        file:close()
+end
+local function PrintCentered(m)
+local _mL = string.len(m)
+local _scw,_ = term.getSize()
+local _xC = tonumber(math.ceil((_scw / 2) - (_mL / 2)))
+local _,tY = term.getCursorPos()
+term.setCursorPos(_xC,tY)
+print(m)
+end -- End function
+
+INFO("Loading...")
+term.setBackgroundColor(colors.lightGray)
+term.clear()
+PrintCentered("RitoOS Version "..__Installer_RitoOSVersion_)
+PrintCentered(". . loading . .")
+PrintCentered("Downloading ProgressBar API")
+if fs.isDir("/.__temp/") == true then
+	fs.delete("/.__temp/")
+	fs.makeDir("/.__temp/")
+else
+	fs.makeDir("/.__temp/")
+end
+shell.run("pastebin","get","zeG34tu6","/.__temp/bar")
+os.loadAPI("/.__temp/bar")
+local function install()                     --updates
+local pbar = bar.init( bar.LOGO_IS_OVERLAY, logo, 13, nil, 14, nil, "Installing Rito OS", "- Rito OS -", "Rito OS Version "..__Installer_RitoOSVersion_ )
+local function ProgressBarB()
+    pbar:run( true )
+    sleep(0)
+end
+local function install2()
+		sleep(2)
+        pbar:triggerUpdate(" . - Creating dirs and deleting old files - .")
+        	if fs.isDir("/Old/") == true then
+        		fs.delete("/Old/")
+        		fs.makeDir("/Old/")
+        	else
+        		fs.makeDir("/Old/")
+        	end
+        	pbar:triggerUpdate(". - |Checking System| - .")
+        	if fs.isDir("/System/") == true then
+        		fs.move("/System/","/Old/System/")
+        		fs.makeDir("/System/")
+        	else
+        		fs.makeDir("/System/")
+        	end
+        	pbar:triggerUpdate(". - |Checking APIs| - .")
+        	if fs.isDir("/APIs/") == true then
+        		fs.move("/APIs/","/Old/APIs/")
+        		fs.makeDir("/APIs/")
+        	else
+        		fs.makeDir("/APIs/")
+        	end
+        	pbar:triggerUpdate(". - |Checking Configs| - .")
+        	if fs.isDir("/Configs/") == true then
+        		fs.move("/Configs/","/Old/Configs/")
+        		fs.makeDir("/Configs/")
+        	else
+        		fs.makeDir("/Configs/")
+        	end
+        	pbar:triggerUpdate(". - |Checking Programs| - .")
+        	if fs.isDir("/Programs/") == true then
+        		fs.move("/Programs/","/Old/Programs")
+        		fs.makeDir("/Programs/")
+        	else
+        		fs.makeDir("/Programs/")
+        	end
+        	pbar:triggerUpdate(". - |Checking Users| - .")
+        	if fs.isDir("/Users/") == true then
+        		fs.move("/Users/","/Old/Users/")
+        		fs.makeDir("/Users/")
+        	else
+        		fs.makeDir("/Users/")
+        	end
+        pbar:triggerUpdate(". - Starting download(s) - .")
+        sleep(0)
+        pbar:triggerUpdate(". - Downloading 'System' - .")
+        fs.makeDir("/System/.Boot/")
+        shell.run("pastebin","get","Vt0tmijA","/System/.Boot/Boot")
+        term.clear()
+        fs.makeDir("/System/.Recovery/")
+        shell.run("pastebin","get","QUVqqruf","/System/.Recovery/.Recover")
+        term.clear()
+        fs.makeDir("/System/.Kernel/")
+        shell.run("pastebin","get","Hsf0bH7y","/System/.Kernel/kernel.rkf")
+        term.clear()
+        shell.run("pastebin","get","9PFFzzfG","/System/CodeX.rxf")
+        term.clear()
+        shell.run("pastebin","get","Yw1wfr7T","/System/Explorera.rxf")
+        term.clear()
+        pbar:triggerUpdate(". - Downloading 'APIs' - .")
+        fs.makeDir("/APIs/ProgressBar/")
+        shell.run("pastebin","get","zeG34tu6","/APIs/ProgressBar/bar")
+        term.clear()
+        fs.makeDir("/APIs/Bedrock/")
+        shell.run("pastebin","get","0MgKNqpN","/APIs/Bedrock/Bedrock")
+        term.clear()
+        fs.makeDir("/APIs/Rito/")
+        shell.run("pastebin","get","Pn1gPPsj","/APIs/Rito/Rito")
+        term.clear()
+        fs.makeDir("/APIs/StrUtils/")
+        shell.run("pastebin","get","pFFpyvm9","/APIs/StrUtils/StrUtils")
+        term.clear()
+        pbar:triggerUpdate(". - Downloading 'Configs' - .")
+        shell.run("pastebin","get","PR8YxeZJ","/Configs/.Rito.conf")
+        term.clear()
+        pbar:triggerUpdate(". - Downloading 'Programs' - .")
+        shell.run("pastebin","get","X5Fysdi4","/Programs/Nsh")
+        term.clear()
+        pbar:triggerUpdate(". - Writing startup script - .")
+        fwrite("/startup","shell.run('/System/.Boot/Boot')")
+        term.clear()
+        pbar:triggerUpdate(". - Complete! Loading user creator - .")
+        sleep(3)
+    end
+
+parallel.waitForAny(ProgressBarB,install2)
+
+
+local function stc(c) --Help save space...
+    term.setTextColor(c)
+end
+local function c()
+    term.clear()
+end
+local function sbc(c)
+    term.setBackgroundColor(c)
+end
+local function scp(x,y)
+    term.setCursorPos(x,y)
+end
+
+    print("Register. . .")
+    os.loadAPI("/APIs/StrUtils/StrUtils ")
+    scp(1,1)
+    c()
+    PrintCentered("Please type your name.")
+    PrintCentered("(This is not the name you enter when logging in!)")
+    PrintCentered("E.X. Bobby Swano ")
+    local Username = read()
+    PrintCentered("Please type a login name.")
+    PrintCentered("(Typed when logging in)")
+    PrintCentered("E.X. Watsuprico")
+    local Logname = read()
+    print()
+    local function RegisterPassword()
+        local function fwrite(path, text)
+            local file = assert(io.open(path, "w"))
+            file:write(text)
+            file:close()
+        end
+        c()
+        PrintCentered("Now, type your password.")
+        local Passcode = read("*")
+        PrintCentered("Please, re-type that password.")
+        local CheckCode = read("#")
+        if CheckCode == Passcode then
+            PrintCentered("Passwords match!")
+            PrintCentered("Saving your profile . . .")
+            local Key = StrUtils.SHA1("."..CheckCode.."") -- Look mom! I can encrypt!
+            local Password = StrUtils.SHA1(""..CheckCode..""..Key..""..CheckCode.."")
+            local Passcode = StrUtils.SHA1(""..Password..""..Key..""..Password.."") -- Many ways...
+            local CheckCode = StrUtils.toBinary(""..Passcode.."")
+            fwrite("/Users/"..Logname.."/."..Logname..".codex", "Username = '"..Username.."' pass = '"..CheckCode.."' ver = '"..CodeXVer.."'")
+            PrintCentered("Complete!")
+            sleep(1)
+        else
+            PrintCentered("Passwords do not match!")
+            sleep(2)
+            RegisterPassword()
+        end --End check password
+
+    end -- Close Pass function.
+    RegisterPassword()
+
+    -- Close and reboot
+    term.setTextColor(colors.black)
+    term.setBackgroundColor(colors.lightGray)
+    term.setCursorPos(1,1)
+    term.clear()
+    PrintCentered(". - Deleting temp - .")
+    if fs.isDir("/.__temp/") == true then
+        fs.delete("/.__temp/")
+    end
+    PrintCentered(". -- | RitoOS has been installed| -- .")
+    PrintCentered(". -- | System rebooting | -- .")
+    sleep(3)
+    PrintCentered(". -| Goodbye  ); |- .")
+    sleep(0)
+    os.reboot()
+end -- End install
+
+install()

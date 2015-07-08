@@ -40,8 +40,7 @@ local WARNCOLOR = 2
 local INFOCOLOR = 8192
 local NOTECOLOR = 512
 local ErrBGC = 32768
-local RitoOSVersion = "0.1"
-RitoLocation = Root
+local RitoOSVersion = "0.2"
 local logo = {                                  --|
   "  9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9",
   " 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 ",
@@ -65,47 +64,47 @@ end
 local nativeShutdown = os.shutdown
 function os.shutdown()
     print("Shuting down . . .")
-        INFO("RitLock: Copying Backuped Files...")
+        print("RitLock: Copying Backuped Files...")
         --Boot
-        if fs.exists("/.RitLock"..SaveHash.."/.Files/System/.Boot/Boot") == true then
+        if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Boot/Boot") == true then
             if fs.exists("/System/.Boot/Boot") == true then
                 fs.delete("/System/.Boot/Boot")
             end
-            fs.copy("/.RitLock"..SaveHash.."/.Files/System/.Boot/Boot","/System/.Boot/Boot")
+            fs.copy("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Boot/Boot","/System/.Boot/Boot")
         end
         --Kernel
-        if fs.isDir("/.RitLock"..SaveHash.."/.Files/System/.Kernel/") == true then
+        if fs.isDir("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Kernel/") == true then
             if fs.isDir("/System/.Kernel/") == true then
                 fs.delete("/System/.Kernel/")
             end
-            fs.copy("/.RitLock"..SaveHash.."/.Files/System/.Kernel/","/System/.Kernel/")
+            fs.copy("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Kernel/","/System/.Kernel/")
         end
         --Recovery
-        if fs.isDir("/.RitLock"..SaveHash.."/.Files/System/.Recovery/") == true then
+        if fs.isDir("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Recovery/") == true then
             if fs.isDir("/System/.Recovery/") == true then
                 fs.delete("/System/.Recovery/")
             end
-            fs.copy("/.RitLock"..SaveHash.."/.Files/System/.Recovery/","/System/.Recovery/")
+            fs.copy("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Recovery/","/System/.Recovery/")
         end
         --CodeX
-        if fs.exists("/.RitLock"..SaveHash.."/.Files/System/CodeX.rxf") == true then
+        if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/CodeX.rxf") == true then
             if fs.exists("/System/CodeX.rxf") == true then
                 fs.delete("/System/CodeX.rxf")
             end
-            fs.copy("/.RitLock"..SaveHash.."/.Files/System/CodeX.rxf","/System/CodeX.rxf")
+            fs.copy("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/CodeX.rxf","/System/CodeX.rxf")
         end
         --Explorera
-        if fs.exists("/.RitLock"..SaveHash.."/.Files/System/Explorera.rxf") == true then
+        if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/Explorera.rxf") == true then
             if fs.exists("/System/Explorera.rxf") == true then
                 fs.delete("/System/Explorera.rxf")
             end
-            fs.copy("/.RitLock"..SaveHash.."/.Files/System/Explorera.rxf","/System/Explorera.rxf")
+            fs.copy("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/Explorera.rxf","/System/Explorera.rxf")
         end
-        INFO("RitLock: Deleting Backups...")
-        fs.delete("/.RitLock"..SaveHash)
-        INFO("RitLock: Done!")
-        
-    sleep(1)
+        print("RitLock: Deleting Backups...")
+        if fs.isDir("/.RitLock"..__RitLock___Save___Hash___Value_) == true then
+            fs.delete("/.RitLock"..__RitLock___Save___Hash___Value_)
+        end
+        print("RitLock: Done!")
     term.setTextColor(colors.orange)
     term.setBackgroundColor(colors.black)
     term.clear()
@@ -121,7 +120,6 @@ function os.shutdown()
             print(m)
         end -- End function
     PrintCentered("It is now ok to turn off your computer.")
-    os.pullEvent("key")
     nativeShutdown()
     while true do
         coroutine.yield()
@@ -130,7 +128,47 @@ end
 local nativeReboot = os.reboot
 function os.reboot()
     print("Rebooting . . .")
-    sleep(1)
+            print("RitLock: Copying Backuped Files...")
+        --Boot
+        if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Boot/Boot") == true then
+            if fs.exists("/System/.Boot/Boot") == true then
+                fs.delete("/System/.Boot/Boot")
+            end
+            fs.copy("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Boot/Boot","/System/.Boot/Boot")
+        end
+        --Kernel
+        if fs.isDir("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Kernel/") == true then
+            if fs.isDir("/System/.Kernel/") == true then
+                fs.delete("/System/.Kernel/")
+            end
+            fs.copy("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Kernel/","/System/.Kernel/")
+        end
+        --Recovery
+        if fs.isDir("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Recovery/") == true then
+            if fs.isDir("/System/.Recovery/") == true then
+                fs.delete("/System/.Recovery/")
+            end
+            fs.copy("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Recovery/","/System/.Recovery/")
+        end
+        --CodeX
+        if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/CodeX.rxf") == true then
+            if fs.exists("/System/CodeX.rxf") == true then
+                fs.delete("/System/CodeX.rxf")
+            end
+            fs.copy("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/CodeX.rxf","/System/CodeX.rxf")
+        end
+        --Explorera
+        if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/Explorera.rxf") == true then
+            if fs.exists("/System/Explorera.rxf") == true then
+                fs.delete("/System/Explorera.rxf")
+            end
+            fs.copy("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/Explorera.rxf","/System/Explorera.rxf")
+        end
+        print("RitLock: Deleting Backups...")
+        if fs.isDir("/.RitLock"..__RitLock___Save___Hash___Value_) == true then
+            fs.delete("/.RitLock"..__RitLock___Save___Hash___Value_)
+        end
+        print("RitLock: Done!")
     nativeReboot()
     while true do
         coroutine.yield()
@@ -323,6 +361,7 @@ if __RitLock__Enabled == true then
     end
     os.loadAPI("APIs/StrUtils/StrUtils")
     local SaveHash = StrUtils.SHA1(trunc(os.time() * 50))
+    __RitLock___Save___Hash___Value_ = SaveHash
     INFO("RitLock: Copying files!")
     INFO("RitLock: Copying 'boot'")
     if fs.exists("/.RitLock"..SaveHash.."/.Files/System/.Boot/Boot") == true then
