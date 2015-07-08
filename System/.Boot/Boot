@@ -64,7 +64,8 @@ end
 local nativeShutdown = os.shutdown
 function os.shutdown()
     print("Shuting down . . .")
-    if __RitLock__Enabled == true then
+    if __RitLock__Ran == true then
+        if __RitLock___Save___Hash___Value_ ~= nil then
         print("RitLock: Copying Backuped Files...")
         --Boot
         if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Boot/Boot") == true then
@@ -107,6 +108,7 @@ function os.shutdown()
         end
         print("RitLock: Done!")
     end
+    end
     term.setTextColor(colors.orange)
     term.setBackgroundColor(colors.black)
     term.clear()
@@ -130,7 +132,8 @@ end
 local nativeReboot = os.reboot
 function os.reboot()
     print("Rebooting . . .")
-    if __RitLock__Enabled == true then
+    if __RitLock__Ran == true then
+        if __RitLock___Save___Hash___Value_ ~= nil then
             print("RitLock: Copying Backuped Files...")
         --Boot
         if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Boot/Boot") == true then
@@ -172,6 +175,7 @@ function os.reboot()
             fs.delete("/.RitLock"..__RitLock___Save___Hash___Value_)
         end
         print("RitLock: Done!")
+    end
     end
     nativeReboot()
     while true do
@@ -394,6 +398,7 @@ if __RitLock__Enabled == true then
     fs.copy("/System/Explorera.rxf","/.RitLock"..SaveHash.."/.Files/System/Explorera.rxf")
 
     while true do
+        __RitLock__Ran = true
         --Boot
         local rlock = fs.open("/.RitLock"..SaveHash.."/.Files/System/.Boot/Boot", "r")
         local a = rlock.readAll()
