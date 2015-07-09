@@ -83,6 +83,52 @@ end
 local function scp(x,y)
 	term.setCursorPos(x,y)
 end
+
+function updateGit(file,spath)
+  if spath == nil then
+    spath = file
+  end
+  if __RitoOSUpdater__Enable_Betas == true then
+    branch = "BetaUpdates"
+  else
+    branch = "master"
+  end
+  if http then
+    local h=http.get("https://raw.githubusercontent.com/watsuprico/RitoOS/"..branch..""..file)
+    if h then
+      local f=fs.open(spath,'w')
+      f.write(h.readAll())
+      f.close()
+      h.close()
+      return true
+    else
+      printError("/- Could not download "..file.." on "..branch.." , is your internet working? -/")
+    end
+  else
+      printError("/- Http not enabled! Please enable http -/")
+      sleep(1)
+      return false
+  end
+end
+
+function downloadPaste(path,code)
+  if http then
+    local h=http.get('http://pastebin.com/raw.php?i='..code)
+    if h then
+      local f=fs.open(path,'w')
+      f.write(h.readAll())
+      f.close()
+      h.close()
+      return true
+    else
+      return false
+    end
+  else
+      printError("/- Http not enabled! Please enable http -/")
+      sleep(1)
+      return false
+  end
+end
 -- End functions
 c()
 stc(colors.white)
@@ -97,11 +143,10 @@ print("Please select an option ")
 
 
 local menu_options = { --This is our menu table. It contains basic data about the menu
-  [1] = {text="Safe Mode", color=colors.orange},
-  [2] = {text="Exit", color=colors.red},
-  [3] = {text="Shutdown", color=colors.orange},
-  [4] = {text="Update", color=colors.green},
-  [5] = {text="Roll Back", color=colors.red}
+  [1] = {text="Exit", color=colors.red},
+  [2] = {text="Shutdown", color=colors.orange},
+  [3] = {text="Update", color=colors.green},
+  [4] = {text="Roll Back", color=colors.red}
 }
 local termX, termY = term.getSize() --The x/y size of the terminal
 local function menuDraw(selected) --Our main draw function
@@ -142,18 +187,78 @@ while true do --The main loop. I would generally put this inside of a function f
     elseif e[2] == keys.up then
       selector = selector > 1 and selector-1 or #menu_options --Decrement the selector if the selector > 1. Otherwise, reset it to #menu_options
     elseif e[2] == keys.enter then
-      if selector == 1 then --Safemode
-        RecoveryModeSafe = true
-        shell.run("/System/.Boot/Boot")
-      elseif selector == 2 then --Exit
-        fs.delete("/System/.Boot/Recovery")
+      if selector == 1 then --Exit
+        __RitoOS__Enter_Recovery = nil
         os.reboot()
-      elseif selector == 3 then --Shutdown
+      elseif selector == 2 then --Shutdown
+        __RitoOS__Enter_Recovery = nil
         os.shutdown()
-      elseif selector == 4 then --Update
-        Rito.update()
-      elseif selector == 5 then --RollBack
-        Rito.rollback()
+      elseif selector == 3 then --Update
+        term.setCursorPos(1,1)
+        term.setBackgroundColor(colors.grey)
+        term.clear()
+        term.setTextColor(colors.blue)
+        PrintCentered("/- Updating -/")
+          if fs.isDir("/Old/") == true then
+            fs.delete("/Old/")
+          else
+            fs.makeDir("/Old/")
+          end
+          if fs.isDir("/System/") == true then
+            fs.copy("/System/","/Old/System/")
+          else
+            fs.makeDir("/System/")
+          end
+          if fs.isDir("/APIs/") == true then
+            fs.copy("/APIs/","/Old/APIs/")
+          else
+            fs.makeDir("/APIs/")
+          end
+          if fs.isDir("/Configs/") == true then
+            fs.copy("/Configs/","/Old/Configs/")
+          else
+            fs.makeDir("/Configs/")
+          end
+          if fs.isDir("/Programs/") == true then
+            fs.copy("/Programs/","/Old/Programs")
+          else
+            fs.makeDir("/Programs/")
+          end
+        updateGit("/System/.Boot/Boot")
+        updateGit("/System/.Recovery/.Recover")
+        updateGit("/System/.RitRun/Ritrun")
+        updateGit("/System/CodeX.rxf")
+        updateGit("/System/Explorera.rxf")
+        updateGit("/APIs/ProgressBar/bar")
+        updateGit("/APIs/Bedrock/Bedrock")
+        updateGit("/APIs/StrUtils/StrUtils")
+        updateGit("/Configs/.Rito.conf")
+        downloadPaste("X5Fysdi4","/Programs/NSH")
+        PrintCentered("/- Complete -/")
+        sleep(2)
+        term.clear()
+      elseif selector == 4 then --Rollback
+          if fs.isDir("/Old/") == true then
+            if fs.isDir("/Old/System/") == true then
+              fs.copy("/Old/System/","/System/")
+            else
+              printError("/- ! /System/ could not be rolledback ! -/")
+            end
+            if fs.isDir("/Old/APIs/") == true then
+              fs.copy("/Old/APIs/","/APIs/")
+            else
+              printError("/- ! /APIs/ could not be rolledback ! -/")
+            end
+            if fs.isDir("/Old/Configs/") == true then
+              fs.copy("/Old/Configs/","/Configs/")
+            else
+              printError("/- ! /Configs/ could not be rolledback ! -/")
+            end
+            if fs.isDir("/Old/Programs/") == true then
+              fs.copy("/Old/Programs/","/Programs/")
+            else
+              printError("/- ! /Programs/ could not be rolledback ! -/")
+            end
       end
     end
   elseif e[1] == "mouse_click" then
@@ -161,17 +266,77 @@ while true do --The main loop. I would generally put this inside of a function f
     if value then --If checkClick returns a value and not false
       selector = value --Set the selector to that value and break out of the loop
       if selector == 1 then --Safemode
-        RecoveryModeSafe = true
-        shell.run("/System/.Boot/Boot")
-      elseif selector == 2 then --Exit
-        fs.delete("/System/.Boot/Recovery")
+        __RitoOS__Enter_Recovery = nil
         os.reboot()
-      elseif selector == 3 then --Shutdown
+      elseif selector == 2 then --Shutdown
+        __RitoOS__Enter_Recovery = nil
         os.shutdown()
-      elseif selector == 4 then --Update
-        Rito.update()
-      elseif selector == 5 then --RollBack
-        Rito.rollback()
+      elseif selector == 3 then --Update
+        term.setCursorPos(1,1)
+        term.setBackgroundColor(colors.grey)
+        term.clear()
+        term.setTextColor(colors.blue)
+        PrintCentered("/- Updating -/")
+          if fs.isDir("/Old/") == true then
+            fs.delete("/Old/")
+          else
+            fs.makeDir("/Old/")
+          end
+          if fs.isDir("/System/") == true then
+            fs.copy("/System/","/Old/System/")
+          else
+            fs.makeDir("/System/")
+          end
+          if fs.isDir("/APIs/") == true then
+            fs.copy("/APIs/","/Old/APIs/")
+          else
+            fs.makeDir("/APIs/")
+          end
+          if fs.isDir("/Configs/") == true then
+            fs.copy("/Configs/","/Old/Configs/")
+          else
+            fs.makeDir("/Configs/")
+          end
+          if fs.isDir("/Programs/") == true then
+            fs.copy("/Programs/","/Old/Programs")
+          else
+            fs.makeDir("/Programs/")
+          end
+        updateGit("/System/.Boot/Boot")
+        updateGit("/System/.Recovery/.Recover")
+        updateGit("/System/.RitRun/Ritrun")
+        updateGit("/System/CodeX.rxf")
+        updateGit("/System/Explorera.rxf")
+        updateGit("/APIs/ProgressBar/bar")
+        updateGit("/APIs/Bedrock/Bedrock")
+        updateGit("/APIs/StrUtils/StrUtils")
+        updateGit("/Configs/.Rito.conf")
+        downloadPaste("X5Fysdi4","/Programs/NSH")
+        PrintCentered("/- Complete -/")
+        sleep(2)
+        term.clear()
+      elseif selector == 4 then --Rollback
+          if fs.isDir("/Old/") == true then
+            if fs.isDir("/Old/System/") == true then
+              fs.copy("/Old/System/","/System/")
+            else
+              printError("/- ! /System/ could not be rolledback ! -/")
+            end
+            if fs.isDir("/Old/APIs/") == true then
+              fs.copy("/Old/APIs/","/APIs/")
+            else
+              printError("/- ! /APIs/ could not be rolledback ! -/")
+            end
+            if fs.isDir("/Old/Configs/") == true then
+              fs.copy("/Old/Configs/","/Configs/")
+            else
+              printError("/- ! /Configs/ could not be rolledback ! -/")
+            end
+            if fs.isDir("/Old/Programs/") == true then
+              fs.copy("/Old/Programs/","/Programs/")
+            else
+              printError("/- ! /Programs/ could not be rolledback ! -/")
+            end
       end
     end
   end

@@ -1,0 +1,59 @@
+function printC(sText)
+msgLen = string.len(sText)
+screenWidth,_ = term.getSize()
+_xCoords = tonumber(math.ceil((screenWidth / 2) - (msgLen / 2)))
+_,termY = term.getCursorPos()
+term.setCursorPos(_xCoords,termY)
+print(sText)
+end
+function fwrite(path, text)
+        local file = assert(io.open(path, "w"))
+        file:write(text)
+        file:close()
+end
+function stc(c) --Help save space...
+	term.setTextColor(c)
+end
+function c()
+	term.clear()
+end
+function sbc(c)
+	term.setBackgroundColor(c)
+end
+function scp(x,y)
+	term.setCursorPos(x,y)
+end
+function downloadPaste(path,code)
+	if http then
+		local h=http.get('http://pastebin.com/raw.php?i='..code)
+		if h then
+			local f=fs.open(path,'w')
+			f.write(h.readAll())
+			f.close()
+			h.close()
+			return true
+		else
+			return false
+		end
+	else
+			error("/- Http not enabled! Please enable http -/")
+			return false
+	end
+end
+
+function update()
+	RitRun.printC("/- Updating -/")
+	__RitoOSUpdater__Complete_Updates_ = true
+	if fs.isDir("/System/.Updates/") == true then
+		fs.delete("/System/.Updates/")
+		fs.makeDir("/System/.Updates/")
+	else
+		fs.makeDir("/System/.Updates/")
+	end
+    downloadPaste("Vt0tmijA","/System/.Updates/System/.Boot/Boot")
+    downloadPaste("QUVqqruf","/System/.Updates/System/.Recovery/.Recover")
+    downloadPaste("Hsf0bH7y","/System/.Updates/System/.RitRun/RitRun")
+    downloadPaste("9PFFzzfG","/System/.Updates/System/CodeX.rxf")
+    downloadPaste("Yw1wfr7T","/System/.Updates/System/Explorera.rxf")
+    RitRun.printC("/- Complete -/")
+end--update end
