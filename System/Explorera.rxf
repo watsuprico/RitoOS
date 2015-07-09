@@ -1,3 +1,6 @@
+--Check if there is a user.
+if __CodeX_HasUserLogged == StrUtils.SHA1(__CodeX_Logname..''..__CodeX_Username) then
+print("There is...")
 -- Simple Write Script
 local function fwrite(path, text)
         local file = assert(io.open(path, "w"))
@@ -17,14 +20,63 @@ print(sText)
 return xCoords
 end
 
-CMDVer = "0.1"
+function updateGit(file,spath)
+	if spath == nil then
+		spath = file
+	end
+	if __RitoOSUpdater__Enable_Betas == true then
+		branch = "BetaUpdates"
+	else
+		branch = "master"
+	end
+	if http then
+		local h=http.get("https://raw.githubusercontent.com/watsuprico/RitoOS/"..branch..""..file)
+		if h then
+			local f=fs.open(spath,'w')
+			f.write(h.readAll())
+			f.close()
+			h.close()
+			return true
+		else
+			printError("/- Could not download "..file.." on "..branch.." , is your internet working? -/")
+		end
+	else
+			printError("/- Http not enabled! Please enable http -/")
+			sleep(1)
+			return false
+	end
+end
+
+function downloadPaste(path,code)
+	if http then
+		local h=http.get('http://pastebin.com/raw.php?i='..code)
+		if h then
+			local f=fs.open(path,'w')
+			f.write(h.readAll())
+			f.close()
+			h.close()
+			return true
+		else
+			return false
+		end
+	else
+			printError("/- Http not enabled! Please enable http -/")
+			sleep(1)
+			return false
+	end
+end
+
+ExploreraVer = '0.4'
 
 function os.pullEvent( sFilter )
     local eventData = { os.pullEventRaw( sFilter ) }
     if eventData[1] == "terminate" then
     	term.setTextColour(UserCommandPC)
     	print("Are you sure you want to terminate?")
-    	
+    	os.pullEvent("key")
+    	if key == "y" then
+    		error("Terminated.")
+    	end
     end
     return unpack( eventData )
 end
@@ -55,33 +107,64 @@ local function RunCommand( _sCommand, ... )
         term.clear()
         term.setCursorPos(1, 1)
     elseif _sCommand == "update" then
-        rito.update()
-    elseif _sCommand == "command" then
-        shell.run("/.PootOS/.System/.Command","NormalCommand")
+        RitRun.printC("/- Updating -/")
+		__RitoOSUpdater__Reboot_To_Complete_Updates = true
+		if fs.isDir("/System/.Updates/") == true then
+			fs.delete("/System/.Updates/")
+			fs.makeDir("/System/.Updates/")
+		else
+			fs.makeDir("/System/.Updates/")
+		end
+		if fs.isDir("/Old/") == true then
+            fs.delete("/Old/")
+          else
+            fs.makeDir("/Old/")
+          end
+          if fs.isDir("/System/") == true then
+            fs.copy("/System/","/Old/System/")
+          else
+            fs.makeDir("/System/")
+          end
+          if fs.isDir("/APIs/") == true then
+            fs.copy("/APIs/","/Old/APIs/")
+          else
+            fs.makeDir("/APIs/")
+          end
+          if fs.isDir("/Configs/") == true then
+            fs.copy("/Configs/","/Old/Configs/")
+          else
+            fs.makeDir("/Configs/")
+          end
+          if fs.isDir("/Programs/") == true then
+            fs.copy("/Programs/","/Old/Programs")
+          else
+            fs.makeDir("/Programs/")
+          end
+	    updateGit("/System/.Boot/Boot","/System/.Updates/System/.Boot/Boot")
+    	updateGit("/System/.Recovery/.Recover","/System/.Updates/System/.Recovery/.Recover")
+	    updateGit("/System/.RitRun/Ritrun","/System/.Updates/System/.RitRun/RitRun")
+    	updateGit("/System/CodeX.rxf","/System/.Updates/System/CodeX.rxf")
+	    updateGit("/System/Explorera.rxf","/System/.Updates/System/Explorera.rxf")
+	    updateGit("/APIs/ProgressBar/bar")
+	    updateGit("/APIs/Bedrock/Bedrock")
+	    updateGit("/APIs/StrUtils/StrUtils")
+	    updateGit("/Configs/.Rito.conf")
+	    downloadPaste("X5Fysdi4","/Programs/NSH")
+    	RitRun.printC("/- Complete -/")
     elseif _sCommand == "__CrashMe!" then
         print("Okay.")
         sleep(5)
-    	kern.run("kernel.crash")
-    elseif _sCommand == "list" then
-        shell.run("/rom/programs/list")
-    elseif _sCommand == "ls" then
-        shell.run("/rom/programs/list")
+    	rit.run("rit.crash")
     elseif _sCommand == "exit" then
         error("Exit Command Ran")
     elseif _sCommand == "commands" then
         print("Rito commands:")
-        print("reboot  - Reboots The Computer")
-        print("command  - Opens A Command Prompt")
-        print("shutdown  - Shuts Down The Computer")
-        print("update  - Update The System")
-        print("exit  - Exit This Command Prompt")
-        print("recovery  - Boot The System Into Recovery Mode")
-        print("edit_conf  - Edits The System Config")
-        print("clear  - Clears The Screen")
-        print("run <program>  - Allows You To Run Programs")
-        print("help <command>  - Brings Up Help Related To That Command")
-    elseif _sCommand == "edit_conf" then
-        shell.run("edit","Configs/.Rito.conf")
+        print("reboot  - Reboots the computer")
+        print("shutdown  - Shutdown the computer")
+        print("NYF - Update  - Update RitoOS")
+        print("exit  - Exit and close explorera")
+        print("recovery  - Reboot into recovery mode")
+        print("clear  - Clears the screen")
     elseif _sCommand ~= nil then
     	    if ... ~=nil then
     	    	if shell.run(_sCommand,...) == false then
@@ -114,7 +197,7 @@ term.setBackgroundColor(UserCommandBGC)
 term.setTextColour(UserCommandPC)
 term.clear()
 term.setCursorPos(1,1)
-PrintCentered("Rito OS Command V"..os.version())
+PrintCentered("Rito OS V"..os.version())
 PrintCentered("For help, type 'commands'")
 PrintCentered("You are in your home folder, do 'cd /'")
 shell.setDir("Users/"..LogName.."")
@@ -135,4 +218,8 @@ while not bExit do
     local sLine = read( nil, tCommandHistory )
     table.insert( tCommandHistory, sLine )
     runLine( sLine )
+end
+else
+printError("No user logged in.")
+sleep(1)
 end
