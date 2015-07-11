@@ -390,6 +390,15 @@ local function RitLockProtection()
             rlockInput.write(a)
             rlockInput.close()
         end
+        --User
+        if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/User.rxf") == true then
+            local rlock = fs.open("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/User.rxf", "r")
+            local a = rlock.readAll()
+            rlock.close()
+            local rlockInput = fs.open("/System/User.rxf", "w")
+            rlockInput.write(a)
+            rlockInput.close()
+        end
         --Startup script
         local rlockInput = fs.open("/Startup", "w")
         rlockInput.write("shell.run('/System/.Boot/Boot')")
@@ -437,6 +446,12 @@ if __RitLock__Enabled == "true" then
             fs.delete("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/Explorera.rxf")
         end
         fs.copy("/System/Explorera.rxf","/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/Explorera.rxf")
+    pbar:triggerUpdate("/- Copying 'User.rxf -/")
+    sleep(0)
+        if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/user.rxf") == true then
+            fs.delete("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/User.rxf")
+        end
+        fs.copy("/System/User.rxf","/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/User.rxf")
         parallel.waitForAll(RitLockProtectionPre,start)
         printError("| - RitoOS has stopped responding - |")
         printError("| - Code: RXF-0-BOOT-MAIN-END-000")
@@ -480,7 +495,12 @@ local function CheckForUpdates()
                 fs.delete("/System/Explorera.rxf")
                 fs.move("/System/.Updates/System/Explorera.rxf","/System/Explorera.rxf")
             end
-            pbar:triggerUpdate("/- Update complete! Rebooting -/") -- Pbar 7
+            pbar:triggerUpdate("/- Updating User -/")
+            if fs.exists("/System/.Updates/System/Explorera.rxf") == true then
+                fs.delete("/System/Explorera.rxf")
+                fs.move("/System/.Updates/System/Explorera.rxf","/System/Explorera.rxf")
+            end
+            pbar:triggerUpdate("/- Complete! Rebooting -/")
             local UpdateStartupFile = assert(io.open("/Startup", "w"))
             UpdateStartupFile:write("shell.run('/System/.Boot/Boot')")
             UpdateStartupFile:close()
@@ -503,7 +523,7 @@ INFO("/- RitoOS version "..__RitoOS_Version.." -/")
 INFO("/- The ProgressBar by TheOriginalBit will now load -/")
 os.loadAPI("/APIs/ProgressBar/bar")
 INFO("/- Bar loaded, setting up loading logo -/")
-pbar = bar.init( bar.LOGO_IS_OVERLAY, logo, 15, nil, 14, nil, "/- Loading Rito OS -/", "/- Rito OS -/", "| - Rito OS Version "..__RitoOS_Version.." - |" )
+pbar = bar.init( bar.LOGO_IS_OVERLAY, logo, 16, nil, 14, nil, "/- Loading Rito OS -/", "/- Rito OS -/", "| - Rito OS Version "..__RitoOS_Version.." - |" )
 local function ProgressBarB()
     pbar:run(true)
     sleep(0)
