@@ -36,6 +36,11 @@
 ]]--
 
 --Write functions
+local function fwrite(path, text)
+        local file = assert(io.open(path, "w"))
+        file:write(text)
+        file:close()
+end
 local function writeFromTable(path, t)
     local text = ""
     for _, line in pairs(t) do
@@ -241,6 +246,9 @@ function os.reboot()
         rlockInput.write("__RitoOS__Enter_Recovery = true\n"..a)
         rlockInput.close()
     end
+    if fs.exists("/System/.Boot/BootNumber") == true then
+        fs.delete("/System/.Boot/BootNumber")
+    end
     nativeReboot()
     while true do
         coroutine.yield()
@@ -324,11 +332,11 @@ local function RitLockProtectionHashSave()
         l = 10
         local __temp__ritlock_s = "" -- Start string
             for i = 1, l do
-                __temp__ritlock_s = __temp__ritlock_s .. string.char(math.random(35, 126)) -- Generate random number from 32 to 126, turn it into character and add to string
+                __temp__ritlock_s = __temp__ritlock_s .. string.char(math.random(33, 126)) -- Generate random number from 32 to 126, turn it into character and add to string
             end
         local _Temp_RitLock_Save = StrUtils.encrypt(__RitLock___Save___Hash___Value_,__temp__ritlock_s)
         local rlockInput = fs.open("/System/.RitLock/.RitLockHash", "w")
-        rlockInput.write('HashValue = "'.._Temp_RitLock_Save..'"\nKey = "'..__temp__ritlock_s..'"')
+        rlockInput.write(' '.._Temp_RitLock_Save..'\n '..__temp__ritlock_s..'')
         rlockInput.close()
         local __temp__ritlock_s = nil
         sleep(5)
@@ -393,7 +401,7 @@ local function RitLockProtectionPre()
     parallel.waitForAll(RitLockProtection,RitLockProtectionHashSave)
 end
 local function RitLock()
-if __RitLock__Enabled == true then
+if __RitLock__Enabled == "true" then
     pbar:triggerUpdate("/- RitLock protection loading -/")
     sleep(0)
     pbar:triggerUpdate("/- Creating keys -/")
@@ -508,11 +516,25 @@ os.loadAPI("APIs/StrUtils/StrUtils")
 pbar:triggerUpdate("/- Checking last shutdown state -/")
 if LastShutdownSuccessful ~= "238N@Ne8jd#*nc" then
     if fs.exists("/System/.RitLock/.RitLockHash") == true then
-        shell.run("/System/.RitLock/.RitLockHash")
+        local RitLockHash =  getTable("/System/.RitLock/.RitLockHash")
+        local HashValue = string.sub(RitLockHash[1],string.find(RitLockHash[1]," ")+1)
+        local Key = string.sub(RitLockHash[2],string.find(RitLockHash[2]," ")+1)
         local Hash = StrUtils.decrypt(HashValue,Key)
         if fs.isDir("/.RitLock"..Hash) == true then
             fs.delete("/.RitLock"..Hash)
              fs.delete("/System/.RitLock/.RitLockHash")
+        end
+        if fs.exists("/System/.Boot/BootNumber") == true then
+            BootNumber =  getTable("/System/.Boot/BootNumber")
+            BootNumberi = tonumber(string.sub(BootNumber[1],string.find(BootNumber[1],"!")+1))
+            if BootNumberi >= 3 then
+                __RitoOS__Enter_Recovery = true
+            else
+                BootNumberi = BootNumberi + 1
+                fwrite("/System/.Boot/BootNumber","!"..BootNumberi)
+            end
+        else
+            fwrite("/System/.Boot/BootNumber","!1")
         end
     end
 end
