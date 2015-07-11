@@ -23,6 +23,40 @@ local function fwrite(path, text)
         file:write(text)
         file:close()
 end
+local function writeFromTable(path, t)
+	local text = ""
+	for _, line in pairs(t) do
+		text = text..lin.."\n"
+	end
+	fwrite(path, text)
+end
+local function getTable(path)
+	if fs.exists(path) then
+		local file = io.open(path, "r")
+		local lines = {}
+		local i = 1
+		local line = file:read("*l")
+		while line ~= nil do
+			lines[i] = line
+			line = file:read("*l")
+			i = i + 1
+		end
+		file:close()
+		return lines
+	end
+	return {}
+end
+local function replaceLine(path, n, text)
+	local lines = getTable(path)
+	lines[n] = text
+	writeFromTable(path, lines)
+end
+local function append(path, text)
+	local file = assert(io.open(path, "a"))
+	file:write(text.."\n")
+	file:close()
+end
+
 local function stc(c) --Help save space...
 	term.setTextColor(c)
 end
@@ -37,16 +71,16 @@ local function scp(x,y)
 end
 
 local function ecrashed()
-print(". - Explorera crashed! Please wait while it is restarted - .")
+print("/- Explorera crashed! Please wait while it is restarted -/")
 sleep(1)
-print(". - Checking crash number - .")
+print("/- Checking crash number -/")
 if __CodeX_Crash_Number_ == nil then
 	__CodeX_Crash_Number_ = 0
 end
 if __CodeX_Crash_Number_ >= 3 then
-	print(". - Explorera crashed more than 3 times,\nthus the system will "..__Rito__ActionToDoAfterCrash..". - .")
+	print("/- Explorera crashed more than 3 times,\nthus the system will "..__RitoOS_crash_Action..". -/")
 	sleep(1)
-	if __Rito__ActionToDoAfterCrash == "reboot" then
+	if __RitoOS_crash_Action == "reboot" then
 		os.reboot()
 	else
 		os.shutdown()
@@ -58,41 +92,185 @@ ecrashed()
 sr("000")
 end -- End ecrashed
 
+function __CodeX_logout()
+	__CodeX_Username = nil
+	__CodeX_Logname = nil
+	__CodeX_HasUserLogged = nil
+	__CodeX_USR_PASSCODE_ = nil
+	shell.run("/System/CodeX.rxf")
+end
+
+function __CodeX_Delete_User()
+	stc(__CodeX_Prompt_Color)
+	c()
+	scp(1,1)
+	term.clearLine()
+	PrintCentered("Deleting user: "..__CodeX_Username)
+	PrintCentered("Please confirm your password.")
+	scp(1,5)
+	term.clearLine()
+	print("Password: ")
+	scp(11,5)
+	stc(__CodeX_Input_Color)
+	local MultiKey = read("*")
+	local Key = StrUtils.SHA1(MultiKey) -- Look mom! I can encrypt!
+	local Password = StrUtils.SHA1("."..Key.." ")
+	local Passcode = StrUtils.SHA1(" "..Password..".") -- Many ways...
+    local _checkCode_ = fs.open("/Users/"..__CodeX_Logname.."/.Passphrase.codex", "r")
+    local Key_ = _checkCode_.readAll()
+    _checkCode_.close()
+	local CheckCode = StrUtils.SHA1(Passcode..""..Key_)
+	local MultiKey = "Om nom nom."
+	local Key = "Om nom nom."
+	local Password = "Om nom nom."
+	local Passcode = "Om nom nom."
+	local s = "Om nom nom."
+	local Passphrase = "Om nom nom."
+	local userfile =  getTable("/Users/"..__CodeX_Logname.."/."..__CodeX_Logname..".codex")
+	local pass = string.sub(userfile[1],string.find(userfile[1],"!")+1)
+	if pass == CheckCode then
+		PrintCentered("/- Deleting account -/")
+		fs.delete("/Users/"..__CodeX_Username)
+		PrintCentered("/- Logging out -/")
+		__CodeX_logout()
+	else
+		stc(__CodeX_Error_Color)
+		PrintCentered("/- Password incorrect! -/")
+		PrintCentered("/- Canceling -/")
+		sleep(3)
+		c()
+	end
+end
+function __CodeX_Change_Password()
+	stc(__CodeX_Prompt_Color)
+	c()
+	scp(1,1)
+	term.clearLine()
+	PrintCentered("Changing password for: "..__CodeX_Username)
+	PrintCentered("Please confirm your password.")
+	scp(1,5)
+	term.clearLine()
+	print("Password: ")
+	scp(11,5)
+	stc(__CodeX_Input_Color)
+	local MultiKey = read("*")
+	local Key = StrUtils.SHA1(MultiKey) -- Look mom! I can encrypt!
+	local Password = StrUtils.SHA1("."..Key.." ")
+	local Passcode = StrUtils.SHA1(" "..Password..".") -- Many ways...
+    local _checkCode_ = fs.open("/Users/"..__CodeX_Logname.."/.Passphrase.codex", "r")
+    local Key_ = _checkCode_.readAll()
+    _checkCode_.close()
+	local CheckCode = StrUtils.SHA1(Passcode..""..Key_)
+	local MultiKey = "Om nom nom."
+	local Key = "Om nom nom."
+	local Password = "Om nom nom."
+	local Passcode = "Om nom nom."
+	local s = "Om nom nom."
+	local Passphrase = "Om nom nom."
+	local userfile =  getTable("/Users/"..__CodeX_Logname.."/."..__CodeX_Logname..".codex")
+	local pass = string.sub(userfile[1],string.find(userfile[1],"!")+1)
+	if pass == CheckCode then
+		c()
+		scp(1,1)
+		stc(__CodeX_Prompt_Color)
+		PrintCentered("Please, enter a new password.")
+		stc(__CodeX_Input_Color)
+		local CheckPassword = read("*")
+		stc(__CodeX_Prompt_Color)
+		PrintCentered("Please, re-enter that password.")
+		stc(__CodeX_Input_Color)
+		local CheckPassword2 = read("*")
+		if CheckPassword == CheckPassword2 then
+			if __CodeX_Register_Key_Length == nil then
+            	__CodeX_Register_Key_Length = 3750
+        	end
+        	local s = "" -- Start string
+        	for i = 1, __CodeX_Register_Key_Length do
+            	    s = s .. string.char(math.random(32, 126)) -- Generate random number from 32 to 126, turn it into character and add to string
+        	end
+        	local file = assert(io.open("/Users/"..__CodeX_Username.."/.Passphrase.codex", "w"))
+        	file:write(s)
+        	file:close()
+            MultiKey = CheckPassword
+			Key = StrUtils.SHA1(MultiKey) -- Look mom! I can encrypt!
+			Password = StrUtils.SHA1("."..Key.." ")
+			Passcode = StrUtils.SHA1(" "..Password..".") -- Many ways...
+        	_checkCode_ = fs.open("/Users/"..__CodeX_Username.."/.Passphrase.codex", "r")
+            Key_ = _checkCode_.readAll()
+            _checkCode_.close()
+			CheckCode = StrUtils.SHA1(Passcode..""..Key_)
+			--Verifi
+			MultiKey1 = CheckPassword
+			Key1 = StrUtils.SHA1(MultiKey1) -- Look mom! I can encrypt!
+			Password1 = StrUtils.SHA1("."..Key1.." ")
+			Passcode1 = StrUtils.SHA1(" "..Password1..".") -- Many ways...
+        	_checkCode_1 = fs.open("/Users/"..__CodeX_Username.."/.Passphrase.codex", "r")
+            Key_1 = _checkCode_1.readAll()
+            _checkCode_1.close()
+			CheckCode1 = StrUtils.SHA1(Passcode1..""..Key_1)
+			if CheckCode == CheckCode1 then
+            	fwrite("/Users/"..__CodeX_Username.."/."..__CodeX_Username..".codex", "!"..CheckCode)
+            	fwrite("/Users/.CodeXUserCreated","")
+            	PrintCentered("Complete!")
+            	MultiKey = "Oh nom nom."
+            	Key = "Oh nom nom."
+            	Password = "Oh nom nom."
+            	Passcode = "Oh nom nom."
+            	_checkCode_ = "Oh nom nom."
+            	Key_ = "Oh nom nom."
+            	CheckCode = "Oh nom nom."
+            	Key1 = "Oh nom nom."
+            	Password1 = "Oh nom nom."
+            	Passcode1 = "Oh nom nom."
+            	_checkCode_1 = "Oh nom nom."
+            	Key_1 = "Oh nom nom."
+            	CheckCode1 = "Oh nom nom."
+            else
+            	stc(__CodeX_Error_Color)
+            	PrintCentered("Uhoh! Something went wrong! Didn't update!")
+            end
+        else
+        	stc(__CodeX_Error_Color)
+        	PrintCentered("Two passwords didn't match! Didn't save.")
+        end
+	else
+		stc(__CodeX_Error_Color)
+		scp(1,5)
+		term.clearLine()
+		print("Password incorrect!")
+		sleep(3)
+		c()
+	end
+end
+
 
 --Auth check, user already logged in?
-print("Checking if user is logged in...")
-if __CodeX_Username ~= nil then
-	if __CodeX_Logname ~= nil then
-		if __CodeX_HasUserLogged ~= nil then
-			if __CodeX_HasUserLogged == StrUtils.SHA1(__CodeX_Logname..''..__CodeX_Username) then
-				print("Yep. Sending to explorera.")
+if __CodeX_Logname ~= nil then
+	if __CodeX_HasUserLogged ~= nil then
+		if __CodeX_HasUserLogged == StrUtils.SHA1(__CodeX_Logname) then
+			print("Verifing password.")
+			local userfile =  getTable("/Users/"..__CodeX_Logname.."/."..__CodeX_Logname..".codex")
+	    	local Pass = string.sub(userfile[1],string.find(userfile[1],"!")+1)
+			if __CodeX_USR_PASSCODE_ == Pass then
+				print("User logged in.")
 				shell.run("/System/Explorera.rxf")
 				ecrashed()
 			else
-				print("Values set, but incorrectly.")
+				print("Password not correct.")
 			end
 		else
-			print("Names set, that's it, could not verifi")
+			print("Values set, but incorrectly.")
 		end
 	else
-		print("Logname not set.")
+		print("Names set, that's it, could not verifi")
 	end
 else
-	print("Username not set.")
 end
-print("Checking... is there a user?")
-if shell.run("/Users/.CodeXUserCreated.rxf") == false then
-	print("Register. . .")
+if fs.exists("/Users/.CodeXUserCreated") == false then
     os.loadAPI("/APIs/StrUtils/StrUtils ")
     scp(1,1)
     c()
     stc(colors.black)
-    PrintCentered("Welcome to CodeX! The login system of RitoOS.")
-    PrintCentered("It seems there is no account setup, lets fix that.")
-    PrintCentered("Please, type your name.")
-    PrintCentered("(This is not the name you enter when logging in!)")
-    PrintCentered("E.X. Bobby Swano ")
-    local Username = read()
     PrintCentered("Please type a login name.")
     PrintCentered("(This is the username of the user,")
     PrintCentered(" and is how you login)")
@@ -119,7 +297,7 @@ if shell.run("/Users/.CodeXUserCreated.rxf") == false then
         	end
         	local s = "" -- Start string
         	for i = 1, __CodeX_Register_Key_Length do
-            	    s = s .. string.char(math.random(35, 126)) -- Generate random number from 32 to 126, turn it into character and add to string
+            	    s = s .. string.char(math.random(32, 126)) -- Generate random number from 32 to 126, turn it into character and add to string
         	end
         	fwrite("/Users/"..Logname.."/.Passphrase.codex",s)
             local MultiKey = _Passcode
@@ -140,8 +318,8 @@ if shell.run("/Users/.CodeXUserCreated.rxf") == false then
             _checkCode_1.close()
 			local CheckCode1 = StrUtils.SHA1(Passcode1..""..Key_1)
 			if CheckCode == CheckCode1 then
-            	fwrite("/Users/"..Logname.."/."..Logname..".codex", "Username = '"..Username.."'\npass = '"..CheckCode.."'\nver = '"..CodeXVer.."'")
-            	fwrite("/Users/.CodeXUserCreated.rxf","return true")
+            	fwrite("/Users/"..Logname.."/."..Logname..".codex", "!"..CheckCode)
+            	fwrite("/Users/.CodeXUserCreated","")
             	PrintCentered("Complete!")
             	sleep(1)
         	else
@@ -159,14 +337,16 @@ if shell.run("/Users/.CodeXUserCreated.rxf") == false then
     print("Rebooting...")
     os.reboot()
 else
-
 local function passwordentry()
-	stc(CodeXPC)
+	stc(__CodeX_Prompt_Color)
+	scp(1,1)
+	term.clearLine()
+	PrintCentered("Logging into: "..__CodeX_Username)
 	scp(1,5)
 	term.clearLine()
 	print("Password: ")
 	scp(11,5)
-	stc(CodeXIC)
+	stc(__CodeX_Input_Color)
 	local MultiKey = read("*")
 	local Key = StrUtils.SHA1(MultiKey) -- Look mom! I can encrypt!
 	local Password = StrUtils.SHA1("."..Key.." ")
@@ -181,16 +361,19 @@ local function passwordentry()
 	local Passcode = "Om nom nom."
 	local s = "Om nom nom."
 	local Passphrase = "Om nom nom."
+	local userfile =  getTable("/Users/"..__CodeX_Logname.."/."..__CodeX_Logname..".codex")
+	local pass = string.sub(userfile[1],string.find(userfile[1],"!")+1)
 	if pass == CheckCode then
 		print("Password correct! Loading . . .")
-		__CodeX_HasUserLogged = StrUtils.SHA1(__CodeX_Logname..''..__CodeX_Username)
+		__CodeX_HasUserLogged = StrUtils.SHA1(__CodeX_Logname)
+		__CodeX_USR_PASSCODE_ = CheckCode
     	HasUserLogged = "tajbn38wsna;3on4r00djsd0hj3n"
 	    c()
     	shell.run("/System/Explorera.rxf")
     	ecrashed()
     	sr("001")
 	else
-		stc(CodeXEC)
+		stc(__CodeX_Error_Color)
 		scp(1,5)
 		term.clearLine()
 		print("Password incorrect!")
@@ -198,36 +381,34 @@ local function passwordentry()
 		passwordentry()
 	end
 end --End passwordentry()
-
 local function start()
-	print("There is...")
-	print("Starting...")
-	sbc(CodeXBGC)
+	sbc(__CodeX_Background_Color)
 	c()
-	stc(CodeXTC)
+	stc(__CodeX_Text_Color)
 	scp(1,1)
-	PrintCentered("CodeX Version "..CodeXVer)
+	PrintCentered("CodeX 4.0")
 	print()
 	scp(1,4)
-	stc(CodeXPC)
+	stc(__CodeX_Prompt_Color)
 	print("Username: ")
 	scp(11,4)
-	stc(CodeXIC)
+	stc(__CodeX_Input_Color)
 	local username = read()
 	if fs.exists("/Users/"..username.."/."..username..".codex") == true then
-		LogName = username
 		__CodeX_Logname = username
-    	shell.run("/Users/"..username.."/."..username..".codex")
-    	__CodeX_Username = username
+		__CodeX_Username = username
+		passwordentry()
+		sr("002")
 	else
-		stc(CodeXEC)
+		stc(__CodeX_Error_Color)
 		print("Unknown user.")
 		sleep(0.7)
 		start()
 	end
 passwordentry()
-sr("002")
-end --End start
-start()
 sr("003")
+end --End start
+sleep(0.1)
+start()
+sr("004")
 end -- End function

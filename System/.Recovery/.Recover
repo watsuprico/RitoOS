@@ -130,6 +130,7 @@ function downloadPaste(path,code)
   end
 end
 -- End functions
+sleep(1)
 c()
 stc(colors.white)
 sbc(colors.blue)
@@ -340,4 +341,6 @@ while true do --The main loop. I would generally put this inside of a function f
       end
     end
   end
+end
+end
 end

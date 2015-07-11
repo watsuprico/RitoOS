@@ -34,13 +34,56 @@
 |              |         |              |
 |______________|_________|______________|
 ]]--
+
+--Write functions
+local function fwrite(path, text)
+        local file = assert(io.open(path, "w"))
+        file:write(text)
+        file:close()
+end
+local function writeFromTable(path, t)
+    local text = ""
+    for _, line in pairs(t) do
+        text = text..lin.."\n"
+    end
+    fwrite(path, text)
+end
+local function getTable(path)
+    if fs.exists(path) then
+        local file = io.open(path, "r")
+        local lines = {}
+        local i = 1
+        local line = file:read("*l")
+        while line ~= nil do
+            lines[i] = line
+            line = file:read("*l")
+            i = i + 1
+        end
+        file:close()
+        return lines
+    end
+    return {}
+end
+local function replaceLine(path, n, text)
+    local lines = getTable(path)
+    lines[n] = text
+    writeFromTable(path, lines)
+end
+local function append(path, text)
+    local file = assert(io.open(path, "a"))
+    file:write(text.."\n")
+    file:close()
+end
+--End
+
+
 -- Vars
 local ALERTCOLOR = 16384
 local WARNCOLOR = 2
 local INFOCOLOR = 8192
 local NOTECOLOR = 512
 local ErrBGC = 32768
-local RitoOSVersion = "1.0.0"
+local __RitoOS_Version = "1.0.0"
 local logo = {                                  --|
   "  9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9",
   " 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 ",
@@ -53,7 +96,7 @@ local logo = {                                  --|
 --End vars
 
 function os.version()
-    return RitoOSVersion
+    return __RitoOS_Version
 end
 function os.pullEvent( sFilter )
     local eventData = { os.pullEventRaw( sFilter ) }
@@ -128,7 +171,7 @@ function os.shutdown()
         local a = rlock.readAll()
         rlock.close()
         local rlockInput = fs.open("/Startup", "w")
-        rlockInput.write(a.."\n__RitoOS__Enter_Recovery = true")
+        rlockInput.write("__RitoOS__Enter_Recovery = true\n"..a)
         rlockInput.close()
     end
     nativeShutdown()
@@ -200,8 +243,11 @@ function os.reboot()
         local a = rlock.readAll()
         rlock.close()
         local rlockInput = fs.open("/Startup", "w")
-        rlockInput.write(a.."\n__RitoOS__Enter_Recovery = true")
+        rlockInput.write("__RitoOS__Enter_Recovery = true\n"..a)
         rlockInput.close()
+    end
+    if fs.exists("/System/.Boot/BootNumber") == true then
+        fs.delete("/System/.Boot/BootNumber")
     end
     nativeReboot()
     while true do
@@ -243,19 +289,38 @@ local _,tY = term.getCursorPos()
 term.setCursorPos(_xC,tY)
 print(m)
 end -- End function
+
+--Config
 local function loadConfig()
-    while true do
-        if shell.run("/Configs/.Rito.conf") == true then
-            __RitoOS_ConfigRan_ = true
-        else
-            __RitoOS_ConfigRan_ = false
+    while true do -- Load configs
+        __RitoOS_Config =  getTable("/Configs/.Rito.conf")
+        __RitoOS_crash_Action = string.sub(__RitoOS_Config[2],string.find(__RitoOS_Config[2],":")+2)
+        __RitoOS_Text_Color = string.sub(__RitoOS_Config[3],string.find(__RitoOS_Config[3],":")+2)
+        __RitoOS_Background_Color = string.sub(__RitoOS_Config[4],string.find(__RitoOS_Config[4],":")+2)
+        __RitoOS_Error_Background_Color = string.sub(__RitoOS_Config[5],string.find(__RitoOS_Config[5],":")+2)
+        __RitoOS_Error_Text_Color = string.sub(__RitoOS_Config[6],string.find(__RitoOS_Config[6],":")+2)
+        __RitoOS_Version = string.sub(__RitoOS_Config[7],string.find(__RitoOS_Config[7],":")+2)
+        __RitoOS_Computer_Label = string.sub(__RitoOS_Config[8],string.find(__RitoOS_Config[8],":")+2)
+        __RitLock__Enabled = string.sub(__RitoOS_Config[9],string.find(__RitoOS_Config[9],":")+2)
+        __RitoOSUpdater__Enable_Betas = string.sub(__RitoOS_Config[12],string.find(__RitoOS_Config[12],":")+2)
+        __CodeX_Text_Color = tonumber(string.sub(__RitoOS_Config[15],string.find(__RitoOS_Config[15],":")+2))
+        __CodeX_Background_Color = tonumber(string.sub(__RitoOS_Config[16],string.find(__RitoOS_Config[16],":")+2))
+        __CodeX_Prompt_Color = tonumber(string.sub(__RitoOS_Config[17],string.find(__RitoOS_Config[17],":")+2))
+        __CodeX_Input_Color = tonumber(string.sub(__RitoOS_Config[18],string.find(__RitoOS_Config[18],":")+2))
+        __CodeX_Error_Color = tonumber(string.sub(__RitoOS_Config[19],string.find(__RitoOS_Config[19],":")+2))
+        __CodeX_Register_Special_Key_Length = tonumber(string.sub(__RitoOS_Config[20],string.find(__RitoOS_Config[20],":")+2))
+        if __RitoOS_Config_Wait_5 == true then
+            __RitoOS_Config_Wait_5 = false
+            sleep(5)
         end
-        sleep(0)
+        sleep(1)
     end
 end
+--End
+
 local function start()
     pbar:triggerUpdate("/-Setting Computer Label -/")
-    os.setComputerLabel(""..ComputerName.."")
+    os.setComputerLabel(__RitoOS_Computer_Label)
     pbar:triggerUpdate("/- Loading Bedrock API -/")
     local bedrockPath='APIs/Bedrock' if OneOS then OneOS.LoadAPI('/System/API/Bedrock.lua', false)elseif fs.exists(bedrockPath..'/Bedrock')then os.loadAPI(bedrockPath..'/Bedrock')else if http then print('Downloading Bedrock...')local h=http.get('http://pastebin.com/raw.php?i=0MgKNqpN')if h then local f=fs.open(bedrockPath..'/Bedrock','w')f.write(h.readAll())f.close()h.close()os.loadAPI(bedrockPath..'/Bedrock')else error('Failed to download Bedrock. Is your internet working?') end else error('This program needs to download Bedrock to work. Please enable HTTP.') end end if Bedrock then Bedrock.BasePath = bedrockPath Bedrock.ProgramPath = shell.getRunningProgram() end
     pbar:triggerUpdate("/- RitoOS loaded, starting CodeX -/")
@@ -267,11 +332,11 @@ local function RitLockProtectionHashSave()
         l = 10
         local __temp__ritlock_s = "" -- Start string
             for i = 1, l do
-                __temp__ritlock_s = __temp__ritlock_s .. string.char(math.random(35, 126)) -- Generate random number from 32 to 126, turn it into character and add to string
+                __temp__ritlock_s = __temp__ritlock_s .. string.char(math.random(33, 126)) -- Generate random number from 32 to 126, turn it into character and add to string
             end
         local _Temp_RitLock_Save = StrUtils.encrypt(__RitLock___Save___Hash___Value_,__temp__ritlock_s)
         local rlockInput = fs.open("/System/.RitLock/.RitLockHash", "w")
-        rlockInput.write('HashValue = "'.._Temp_RitLock_Save..'"\nKey = "'..__temp__ritlock_s..'"')
+        rlockInput.write(' '.._Temp_RitLock_Save..'\n '..__temp__ritlock_s..'')
         rlockInput.close()
         local __temp__ritlock_s = nil
         sleep(5)
@@ -336,7 +401,7 @@ local function RitLockProtectionPre()
     parallel.waitForAll(RitLockProtection,RitLockProtectionHashSave)
 end
 local function RitLock()
-if __RitLock__Enabled == true then
+if __RitLock__Enabled == "true" then
     pbar:triggerUpdate("/- RitLock protection loading -/")
     sleep(0)
     pbar:triggerUpdate("/- Creating keys -/")
@@ -434,11 +499,11 @@ term.setCursorPos(1,1)
 local function error(m)
     ALERT(m)
 end
-INFO("/- RitoOS version "..RitoOSVersion.." -/")
+INFO("/- RitoOS version "..__RitoOS_Version.." -/")
 INFO("/- The ProgressBar by TheOriginalBit will now load -/")
 os.loadAPI("/APIs/ProgressBar/bar")
 INFO("/- Bar loaded, setting up loading logo -/")
-pbar = bar.init( bar.LOGO_IS_OVERLAY, logo, 15, nil, 14, nil, "/- Loading Rito OS -/", "/- Rito OS -/", "| - Rito OS Version "..RitoOSVersion.." - |" )
+pbar = bar.init( bar.LOGO_IS_OVERLAY, logo, 15, nil, 14, nil, "/- Loading Rito OS -/", "/- Rito OS -/", "| - Rito OS Version "..__RitoOS_Version.." - |" )
 local function ProgressBarB()
     pbar:run(true)
     sleep(0)
@@ -451,17 +516,31 @@ os.loadAPI("APIs/StrUtils/StrUtils")
 pbar:triggerUpdate("/- Checking last shutdown state -/")
 if LastShutdownSuccessful ~= "238N@Ne8jd#*nc" then
     if fs.exists("/System/.RitLock/.RitLockHash") == true then
-        shell.run("/System/.RitLock/.RitLockHash")
+        local RitLockHash =  getTable("/System/.RitLock/.RitLockHash")
+        local HashValue = string.sub(RitLockHash[1],string.find(RitLockHash[1]," ")+1)
+        local Key = string.sub(RitLockHash[2],string.find(RitLockHash[2]," ")+1)
         local Hash = StrUtils.decrypt(HashValue,Key)
         if fs.isDir("/.RitLock"..Hash) == true then
             fs.delete("/.RitLock"..Hash)
              fs.delete("/System/.RitLock/.RitLockHash")
         end
+        if fs.exists("/System/.Boot/BootNumber") == true then
+            BootNumber =  getTable("/System/.Boot/BootNumber")
+            BootNumberi = tonumber(string.sub(BootNumber[1],string.find(BootNumber[1],"!")+1))
+            if BootNumberi >= 3 then
+                __RitoOS__Enter_Recovery = true
+            else
+                BootNumberi = BootNumberi + 1
+                fwrite("/System/.Boot/BootNumber","!"..BootNumberi)
+            end
+        else
+            fwrite("/System/.Boot/BootNumber","!1")
+        end
     end
 end
 pbar:triggerUpdate("/- Checking recovery state -/")
 if __RitoOS__Enter_Recovery == true then
-    pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|")
+    pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|") pbar:triggerUpdate("|Booting recovery mode|")
     shell.run("/System/.Recovery/.Recover")
     printError("| - RitoOS has stopped responding - |")
     printError("| - Code: RXF-0-BOOT-MAIN-END-001")

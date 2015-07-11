@@ -1,6 +1,32 @@
---Check if there is a user.
-if __CodeX_HasUserLogged == StrUtils.SHA1(__CodeX_Logname..''..__CodeX_Username) then
-print("There is...")
+local function getTable(path)
+    if fs.exists(path) then
+        local file = io.open(path, "r")
+        local lines = {}
+        local i = 1
+        local line = file:read("*l")
+        while line ~= nil do
+            lines[i] = line
+            line = file:read("*l")
+            i = i + 1
+        end
+        file:close()
+        return lines
+    end
+    return {}
+end
+local function __config()
+if fs.exists("/Users/"..__CodeX_Username.."/.Configs/Explorera.conf") == true then
+	local userfile =  getTable("/Users/"..__CodeX_Username.."/.Configs/Explorera.conf")
+	__Explorera_User_Background_Color = tonumber(string.sub(userfile[1],string.find(userfile[1],":")+2))
+	__Explorera_User_Prompt_Color = tonumber(string.sub(userfile[2],string.find(userfile[2],":")+2))
+	__Explorera_User_Text_Color = tonumber(string.sub(userfile[3],string.find(userfile[3],":")+2))
+else
+	__Explorera_User_Prompt_Color = tonumber(string.sub(__RitoOS_Config[23],string.find(__RitoOS_Config[23],":")+2))
+    __Explorera_User_Background_Color = tonumber(string.sub(__RitoOS_Config[24],string.find(__RitoOS_Config[24],":")+2))
+    __Explorera_User_Text_Color = tonumber(string.sub(__RitoOS_Config[25],string.find(__RitoOS_Config[25],":")+2))
+end
+end
+if __CodeX_HasUserLogged == StrUtils.SHA1(__CodeX_Logname) then
 -- Simple Write Script
 local function fwrite(path, text)
         local file = assert(io.open(path, "w"))
@@ -65,17 +91,16 @@ function downloadPaste(path,code)
 			return false
 	end
 end
-
 ExploreraVer = '0.4'
 
 function os.pullEvent( sFilter )
     local eventData = { os.pullEventRaw( sFilter ) }
     if eventData[1] == "terminate" then
-    	term.setTextColour(UserCommandPC)
-    	print("Are you sure you want to terminate?")
-    	os.pullEvent("key")
-    	if key == "y" then
-    		error("Terminated.")
+    	term.setTextColour(__Explorera_User_Prompt_Color)
+    		if _on_promt_ == true then
+    			__CodeX_logout()
+    		else
+    		__CodeX_logout()
     	end
     end
     return unpack( eventData )
@@ -85,7 +110,7 @@ end
 local function RunCommand( _sCommand, ... )
     local Xcord, Ycord = term.getCursorPos()
     term.setCursorPos(1, 1)
-    term.setTextColour(UserCommandPC)
+    term.setTextColour(__Explorera_User_Prompt_Color)
     term.clearLine()
     PrintCentered("Rito OS Command V"..os.version())
     term.clearLine()
@@ -98,14 +123,13 @@ local function RunCommand( _sCommand, ... )
         PrintCentered(_sCommand)
     end
     term.setCursorPos(Xcord, Ycord)
-    term.setTextColour(UserCommandTC)
+    term.setTextColour(__Explorera_User_Text_Color)
     if _sCommand == "reboot" then
         os.reboot()
     elseif _sCommand == "shutdown" then
         os.shutdown()
-    elseif _sCommand == "clear" then
-        term.clear()
-        term.setCursorPos(1, 1)
+    elseif _sCommand == "recovery" then
+    	__RitoOS__Enter_Recovery = true
     elseif _sCommand == "update" then
         RitRun.printC("/- Updating -/")
 		__RitoOSUpdater__Reboot_To_Complete_Updates = true
@@ -142,7 +166,7 @@ local function RunCommand( _sCommand, ... )
           end
 	    updateGit("/System/.Boot/Boot","/System/.Updates/System/.Boot/Boot")
     	updateGit("/System/.Recovery/.Recover","/System/.Updates/System/.Recovery/.Recover")
-	    updateGit("/System/.RitRun/Ritrun","/System/.Updates/System/.RitRun/RitRun")
+	    updateGit("/System/.RitRun/RitRun","/System/.Updates/System/.RitRun/RitRun")
     	updateGit("/System/CodeX.rxf","/System/.Updates/System/CodeX.rxf")
 	    updateGit("/System/Explorera.rxf","/System/.Updates/System/Explorera.rxf")
 	    updateGit("/APIs/ProgressBar/bar")
@@ -157,14 +181,21 @@ local function RunCommand( _sCommand, ... )
     	rit.run("rit.crash")
     elseif _sCommand == "exit" then
         error("Exit Command Ran")
+    elseif _sCommand == "logout" then
+    	__CodeX_logout()
+    elseif _sCommand == "user" then
+    	shell.run("/System/User.rxf")
+    	term.setBackgroundColour(__Explorera_User_Background_Color)
+    	term.clear()
     elseif _sCommand == "commands" then
         print("Rito commands:")
         print("reboot  - Reboots the computer")
         print("shutdown  - Shutdown the computer")
-        print("NYF - Update  - Update RitoOS")
+        print("update  - Update RitoOS")
         print("exit  - Exit and close explorera")
         print("recovery  - Reboot into recovery mode")
-        print("clear  - Clears the screen")
+        print("logout - Logout of your account")
+        print("user - Edit user account info")
     elseif _sCommand ~= nil then
     	    if ... ~=nil then
     	    	if shell.run(_sCommand,...) == false then
@@ -193,18 +224,20 @@ local function runLine( _sLine )
     return false
 end
 
-term.setBackgroundColor(UserCommandBGC)
-term.setTextColour(UserCommandPC)
+local function __command()
+term.setBackgroundColor(__Explorera_User_Background_Color)
+term.setTextColour(__Explorera_User_Prompt_Color)
 term.clear()
 term.setCursorPos(1,1)
 PrintCentered("Rito OS V"..os.version())
 PrintCentered("For help, type 'commands'")
 PrintCentered("You are in your home folder, do 'cd /'")
-shell.setDir("Users/"..LogName.."")
+shell.setDir("Users/"..__CodeX_Username.."")
 local tCommandHistory = {}
 while not bExit do
-    term.setBackgroundColor(UserCommandBGC)
-    term.setTextColour(UserCommandPC)
+	_on_promt_ = true
+    term.setBackgroundColor(__Explorera_User_Background_Color)
+    term.setTextColour(__Explorera_User_Prompt_Color)
     local Xcord, Ycord = term.getCursorPos()
     if Ycord == 1 then
     Ycord = 4
@@ -213,12 +246,15 @@ while not bExit do
     term.setCursorPos(Xcord, Ycord)
     end
     write( "/" .. shell.dir() .. "/ }" )
-    term.setTextColour(UserCommandTC)
+    term.setTextColour(__Explorera_User_Text_Color)
 
     local sLine = read( nil, tCommandHistory )
     table.insert( tCommandHistory, sLine )
+    _on_promt_ = false
     runLine( sLine )
 end
+end --command
+parallel.waitForAll(__config,__command)
 else
 printError("No user logged in.")
 sleep(1)
