@@ -166,27 +166,20 @@ else
     else
       fs.makeDir("/Programs/")
     end
-  if __RitLock__Enabled ~= nil then
-  	if tostring(__RitLock__Enabled) == "true" then
-		updateGit("/System/.Boot/Boot","/System/.Updater/.Updates/System/.Boot/Boot")
-		updateGit("/System/.Recovery/.Recover","/System/.Updater/.Updates/System/.Recovery/.Recover")
-		updateGit("/System/.RitRun/RitRun","/System/.Updater/.Updates/System/.RitRun/RitRun")
-		updateGit("/System/CodeX.rxf","/System/.Updater/.Updates/System/CodeX.rxf")
-		updateGit("/System/Explorera.rxf","/System/.Updater/.Updates/System/Explorera.rxf")
-		updateGit("/System/User.rxf","/System/.Updater/.Updates/System/User.rxf")
-  	end
-  else
-    updateGit("/System/.Boot/Boot")
-    updateGit("/System/.Recovery/.Recover")
-    updateGit("/System/.RitRun/Ritrun")
-    updateGit("/System/CodeX.rxf")
-    updateGit("/System/Explorera.rxf")
-    updateGit("/System/User.rxf")
-  end
+	updateGit("/System/.Boot/Boot","/System/.Updater/.Updates/System/.Boot/Boot")
+	updateGit("/System/.Recovery/.Recover","/System/.Updater/.Updates/System/.Recovery/.Recover")
+	updateGit("/System/.RitRun/RitRun","/System/.Updater/.Updates/System/.RitRun/RitRun")
+	updateGit("/System/CodeX.rxf","/System/.Updater/.Updates/System/CodeX.rxf")
+	updateGit("/System/Explorera.rxf","/System/.Updater/.Updates/System/Explorera.rxf")
+	updateGit("/System/User.rxf","/System/.Updater/.Updates/System/User.rxf")
 	updateGit("/APIs/ProgressBar/bar")
 	updateGit("/APIs/Bedrock/Bedrock")
 	updateGit("/APIs/StrUtils/StrUtils")
 	updateGit("/Configs/.Rito.conf")
 	downloadPaste("X5Fysdi4","/Programs/NSH")
+	if __RitLock__Enabled ~= nil then
+		local UpdateStartupFile = assert(io.open("/Startup", "w"))
+	        UpdateStartupFile:write("__RitoOSUpdater__Reboot_To_Complete_Updates_Complete_Updates = true\nshell.run('/System/.Updater/UpgradeSystem.rxf')")
+        	UpdateStartupFile:close()
   PrintCentered("/- Complete -/")
 end
