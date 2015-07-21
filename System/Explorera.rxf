@@ -132,50 +132,10 @@ local function RunCommand( _sCommand, ... )
     	__RitoOS__Enter_Recovery = true
     elseif _sCommand == "update" then
         RitRun.printC("/- Updating -/")
-		__RitoOSUpdater__Reboot_To_Complete_Updates = true
-		if fs.isDir("/System/.Updates/") == true then
-			fs.delete("/System/.Updates/")
-			fs.makeDir("/System/.Updates/")
-		else
-			fs.makeDir("/System/.Updates/")
-		end
-		if fs.isDir("/Old/") == true then
-            fs.delete("/Old/")
-          else
-            fs.makeDir("/Old/")
-          end
-          if fs.isDir("/System/") == true then
-            fs.copy("/System/","/Old/System/")
-          else
-            fs.makeDir("/System/")
-          end
-          if fs.isDir("/APIs/") == true then
-            fs.copy("/APIs/","/Old/APIs/")
-          else
-            fs.makeDir("/APIs/")
-          end
-          if fs.isDir("/Configs/") == true then
-            fs.copy("/Configs/","/Old/Configs/")
-          else
-            fs.makeDir("/Configs/")
-          end
-          if fs.isDir("/Programs/") == true then
-            fs.copy("/Programs/","/Old/Programs")
-          else
-            fs.makeDir("/Programs/")
-          end
-	    updateGit("/System/.Boot/Boot","/System/.Updates/System/.Boot/Boot")
-    	updateGit("/System/.Recovery/.Recover","/System/.Updates/System/.Recovery/.Recover")
-	    updateGit("/System/.RitRun/RitRun","/System/.Updates/System/.RitRun/RitRun")
-    	updateGit("/System/CodeX.rxf","/System/.Updates/System/CodeX.rxf")
-	    updateGit("/System/Explorera.rxf","/System/.Updates/System/Explorera.rxf")
-	    updateGit("/System/User.rxf","/System/.Updates/System/User.rxf")
-	    updateGit("/APIs/ProgressBar/bar")
-	    updateGit("/APIs/Bedrock/Bedrock")
-	    updateGit("/APIs/StrUtils/StrUtils")
-	    updateGit("/Configs/.Rito.conf")
-	    downloadPaste("X5Fysdi4","/Programs/NSH")
-    	RitRun.printC("/- Complete -/")
+        updateGit("/System/.Updater/UpgradeSystem.rxf")
+        RitRun.printC("/- Please type 'upgrade' to upgrade the system -/")
+    elseif _sCommand == "upgrade" then
+        shell.run("/System/.Updater/UpgradeSystem.rxf")
     elseif _sCommand == "__CrashMe!" then
         print("Okay.")
         sleep(5)

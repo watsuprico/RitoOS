@@ -1,0 +1,181 @@
+local function PrintCentered(sText)
+msgLen = string.len(sText)
+screenWidth,_ = term.getSize()
+xCoords = tonumber(math.ceil((screenWidth / 2) - (msgLen / 2)))
+_,termY = term.getCursorPos()
+term.setCursorPos(xCoords,termY)
+print(sText)
+return xCoords
+end
+
+function updateGit(file,spath)
+  if spath == nil then
+    spath = file
+  end
+  if __RitoOSUpdater__Enable_Betas == true then
+    branch = "BetaUpdates"
+  else
+    branch = "master"
+  end
+  if http then
+    local h=http.get("https://raw.githubusercontent.com/watsuprico/RitoOS/"..branch..""..file)
+    if h then
+      local f=fs.open(spath,'w')
+      f.write(h.readAll())
+      f.close()
+      h.close()
+      return true
+    else
+      printError("/- Could not download "..file.." on "..branch.." , is your internet working? -/")
+    end
+  else
+      printError("/- Http not enabled! Please enable http -/")
+      sleep(1)
+      return false
+  end
+end
+function downloadPaste(path,code)
+  if http then
+    local h=http.get('http://pastebin.com/raw.php?i='..code)
+    if h then
+      local f=fs.open(path,'w')
+      f.write(h.readAll())
+      f.close()
+      h.close()
+      return true
+    else
+      return false
+    end
+  else
+      printError("/- Http not enabled! Please enable http -/")
+      sleep(1)
+      return false
+  end
+end
+if __RitoOSUpdater__Reboot_To_Complete_Updates == true then
+  if fs.exists("/System/.Updates/System/.Boot/Boot") == true then
+    fs.delete("/System/.Boot/Boot")
+    fs.move("/System/.Updates/System/.Boot/Boot","/System/.Boot/Boot")
+  else
+    printError("/- Failed to update boot -/")
+  end
+  if fs.exists("/System/.Updates/System/.RitRun/RitRun.rkf") == true then
+    fs.delete("/System/.RitRun/RitRun.rkf")
+    fs.move("/System/.Updates/System/.RitRun/RitRun.rkf","/System/.RitRun/RitRun.rkf")
+  else
+    printError("/- Failed to update RitRun -/")
+  end
+  if fs.exists("/System/.Updates/System/.Recovery/.Recover") == true then
+    fs.delete("/System/.Recovery/.Recover")
+    fs.move("/System/.Updates/System/.Recovery/.Recover","/System/.Recovery/.Recover")
+  else
+    printError("/- Failed to update Recovery -/")
+  end
+  if fs.exists("/System/.Updates/System/CodeX.rxf") == true then
+    fs.delete("/System/CodeX.rxf")
+    fs.move("/System/.Updates/System/CodeX.rxf","/System/CodeX.rxf")
+  else
+    printError("/- Failed to update CodeX -/")
+  end
+  if fs.exists("/System/.Updates/System/Explorera.rxf") == true then
+    fs.delete("/System/Explorera.rxf")
+    fs.move("/System/.Updates/System/Explorera.rxf","/System/Explorera.rxf")
+  else
+    printError("/- Failed to update Explorera -/")
+  end
+  if fs.exists("/System/.Updater/.Updates/System/User.rxf") == true then
+    fs.delete("/System/User.rxf")
+    fs.move("/System/.Updates/System/User.rxf","/System/User.rxf")
+  else
+    printError("/- Failed to update User.rxf -/")
+  end
+elseif __RitoOS__Enter_Recovery == true then
+  if fs.isDir("/System/.Updater/.Updates/") == true then
+    fs.delete("/System/.Updater/.Updates/")
+    fs.makeDir("/System/.Updater/.Updates/")
+  else
+    fs.makeDir("/System/.Updater/.Updates/")
+  end
+    if fs.isDir("/Old/") == true then
+      fs.delete("/Old/")
+    else
+      fs.makeDir("/Old/")
+    end
+    if fs.isDir("/System/") == true then
+      fs.copy("/System/","/Old/System/")
+    else
+      fs.makeDir("/System/")
+    end
+    if fs.isDir("/APIs/") == true then
+      fs.copy("/APIs/","/Old/APIs/")
+    else
+      fs.makeDir("/APIs/")
+    end
+    if fs.isDir("/Configs/") == true then
+      fs.copy("/Configs/","/Old/Configs/")
+    else
+      fs.makeDir("/Configs/")
+    end
+    if fs.isDir("/Programs/") == true then
+      fs.copy("/Programs/","/Old/Programs")
+    else
+      fs.makeDir("/Programs/")
+    end
+  updateGit("/System/.Boot/Boot")
+  updateGit("/System/.Recovery/.Recover")
+  updateGit("/System/.RitRun/Ritrun")
+  updateGit("/System/CodeX.rxf")
+  updateGit("/System/Explorera.rxf")
+  updateGit("/System/User.rxf")
+  updateGit("/APIs/ProgressBar/bar")
+  updateGit("/APIs/Bedrock/Bedrock")
+  updateGit("/APIs/StrUtils/StrUtils")
+  updateGit("/Configs/.Rito.conf")
+  downloadPaste("X5Fysdi4","/Programs/NSH")
+else
+  PrintCentered("/- Upgrading -/")
+	__RitoOSUpdater__Reboot_To_Complete_Updates = true
+  if fs.isDir("/System/.Updater/.Updates/") == true then
+    fs.delete("/System/.Updater/.Updates/")
+    fs.makeDir("/System/.Updater/.Updates/")
+  else
+    fs.makeDir("/System/.Updater/.Updates/")
+  end
+    if fs.isDir("/Old/") == true then
+      fs.delete("/Old/")
+    else
+      fs.makeDir("/Old/")
+    end
+    if fs.isDir("/System/") == true then
+      fs.copy("/System/","/Old/System/")
+    else
+      fs.makeDir("/System/")
+    end
+    if fs.isDir("/APIs/") == true then
+      fs.copy("/APIs/","/Old/APIs/")
+    else
+      fs.makeDir("/APIs/")
+    end
+    if fs.isDir("/Configs/") == true then
+      fs.copy("/Configs/","/Old/Configs/")
+    else
+      fs.makeDir("/Configs/")
+    end
+    if fs.isDir("/Programs/") == true then
+      fs.copy("/Programs/","/Old/Programs")
+    else
+      fs.makeDir("/Programs/")
+    end
+	updateGit("/System/.Boot/Boot","/System/.Updater/.Updates/System/.Boot/Boot")
+  updateGit("/System/.Recovery/.Recover","/System/.Updater/.Updates/System/.Recovery/.Recover")
+	updateGit("/System/.RitRun/RitRun","/System/.Updater/.Updates/System/.RitRun/RitRun")
+  updateGit("/System/CodeX.rxf","/System/.Updater/.Updates/System/CodeX.rxf")
+	updateGit("/System/Explorera.rxf","/System/.Updater/.Updates/System/Explorera.rxf")
+	updateGit("/System/User.rxf","/System/.Updater/.Updates/System/User.rxf")
+	updateGit("/APIs/ProgressBar/bar")
+	updateGit("/APIs/Bedrock/Bedrock")
+	updateGit("/APIs/StrUtils/StrUtils")
+	updateGit("/Configs/.Rito.conf")
+	downloadPaste("X5Fysdi4","/Programs/NSH")
+  PrintCentered("/- Complete -/")
+end
