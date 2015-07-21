@@ -89,6 +89,9 @@ if __RitoOSUpdater__Reboot_To_Complete_Updates_Complete_Updates == true then
   else
     printError("/- Failed to update User.rxf -/")
   end
+  local UpdateStartupFile = assert(io.open("/Startup", "w"))
+  UpdateStartupFile:write("shell.run('/System/.Boot/Boot')")
+  UpdateStartupFile:close()
 elseif __RitoOS__Enter_Recovery == true then
   if fs.isDir("/System/.Updater/.Updates/") == true then
     fs.delete("/System/.Updater/.Updates/")
