@@ -166,7 +166,7 @@ else
     else
       fs.makeDir("/Programs/")
     end
-  if __RitLock__Enabled == true then
+  if tostring(__RitLock__Enabled) == "true" then
 	  updateGit("/System/.Boot/Boot","/System/.Updater/.Updates/System/.Boot/Boot")
     updateGit("/System/.Recovery/.Recover","/System/.Updater/.Updates/System/.Recovery/.Recover")
 	  updateGit("/System/.RitRun/RitRun","/System/.Updater/.Updates/System/.RitRun/RitRun")
