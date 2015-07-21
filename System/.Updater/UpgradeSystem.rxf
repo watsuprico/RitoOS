@@ -52,40 +52,40 @@ function downloadPaste(path,code)
       return false
   end
 end
-if __RitoOSUpdater__Reboot_To_Complete_Updates == true then
+if __RitoOSUpdater__Reboot_To_Complete_Updates_Complete_Updates == true then
   if fs.exists("/System/.Updates/System/.Boot/Boot") == true then
     fs.delete("/System/.Boot/Boot")
-    fs.move("/System/.Updates/System/.Boot/Boot","/System/.Boot/Boot")
+    fs.move("/System/.Updater/.Updates/System/.Boot/Boot","/System/.Boot/Boot")
   else
     printError("/- Failed to update boot -/")
   end
   if fs.exists("/System/.Updates/System/.RitRun/RitRun.rkf") == true then
     fs.delete("/System/.RitRun/RitRun.rkf")
-    fs.move("/System/.Updates/System/.RitRun/RitRun.rkf","/System/.RitRun/RitRun.rkf")
+    fs.move("/System/.Updater/.Updates/System/.RitRun/RitRun.rkf","/System/.RitRun/RitRun.rkf")
   else
     printError("/- Failed to update RitRun -/")
   end
   if fs.exists("/System/.Updates/System/.Recovery/.Recover") == true then
     fs.delete("/System/.Recovery/.Recover")
-    fs.move("/System/.Updates/System/.Recovery/.Recover","/System/.Recovery/.Recover")
+    fs.move("/System/.Updater/.Updates/System/.Recovery/.Recover","/System/.Recovery/.Recover")
   else
     printError("/- Failed to update Recovery -/")
   end
   if fs.exists("/System/.Updates/System/CodeX.rxf") == true then
     fs.delete("/System/CodeX.rxf")
-    fs.move("/System/.Updates/System/CodeX.rxf","/System/CodeX.rxf")
+    fs.move("/System/.Updater/.Updates/System/CodeX.rxf","/System/CodeX.rxf")
   else
     printError("/- Failed to update CodeX -/")
   end
   if fs.exists("/System/.Updates/System/Explorera.rxf") == true then
     fs.delete("/System/Explorera.rxf")
-    fs.move("/System/.Updates/System/Explorera.rxf","/System/Explorera.rxf")
+    fs.move("/System/.Updater/.Updates/System/Explorera.rxf","/System/Explorera.rxf")
   else
     printError("/- Failed to update Explorera -/")
   end
   if fs.exists("/System/.Updater/.Updates/System/User.rxf") == true then
     fs.delete("/System/User.rxf")
-    fs.move("/System/.Updates/System/User.rxf","/System/User.rxf")
+    fs.move("/System/.Updater/.Updates/System/User.rxf","/System/User.rxf")
   else
     printError("/- Failed to update User.rxf -/")
   end

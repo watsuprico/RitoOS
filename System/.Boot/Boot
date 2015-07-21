@@ -83,7 +83,7 @@ local WARNCOLOR = 2
 local INFOCOLOR = 8192
 local NOTECOLOR = 512
 local ErrBGC = 32768
-local __RitoOS_Version = "1.0.20"
+local __RitoOS_Version = "1.01.20"
 local logo = {                                  --|
   "  9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9",
   " 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 ",
@@ -482,6 +482,7 @@ local function CheckForUpdates()
         if fs.isDir("/System/.Updater/UpgradeSystem.rxf") == true then
             pbar:triggerUpdate("/- Finishing updates -/")
             pbar:triggerUpdate("/- Please wait -/")
+            __RitoOSUpdater__Reboot_To_Complete_Updates_Complete_Updates = true
             shell.run("/System/.Updater/UpgradeSystem.rxf")
             pbar:triggerUpdate("/- Complete! Rebooting -/")
             local UpdateStartupFile = assert(io.open("/Startup", "w"))
