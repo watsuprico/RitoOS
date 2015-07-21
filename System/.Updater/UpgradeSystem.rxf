@@ -24,7 +24,6 @@ function updateGit(file,spath)
       return false
   end
 end
-
 function downloadPaste(path,code)
   if http then
     local h=http.get('http://pastebin.com/raw.php?i='..code)
@@ -43,7 +42,6 @@ function downloadPaste(path,code)
       return false
   end
 end
-
 if __RitoOSUpdater__Reboot_To_Complete_Updates == true then
   if fs.exists("/System/.Updates/System/.Boot/Boot") == true then
     fs.delete("/System/.Boot/Boot")
@@ -81,6 +79,49 @@ if __RitoOSUpdater__Reboot_To_Complete_Updates == true then
   else
     printError("/- Failed to update User.rxf -/")
   end
+elseif __RitoOS__Enter_Recovery == true then
+  if fs.isDir("/System/.Updater/.Updates/") == true then
+    fs.delete("/System/.Updater/.Updates/")
+    fs.makeDir("/System/.Updater/.Updates/")
+  else
+    fs.makeDir("/System/.Updater/.Updates/")
+  end
+    if fs.isDir("/Old/") == true then
+      fs.delete("/Old/")
+    else
+      fs.makeDir("/Old/")
+    end
+    if fs.isDir("/System/") == true then
+      fs.copy("/System/","/Old/System/")
+    else
+      fs.makeDir("/System/")
+    end
+    if fs.isDir("/APIs/") == true then
+      fs.copy("/APIs/","/Old/APIs/")
+    else
+      fs.makeDir("/APIs/")
+    end
+    if fs.isDir("/Configs/") == true then
+      fs.copy("/Configs/","/Old/Configs/")
+    else
+      fs.makeDir("/Configs/")
+    end
+    if fs.isDir("/Programs/") == true then
+      fs.copy("/Programs/","/Old/Programs")
+    else
+      fs.makeDir("/Programs/")
+    end
+  updateGit("/System/.Boot/Boot")
+  updateGit("/System/.Recovery/.Recover")
+  updateGit("/System/.RitRun/Ritrun")
+  updateGit("/System/CodeX.rxf")
+  updateGit("/System/Explorera.rxf")
+  updateGit("/System/User.rxf")
+  updateGit("/APIs/ProgressBar/bar")
+  updateGit("/APIs/Bedrock/Bedrock")
+  updateGit("/APIs/StrUtils/StrUtils")
+  updateGit("/Configs/.Rito.conf")
+  downloadPaste("X5Fysdi4","/Programs/NSH")
 else
   RitRun.printC("/- Upgrading -/")
 	__RitoOSUpdater__Reboot_To_Complete_Updates = true
@@ -127,47 +168,4 @@ else
 	updateGit("/Configs/.Rito.conf")
 	downloadPaste("X5Fysdi4","/Programs/NSH")
   RitRun.printC("/- Complete -/")
-elseif __RitoOS__Enter_Recovery == true then
-  if fs.isDir("/System/.Updater/.Updates/") == true then
-    fs.delete("/System/.Updater/.Updates/")
-    fs.makeDir("/System/.Updater/.Updates/")
-  else
-    fs.makeDir("/System/.Updater/.Updates/")
-  end
-    if fs.isDir("/Old/") == true then
-      fs.delete("/Old/")
-    else
-      fs.makeDir("/Old/")
-    end
-    if fs.isDir("/System/") == true then
-      fs.copy("/System/","/Old/System/")
-    else
-      fs.makeDir("/System/")
-    end
-    if fs.isDir("/APIs/") == true then
-      fs.copy("/APIs/","/Old/APIs/")
-    else
-      fs.makeDir("/APIs/")
-    end
-    if fs.isDir("/Configs/") == true then
-      fs.copy("/Configs/","/Old/Configs/")
-    else
-      fs.makeDir("/Configs/")
-    end
-    if fs.isDir("/Programs/") == true then
-      fs.copy("/Programs/","/Old/Programs")
-    else
-      fs.makeDir("/Programs/")
-    end
-  updateGit("/System/.Boot/Boot")
-  updateGit("/System/.Recovery/.Recover")
-  updateGit("/System/.RitRun/Ritrun")
-  updateGit("/System/CodeX.rxf")
-  updateGit("/System/Explorera.rxf")
-  updateGit("/System/User.rxf")
-  updateGit("/APIs/ProgressBar/bar")
-  updateGit("/APIs/Bedrock/Bedrock")
-  updateGit("/APIs/StrUtils/StrUtils")
-  updateGit("/Configs/.Rito.conf")
-  downloadPaste("X5Fysdi4","/Programs/NSH")
 end
