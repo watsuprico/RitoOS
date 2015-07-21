@@ -166,12 +166,21 @@ else
     else
       fs.makeDir("/Programs/")
     end
-	updateGit("/System/.Boot/Boot","/System/.Updater/.Updates/System/.Boot/Boot")
-  updateGit("/System/.Recovery/.Recover","/System/.Updater/.Updates/System/.Recovery/.Recover")
-	updateGit("/System/.RitRun/RitRun","/System/.Updater/.Updates/System/.RitRun/RitRun")
-  updateGit("/System/CodeX.rxf","/System/.Updater/.Updates/System/CodeX.rxf")
-	updateGit("/System/Explorera.rxf","/System/.Updater/.Updates/System/Explorera.rxf")
-	updateGit("/System/User.rxf","/System/.Updater/.Updates/System/User.rxf")
+  if __RitLock__Enabled == true then
+	  updateGit("/System/.Boot/Boot","/System/.Updater/.Updates/System/.Boot/Boot")
+    updateGit("/System/.Recovery/.Recover","/System/.Updater/.Updates/System/.Recovery/.Recover")
+	  updateGit("/System/.RitRun/RitRun","/System/.Updater/.Updates/System/.RitRun/RitRun")
+    updateGit("/System/CodeX.rxf","/System/.Updater/.Updates/System/CodeX.rxf")
+	  updateGit("/System/Explorera.rxf","/System/.Updater/.Updates/System/Explorera.rxf")
+	  updateGit("/System/User.rxf","/System/.Updater/.Updates/System/User.rxf")
+  else
+    updateGit("/System/.Boot/Boot")
+    updateGit("/System/.Recovery/.Recover")
+    updateGit("/System/.RitRun/Ritrun")
+    updateGit("/System/CodeX.rxf")
+    updateGit("/System/Explorera.rxf")
+    updateGit("/System/User.rxf")
+  end
 	updateGit("/APIs/ProgressBar/bar")
 	updateGit("/APIs/Bedrock/Bedrock")
 	updateGit("/APIs/StrUtils/StrUtils")
