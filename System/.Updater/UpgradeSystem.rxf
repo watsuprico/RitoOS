@@ -181,5 +181,6 @@ else
 		local UpdateStartupFile = assert(io.open("/Startup", "w"))
 	        UpdateStartupFile:write("__RitoOSUpdater__Reboot_To_Complete_Updates_Complete_Updates = true\nshell.run('/System/.Updater/UpgradeSystem.rxf')")
         	UpdateStartupFile:close()
+        end
   PrintCentered("/- Complete -/")
 end
