@@ -83,7 +83,7 @@ local WARNCOLOR = 2
 local INFOCOLOR = 8192
 local NOTECOLOR = 512
 local ErrBGC = 32768
-local __RitoOS_Version = "1.0.0"
+local __RitoOS_Version = "1.01.20"
 local logo = {                                  --|
   "  9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9",
   " 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 d 1 9 ",
@@ -427,31 +427,41 @@ if __RitLock__Enabled == "true" then
         if fs.isDir("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.RitRun/") == true then
             fs.delete("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.RitRun/")
         end
-        fs.copy("/System/.RitRun/","/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.RitRun/")
+        if fs.isDir("/System/.RitoRun/") then
+            fs.copy("/System/.RitRun/","/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.RitRun/")
+        end
     pbar:triggerUpdate("/- Copying 'Recovery' -/")
     sleep(0)
         if fs.isDir("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Recovery/") == true then
             fs.delete("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Recovery/")
         end
-        fs.copy("/System/.Recovery/","/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Recovery/")
+        if fs.isDir("/System/.Recovery") then
+            fs.copy("/System/.Recovery/","/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/.Recovery/")
+        end
     pbar:triggerUpdate("/- Copying 'CodeX.rxf' -/")
     sleep(0)
         if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/CodeX.rxf") == true then
             fs.delete("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/CodeX.rxf")
         end
-        fs.copy("/System/CodeX.rxf","/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/CodeX.rxf")
+        if fs.exists("/System/CodeX.rxf") then
+            fs.copy("/System/CodeX.rxf","/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/CodeX.rxf")
+        end
     pbar:triggerUpdate("/- Copying 'Explorera.rxf -/")
     sleep(0)
         if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/Explorera.rxf") == true then
             fs.delete("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/Explorera.rxf")
         end
+        if fs.exists("/System/Explorera.rxf") then
         fs.copy("/System/Explorera.rxf","/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/Explorera.rxf")
+        end
     pbar:triggerUpdate("/- Copying 'User.rxf -/")
     sleep(0)
         if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/user.rxf") == true then
             fs.delete("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/User.rxf")
         end
-        fs.copy("/System/User.rxf","/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/User.rxf")
+        if fs.exists("/System/User.rxf") then
+            fs.copy("/System/User.rxf","/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files/System/User.rxf")
+        end
         parallel.waitForAll(RitLockProtectionPre,start)
         printError("| - RitoOS has stopped responding - |")
         printError("| - Code: RXF-0-BOOT-MAIN-END-000")
@@ -469,42 +479,16 @@ local function CheckForUpdates()
     sleep(0)
     pbar:triggerUpdate("/- Checking for updates -/")
     if __RitoOSUpdater__Reboot_To_Complete_Updates == true then
-        if fs.isDir("/System/.Updates/") == true then
-            pbar:triggerUpdate("/- Updating Boot -/")
-            if fs.exists("/System/.Updates/System/.Boot/Boot") == true then
-                fs.delete("/System/.Boot/Boot")
-                fs.move("/System/.Updates/System/.Boot/Boot","/System/.Boot/Boot")
-            end
-            pbar:triggerUpdate("/- Updating RitRun -/")
-            if fs.exists("/System/.Updates/System/.RitRun/RitRun.rkf") == true then
-                fs.delete("/System/.RitRun/RitRun.rkf")
-                fs.move("/System/.Updates/System/.RitRun/RitRun.rkf","/System/.RitRun/RitRun.rkf")
-            end
-            pbar:triggerUpdate("/- Updating Recovery -/")
-            if fs.exists("/System/.Updates/System/.Recovery/.Recover") == true then
-                fs.delete("/System/.Recovery/.Recover")
-                fs.move("/System/.Updates/System/.Recovery/.Recover","/System/.Recovery/.Recover")
-            end
-            pbar:triggerUpdate("/- Updating CodeX -/")
-            if fs.exists("/System/.Updates/System/CodeX.rxf") == true then
-                fs.delete("/System/CodeX.rxf")
-                fs.move("/System/.Updates/System/CodeX.rxf","/System/CodeX.rxf")
-            end
-            pbar:triggerUpdate("/- Updating Explorera -/")
-            if fs.exists("/System/.Updates/System/Explorera.rxf") == true then
-                fs.delete("/System/Explorera.rxf")
-                fs.move("/System/.Updates/System/Explorera.rxf","/System/Explorera.rxf")
-            end
-            pbar:triggerUpdate("/- Updating User -/")
-            if fs.exists("/System/.Updates/System/Explorera.rxf") == true then
-                fs.delete("/System/Explorera.rxf")
-                fs.move("/System/.Updates/System/Explorera.rxf","/System/Explorera.rxf")
-            end
+        if fs.isDir("/System/.Updater/UpgradeSystem.rxf") == true then
+            pbar:triggerUpdate("/- Finishing updates -/")
+            pbar:triggerUpdate("/- Please wait -/")
+            __RitoOSUpdater__Reboot_To_Complete_Updates_Complete_Updates = true
+            shell.run("/System/.Updater/UpgradeSystem.rxf")
             pbar:triggerUpdate("/- Complete! Rebooting -/")
             local UpdateStartupFile = assert(io.open("/Startup", "w"))
             UpdateStartupFile:write("shell.run('/System/.Boot/Boot')")
             UpdateStartupFile:close()
-            sleep(1)
+            sleep(0)
             os.reboot()
         else
             pbar:triggerUpdate("/- Set to update, however, no update files were found -/")
