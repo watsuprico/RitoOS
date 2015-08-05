@@ -1,0 +1,32 @@
+while __RitoOS_Config_service_started ~= true do
+        if ___c == true then
+        else
+            system.outputInfo("Waiting for Config service to start...")
+            ___c = true
+        end
+    sleep(0)
+end
+while __RitoOS_Monitor_service_started ~= true do
+        if ___c == true then
+        else
+            system.outputInfo("Waiting for Config service to start...")
+            ___c = true
+        end
+    sleep(0)
+end
+system.outputInfo("Checking for updates")
+if __RitoOSUpdater__Reboot_To_Complete_Updates_Complete_Updates == true then
+    if http then
+        system.outputInfo("Finishing updates")
+        __RitoOSUpdater__Reboot_To_Complete_Updates_Complete_Updates = true
+        shell.run("/System/.Updater/UpgradeSystem.rxf")
+        system.outputInfo("Updates complete! Rebooting")
+        sleep(3)
+        os.reboot()
+    else
+        System:WARN("Could not find update files")
+        sleep(1)
+    end
+else
+system.outputInfo("Updates not needed")
+end

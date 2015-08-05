@@ -72,18 +72,19 @@ term.setCursorPos(_xC,tY)
 print(m)
 end
 local function c()
-	term.clear()
+  term.clear()
 end
 local function stc(c)
-	term.setTextColor(c)
+  term.setTextColor(c)
 end
 local function sbc(c)
-	term.setBackgroundColor(c)
+  term.setBackgroundColor(c)
 end
 local function scp(x,y)
-	term.setCursorPos(x,y)
+  term.setCursorPos(x,y)
 end
 -- End functions
+function start()
 sleep(1)
 c()
 stc(colors.white)
@@ -101,7 +102,8 @@ local menu_options = { --This is our menu table. It contains basic data about th
   [1] = {text="Exit", color=colors.red},
   [2] = {text="Shutdown", color=colors.orange},
   [3] = {text="Update", color=colors.green},
-  [4] = {text="Roll Back", color=colors.red}
+  [4] = {text="Roll Back", color=colors.brown},
+  [5] = {text="Wipe computer", color=colors.red}
 }
 local termX, termY = term.getSize() --The x/y size of the terminal
 local function menuDraw(selected) --Our main draw function
@@ -149,16 +151,20 @@ while true do --The main loop. I would generally put this inside of a function f
         __RitoOS__Enter_Recovery = nil
         os.shutdown()
       elseif selector == 3 then --Update
-        term.setCursorPos(1,1)
-        term.setBackgroundColor(colors.gray)
+        term.setBackgroundColor(colors.white)
+        term.setTextColor(colors.red)
         term.clear()
-        term.setTextColor(colors.blue)
+        term.setCursorPos(1,1)
         PrintCentered("/- Updating -/")
-        shell.run("/System/.Updater/.UpgradeSystem.rxf")
+
         PrintCentered("/- Complete -/")
         sleep(2)
-        term.clear()
+        start()
       elseif selector == 4 then --Rollback
+        term.setBackgroundColor(colors.white)
+        term.setTextColor(colors.red)
+        term.clear()
+        term.setCursorPos(1,1)
           if fs.isDir("/Old/") == true then
             if fs.isDir("/Old/System/") == true then
               fs.copy("/Old/System/","/System/")
@@ -180,53 +186,47 @@ while true do --The main loop. I would generally put this inside of a function f
             else
               printError("/- ! /Programs/ could not be rolledback ! -/")
             end
-      end
-    end
-  elseif e[1] == "mouse_click" then
-    local value = checkClick(e[3], e[4]) --Check the mouse click
-    if value then --If checkClick returns a value and not false
-      selector = value --Set the selector to that value and break out of the loop
-      if selector == 1 then --Safemode
-        __RitoOS__Enter_Recovery = nil
-        os.reboot()
-      elseif selector == 2 then --Shutdown
-        __RitoOS__Enter_Recovery = nil
-        os.shutdown()
-      elseif selector == 3 then --Update
+          else
+            print("/- ! /Old/ could not be found ! -/")
+            print("/- ! No files to rollback too, sorry ! -/")
+          end
+          sleep(2)
+          start()
+      elseif selector == 5 then
+        term.setBackgroundColor(colors.white)
+        term.setTextColor(colors.red)
+        term.clear()
         term.setCursorPos(1,1)
-        term.setBackgroundColor(colors.grey)
-        term.clear()
-        term.setTextColor(colors.blue)
-        PrintCentered("/- Updating -/")
-        shell.run("/System/.Updater/.UpgradeSystem.rxf")
-        PrintCentered("/- Complete -/")
+        l = 10
+        local c = "" -- Start string
+        for i = 1, l do
+          c = c .. string.char(math.random(33, 126))
+        end
+        print()
+        stc(colors.red)
+        print("- This will delete ALL data on this computer -")
+        print("- Please type the 10 character code below to comfirm -")
+        print(c)
+        print()
+        local cc = read()
+        if cc == c then
+          print("/- Good bye -/")
+          for _,file in ipairs(fs.list("/")) do
+            if not fs.isReadOnly(file) then
+              fs.delete(file)
+              print("Deleting "..file)
+            end
+          end
+        else
+        print("- Code did not match -")
+        print("- Returning -")
         sleep(2)
-        term.clear()
-      elseif selector == 4 then --Rollback
-          if fs.isDir("/Old/") == true then
-            if fs.isDir("/Old/System/") == true then
-              fs.copy("/Old/System/","/System/")
-            else
-              printError("/- ! /System/ could not be rolledback ! -/")
-            end
-            if fs.isDir("/Old/APIs/") == true then
-              fs.copy("/Old/APIs/","/APIs/")
-            else
-              printError("/- ! /APIs/ could not be rolledback ! -/")
-            end
-            if fs.isDir("/Old/Configs/") == true then
-              fs.copy("/Old/Configs/","/Configs/")
-            else
-              printError("/- ! /Configs/ could not be rolledback ! -/")
-            end
-            if fs.isDir("/Old/Programs/") == true then
-              fs.copy("/Old/Programs/","/Programs/")
-            else
-              printError("/- ! /Programs/ could not be rolledback ! -/")
-            end
+        start()
+        end
       end
     end
   end
 end
 end
-end
+
+start()

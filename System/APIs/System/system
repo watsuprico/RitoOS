@@ -1,0 +1,77 @@
+function fwrite(path, text)
+        local file = assert(io.open(path, "w"))
+        file:write(text)
+        file:close()
+end
+function getTable(path)
+    if fs.exists(path) then
+        local file = io.open(path, "r")
+        local lines = {}
+        local i = 1
+        local line = file:read("*l")
+        while line ~= nil do
+            lines[i] = line
+            line = file:read("*l")
+            i = i + 1
+        end
+        file:close()
+        return lines
+    end
+    return {}
+end
+function append(text, path)
+    local file = assert(io.open(path, "a"))
+    file:write(text.."\n")
+    file:close()
+end
+
+function outputAlert(m, __State)
+    local mhf = ""
+    local mhb = ""
+    term.setTextColor(16384)
+    if __State == nil then
+        __State = "RitoOS"
+    end
+    print("["..os.uptime().."|!A] "..mhf..__State.." | "..m..mhb)
+    local file = assert(io.open("/System/Latest.log", "a"))
+    file:write("["..os.uptime().."|!A] "..mhf..__State.." | "..m..mhb.."\n")
+    file:close()
+end
+function outputWarn(m, __State)
+    local mhf = ""
+    local mhb = ""
+    term.setTextColor(2)
+    if __State == nil then
+        __State = "RitoOS"
+    end
+    print("["..os.uptime().."|!W] "..mhf..__State.." | "..m..mhb)
+    local file = assert(io.open("/System/Latest.log", "a"))
+    file:write("["..os.uptime().."|W!] "..mhf..__State.." | "..m..mhb.."\n")
+    file:close()
+end
+function outputInfo(m, __State)
+    local mhf = ""
+    local mhb = ""
+    term.setTextColor(8192)
+    if __State == nil then
+        __State = "RitoOS"
+    end
+    print("["..os.uptime().."|Info] "..mhf..__State.." | "..m..mhb)
+    local file = assert(io.open("/System/Latest.log", "a"))
+    file:write("["..os.uptime().."|Info] "..mhf..__State.." | "..m..mhb.."\n")
+    file:close()
+end
+
+function log(t, m)
+    local file = assert(io.open("/System/Latest.log", "a"))
+    file:write("["..os.uptime().."|"..t.."] "..m.."\n")
+    file:close()
+end
+function reloadLog()
+    if fs.exists("/System/Latest.log") then
+        fs.delete("/System/Latest.log")
+    end
+    local h = assert(io.open("/System/Latest.log","w"))
+    h:write("-- RitoOS log --\n")
+    h:close()
+end

@@ -38,7 +38,7 @@ local function append(path, text)
   file:write(text.."\n")
   file:close()
 end
-function __User_Update_Explorera_Color_Change(ctype,color)
+local function __User_Update_Explorera_Color_Change(ctype,color)
       if fs.exists("/Users/"..__CodeX_Logname.."/.Configs/Explorera.conf") == true then
         local userfile =  getTable("/Users/"..__CodeX_Logname.."/.Configs/Explorera.conf")
         __Explorera_User_Background_Color = tonumber(string.sub(userfile[1],string.find(userfile[1],":")+2))
@@ -57,7 +57,7 @@ function __User_Update_Explorera_Color_Change(ctype,color)
       elseif ctype == "text" then
         fwrite("/Users/"..__CodeX_Username.."/.Configs/Explorera.conf","Explorera background color: "..__Explorera_User_Background_Color.."\nExplorera prompt color: "..__Explorera_User_Prompt_Color.."\nExplorera text color: "..tonumber(color))
       end
-    end
+end
 local function __User_Change_Colors()
   local menu_options = {
   [1] = {text="ABCDEFGHIJKLMNOPQRSTUVWXYZ", color=1},
@@ -361,7 +361,8 @@ local menu_options = {
   [2] = {text="Chnage password", color=colors.brown},
   [3] = {text="Exit", color=colors.green},
   [4] = {text="Logout", color=colors.orange},
-  [5] = {text="Delete account", color=colors.red}
+  [5] = {text="Delete account", color=colors.red},
+  [6] = {text="Create a new user", color=colors.blue}
 }
 local termX, termY = term.getSize()
 local function menuDraw(selected)
@@ -404,16 +405,24 @@ while true do
     elseif e[2] == keys.enter then
       if selector == 1 then -- Change colors
         __User_Change_Explorera_Colors()
+        term.clear()
       elseif selector == 2 then -- Change password
         __CodeX_Change_Password()
+        term.clear()
       elseif selector == 3 then -- Exit
         term.clear()
         term.setCursorPos(1,1)
         break
       elseif selector == 4 then -- Logout
         __CodeX_logout()
+        print()
+        print("Please exit explorera to logout")
       elseif selector == 5 then -- Delete account
         __CodeX_Delete_User()
+        term.clear()
+      elseif selector == 6 then -- Create new user
+        __CodeX_Create_Newuser()
+        term.clear()
       end
     end
   elseif e[1] == "mouse_click" then
@@ -422,16 +431,24 @@ while true do
       selector = value
       if selector == 1 then -- Change colors
         __User_Change_Explorera_Colors()
+        term.clear()
       elseif selector == 2 then -- Change password
-        __User_Change_Password()
+        __CodeX_Change_Password()
+        term.clear()
       elseif selector == 3 then -- Exit
         term.clear()
         term.setCursorPos(1,1)
         break
       elseif selector == 4 then -- Logout
         __CodeX_logout()
+        print()
+        print("Please exit explorera to logout")
       elseif selector == 5 then -- Delete account
         __CodeX_Delete_User()
+        term.clear()
+      elseif selector == 6 then -- Create new user
+        __CodeX_Create_Newuser()
+        term.clear()
       end
     end
   end
