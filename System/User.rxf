@@ -38,27 +38,27 @@ local function append(path, text)
   file:write(text.."\n")
   file:close()
 end
-local function __User_Update_Explorera_Color_Change(ctype,color)
-      if fs.exists("/Users/"..__CodeX_Logname.."/.Configs/Explorera.conf") == true then
-        local userfile =  getTable("/Users/"..__CodeX_Logname.."/.Configs/Explorera.conf")
-        __Explorera_User_Background_Color = tonumber(string.sub(userfile[1],string.find(userfile[1],":")+2))
-        __Explorera_User_Propmt_Color = tonumber(string.sub(userfile[2],string.find(userfile[2],":")+2))
-        __Explorera_User_Text_Color = tonumber(string.sub(userfile[3],string.find(userfile[3],":")+2))
+local function User_Update_Explorera_Color_Change(ctype,color)
+      if fs.exists("/Users/"..CodeX_Logname.."/.Configs/Explorera.conf") == true then
+        local userfile =  getTable("/Users/"..CodeX_Logname.."/.Configs/Explorera.conf")
+        Explorera_User_Background_Color = tonumber(string.sub(userfile[1],string.find(userfile[1],":")+2))
+        Explorera_User_Propmt_Color = tonumber(string.sub(userfile[2],string.find(userfile[2],":")+2))
+        Explorera_User_Text_Color = tonumber(string.sub(userfile[3],string.find(userfile[3],":")+2))
       else
-        __RitoOS_Config =  getTable("/Configs/.Rito.conf")
-        __Explorera_User_Prompt_Color = tonumber(string.sub(__RitoOS_Config[23],string.find(__RitoOS_Config[23],":")+2))
-        __Explorera_User_Background_Color = tonumber(string.sub(__RitoOS_Config[24],string.find(__RitoOS_Config[24],":")+2))
-        __Explorera_User_Text_Color = tonumber(string.sub(__RitoOS_Config[25],string.find(__RitoOS_Config[25],":")+2))
+        RitoOS_Config =  getTable("/Configs/.Rito.conf")
+        Explorera_User_Prompt_Color = tonumber(string.sub(RitoOS_Config[23],string.find(RitoOS_Config[23],":")+2))
+        Explorera_User_Background_Color = tonumber(string.sub(RitoOS_Config[24],string.find(RitoOS_Config[24],":")+2))
+        Explorera_User_Text_Color = tonumber(string.sub(RitoOS_Config[25],string.find(RitoOS_Config[25],":")+2))
       end
       if ctype == "background" then
-        fwrite("/Users/"..__CodeX_Username.."/.Configs/Explorera.conf","Explorera background color: "..tonumber(color).."\nExplorera prompt color: "..__Explorera_User_Prompt_Color.."\nExplorera text color: "..__Explorera_User_Text_Color)
+        fwrite("/Users/"..CodeX_Username.."/.Configs/Explorera.conf","Explorera background color: "..tonumber(color).."\nExplorera prompt color: "..Explorera_User_Prompt_Color.."\nExplorera text color: "..Explorera_User_Text_Color)
       elseif ctype == "prompt" then
-        fwrite("/Users/"..__CodeX_Username.."/.Configs/Explorera.conf","Explorera background color: "..__Explorera_User_Background_Color.."\nExplorera prompt color: "..tonumber(color).."\nExplorera text color: "..__Explorera_User_Text_Color)
+        fwrite("/Users/"..CodeX_Username.."/.Configs/Explorera.conf","Explorera background color: "..Explorera_User_Background_Color.."\nExplorera prompt color: "..tonumber(color).."\nExplorera text color: "..Explorera_User_Text_Color)
       elseif ctype == "text" then
-        fwrite("/Users/"..__CodeX_Username.."/.Configs/Explorera.conf","Explorera background color: "..__Explorera_User_Background_Color.."\nExplorera prompt color: "..__Explorera_User_Prompt_Color.."\nExplorera text color: "..tonumber(color))
+        fwrite("/Users/"..CodeX_Username.."/.Configs/Explorera.conf","Explorera background color: "..Explorera_User_Background_Color.."\nExplorera prompt color: "..Explorera_User_Prompt_Color.."\nExplorera text color: "..tonumber(color))
       end
 end
-local function __User_Change_Colors()
+local function User_Change_Colors()
   local menu_options = {
   [1] = {text="ABCDEFGHIJKLMNOPQRSTUVWXYZ", color=1},
   [2] = {text="ABCDEFGHIJKLMNOPQRSTUVWXYZ", color=2},
@@ -119,67 +119,67 @@ while true do
     elseif e[2] == keys.enter then
       if selector == 1 then -- Change colors
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"1","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"1","explorera")
         break
       elseif selector == 2 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"2","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"2","explorera")
         break
       elseif selector == 3 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"4","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"4","explorera")
         break
       elseif selector == 4 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"8","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"8","explorera")
         break
       elseif selector == 5 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"16","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"16","explorera")
         break
       elseif selector == 6 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"32","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"32","explorera")
         break
       elseif selector == 7 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"64","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"64","explorera")
         break
       elseif selector == 8 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"128","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"128","explorera")
         break
       elseif selector == 9 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"256","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"256","explorera")
         break
       elseif selector == 10 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"512","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"512","explorera")
         break
       elseif selector == 11 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"1024","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"1024","explorera")
         break
       elseif selector == 12 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"2048","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"2048","explorera")
         break
       elseif selector == 13 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"4096","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"4096","explorera")
         break
       elseif selector == 14 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"8192","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"8192","explorera")
         break
       elseif selector == 15 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"16384","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"16384","explorera")
         break
       elseif selector == 16 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"32768","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"32768","explorera")
         break
       elseif selector == 17 then
         term.clear()
@@ -192,67 +192,67 @@ while true do
       selector = value
       if selector == 1 then -- Change colors
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"1","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"1","explorera")
         break
       elseif selector == 2 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"2","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"2","explorera")
         break
       elseif selector == 3 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"4","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"4","explorera")
         break
       elseif selector == 4 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"8","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"8","explorera")
         break
       elseif selector == 5 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"16","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"16","explorera")
         break
       elseif selector == 6 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"32","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"32","explorera")
         break
       elseif selector == 7 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"64","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"64","explorera")
         break
       elseif selector == 8 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"128","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"128","explorera")
         break
       elseif selector == 9 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"256","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"256","explorera")
         break
       elseif selector == 10 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"512","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"512","explorera")
         break
       elseif selector == 11 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"1024","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"1024","explorera")
         break
       elseif selector == 12 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"2048","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"2048","explorera")
         break
       elseif selector == 13 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"4096","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"4096","explorera")
         break
       elseif selector == 14 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"8192","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"8192","explorera")
         break
       elseif selector == 15 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"16384","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"16384","explorera")
         break
       elseif selector == 16 then
         term.clear()
-        __User_Update_Explorera_Color_Change(__RitoOS__temp__var__2354_colourtype,"32768","explorera")
+        User_Update_Explorera_Color_Change(RitoOStempvar2354_colourtype,"32768","explorera")
         break
       elseif selector == 17 then
         term.clear()
@@ -262,7 +262,7 @@ while true do
   end
 end
 end -- End function
-local function __User_Change_Explorera_Colors()
+local function User_Change_Explorera_Colors()
   term.clear()
   local menu_options = {
   [1] = {text="Change background color", color=colors.cyan},
@@ -310,18 +310,18 @@ while true do
       selector = selector > 1 and selector-1 or #menu_options
     elseif e[2] == keys.enter then
       if selector == 1 then -- Change colors
-        __RitoOS__temp__var__2354_colourtype = "background"
-        __User_Change_Colors()
+        RitoOStempvar2354_colourtype = "background"
+        User_Change_Colors()
         term.clear()
         break
       elseif selector == 2 then -- Change password
-        __RitoOS__temp__var__2354_colourtype = "prompt"
-        __User_Change_Colors()
+        RitoOStempvar2354_colourtype = "prompt"
+        User_Change_Colors()
         term.clear()
         break
       elseif selector == 3 then -- Exit
-        __RitoOS__temp__var__2354_colourtype = "text"
-        __User_Change_Colors()
+        RitoOStempvar2354_colourtype = "text"
+        User_Change_Colors()
         term.clear()
         break
       elseif selector == 4 then -- Logout
@@ -334,18 +334,18 @@ while true do
     if value then
       selector = value
       if selector == 1 then
-        __RitoOS__temp__var__2354_colourtype = "background"
-        __User_Change_Colors()
+        RitoOStempvar2354_colourtype = "background"
+        User_Change_Colors()
         term.clear()
         break
       elseif selector == 2 then
-        __RitoOS__temp__var__2354_colourtype = "prompt"
-        __User_Change_Colors()
+        RitoOStempvar2354_colourtype = "prompt"
+        User_Change_Colors()
         term.clear()
         break
       elseif selector == 3 then
-        __RitoOS__temp__var__2354_colourtype = "text"
-        __User_Change_Colors()
+        RitoOStempvar2354_colourtype = "text"
+        User_Change_Colors()
         term.clear()
         break
       elseif selector == 4 then
@@ -404,24 +404,24 @@ while true do
       selector = selector > 1 and selector-1 or #menu_options
     elseif e[2] == keys.enter then
       if selector == 1 then -- Change colors
-        __User_Change_Explorera_Colors()
+        User_Change_Explorera_Colors()
         term.clear()
       elseif selector == 2 then -- Change password
-        __CodeX_Change_Password()
+        CodeX_Change_Password()
         term.clear()
       elseif selector == 3 then -- Exit
         term.clear()
         term.setCursorPos(1,1)
         break
       elseif selector == 4 then -- Logout
-        __CodeX_logout()
+        CodeX_logout()
         print()
         print("Please exit explorera to logout")
       elseif selector == 5 then -- Delete account
-        __CodeX_Delete_User()
+        CodeX_Delete_User()
         term.clear()
       elseif selector == 6 then -- Create new user
-        __CodeX_Create_Newuser()
+        CodeX_Create_Newuser()
         term.clear()
       end
     end
@@ -430,24 +430,24 @@ while true do
     if value then
       selector = value
       if selector == 1 then -- Change colors
-        __User_Change_Explorera_Colors()
+        User_Change_Explorera_Colors()
         term.clear()
       elseif selector == 2 then -- Change password
-        __CodeX_Change_Password()
+        CodeX_Change_Password()
         term.clear()
       elseif selector == 3 then -- Exit
         term.clear()
         term.setCursorPos(1,1)
         break
       elseif selector == 4 then -- Logout
-        __CodeX_logout()
+        CodeX_logout()
         print()
         print("Please exit explorera to logout")
       elseif selector == 5 then -- Delete account
-        __CodeX_Delete_User()
+        CodeX_Delete_User()
         term.clear()
       elseif selector == 6 then -- Create new user
-        __CodeX_Create_Newuser()
+        CodeX_Create_Newuser()
         term.clear()
       end
     end

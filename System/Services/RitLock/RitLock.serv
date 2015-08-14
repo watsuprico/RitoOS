@@ -1,15 +1,15 @@
 local function RitLockProtection()
     -- Save hash
-    local _Temp_RitLock_Save = StrUtils.encrypt(__RitLock___Save___Hash___Value_,"299384")
+    local _Temp_RitLock_Save = StrUtils.encrypt(RitLock_Save_Hash_Value_,"299384")
     local rlockInput = fs.open("/System/.RitLock/.RitLockHash", "w")
     rlockInput.write(" ".._Temp_RitLock_Save)
     rlockInput.close()
 
     while true do
-        __RitLock__Ran = true
-        local function __RitLock__Copy_Files(file)
-            if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files"..file) == true then
-                local rlock = fs.open("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files"..file, "r")
+        RitLockRan = true
+        local function RitLockCopy_Files(file)
+            if fs.exists("/.RitLock"..RitLock_Save_Hash_Value_.."/.Files"..file) == true then
+                local rlock = fs.open("/.RitLock"..RitLock_Save_Hash_Value_.."/.Files"..file, "r")
                 local a = rlock.readAll()
                 rlock.close()
                 local rlockInput = fs.open(file, "w")
@@ -18,61 +18,61 @@ local function RitLockProtection()
             end
         end
         --Boot
-        __RitLock__Copy_Files("/System/.Boot/Boot")
+        RitLockCopy_Files("/System/.Boot/Boot")
         --Recovery
-        __RitLock__Copy_Files("/System/.Recovery/.Recover")
+        RitLockCopy_Files("/System/.Recovery/.Recover")
         --CodeX
-        __RitLock__Copy_Files("/System/CodeX.rxf")
+        RitLockCopy_Files("/System/CodeX.rxf")
         --Explorera
-        __RitLock__Copy_Files("/System/Explorera.rxf")
+        RitLockCopy_Files("/System/Explorera.rxf")
         --CMD
-        __RitLock__Copy_Files("/System/CMD.rxf")
+        RitLockCopy_Files("/System/CMD.rxf")
         --User
-        __RitLock__Copy_Files("/System/User.rxf")
+        RitLockCopy_Files("/System/User.rxf")
         -- Apis
-        __RitLock__Copy_Files("/System/APIs/StrUtils/StrUtils")
+        RitLockCopy_Files("/System/APIs/StrUtils/StrUtils")
         --Startup script
         local rlockInput = fs.open("/Startup", "w")
-        rlockInput.write("shell.run('/System/.Boot/Boot')")
+        rlockInput.write(system.startupFile())
         rlockInput.close()
         sleep(0) --Anti-lock 
     end --WhileLoop
 end --RitLockProtection Function
 
 
-if __RitLock__Enabled == "true" then
-    System:outputInfo("RitLock protection loading")
-    System:outputInfo("Creating keys")
+if RitLockEnabled == "true" then
+    System.logInfo("RitLock protection loading","RitLock service")
+    System.logInfo("Creating keys","RitLock service")
     l = 50
     local c = "" for i = 1, l do local c = c .. string.char(math.random(33, 126)) end
-    __RitLock___Save___Hash___Value_ = StrUtils.SHA1(c)
-    System:outputInfo("Copying files")
+    RitLock_Save_Hash_Value_ = StrUtils.SHA1(c)
+    System.logInfo("Copying files","RitLock service")
         local function copyfile(file)
-            if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files"..file) == true then
-                fs.delete("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files"..file)
+            if fs.exists("/.RitLock"..RitLock_Save_Hash_Value_.."/.Files"..file) == true then
+                fs.delete("/.RitLock"..RitLock_Save_Hash_Value_.."/.Files"..file)
             end
             if fs.exists(file) then
-                fs.copy(file,"/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files"..file)
+                fs.copy(file,"/.RitLock"..RitLock_Save_Hash_Value_.."/.Files"..file)
             else
-                System:outputAlert(file.." not found")
+                system.outputAlert(file.." not found","RitLock service")
             end
         end
-    System:outputInfo("Copying Boot")
+    System.logInfo("RitLock","cc")
         copyfile("/System/.Boot/Boot")
-    System:outputInfo("Copying 'Recovery'")
+    System.logInfo("Copying 'Recovery'","RitLock service")
         copyfile("/System/.Recovery/.Recover")
-    System:outputInfo("Copying 'CodeX.rxf'")
+    System.logInfo("Copying 'CodeX.rxf'","RitLock service")
         copyfile("/System/CodeX.rxf")
-    System:outputInfo("Copying 'Explorera.rxf")
+    System.logInfo("Copying 'Explorera.rxf","RitLock service")
         copyfile("/System/Explorera.rxf")
-    System:outputInfo("Copying 'CMD.rxf'")
+    System.logInfo("Copying 'CMD.rxf'","RitLock service")
         copyfile("/System/CMD.rxf")
-    System:outputInfo("Copying 'User.rxf")
-        copyfile("/System/User.rxf")
-    System:outputInfo("Copying APIs")
+    System.logInfo("Copying 'User.rxf","RitLock service")
+        copyfile("/System/User.rxf","RitLock service")
+    System.logInfo("Copying APIs","RitLock service")
         copyfile("/System/APIs/StrUtils/StrUtils")
     RitLockProtection()
         return false,"RitLock service crashed"
 else
-    System:outputAlert("RitLock protection is disabled")
+    system.outputAlert("Protection is disabled","RitLock service")
 end

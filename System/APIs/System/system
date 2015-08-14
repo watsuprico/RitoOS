@@ -1,30 +1,3 @@
-function fwrite(path, text)
-        local file = assert(io.open(path, "w"))
-        file:write(text)
-        file:close()
-end
-function getTable(path)
-    if fs.exists(path) then
-        local file = io.open(path, "r")
-        local lines = {}
-        local i = 1
-        local line = file:read("*l")
-        while line ~= nil do
-            lines[i] = line
-            line = file:read("*l")
-            i = i + 1
-        end
-        file:close()
-        return lines
-    end
-    return {}
-end
-function append(text, path)
-    local file = assert(io.open(path, "a"))
-    file:write(text.."\n")
-    file:close()
-end
-
 function outputAlert(m, __State)
     local mhf = ""
     local mhb = ""
@@ -62,6 +35,31 @@ function outputInfo(m, __State)
     file:close()
 end
 
+function logAlert(s, m)
+    if s == nil then
+        local s = ""
+    end
+    file = assert(io.open("/System/Latest.log", "a"))
+    file:write("["..os.uptime().."|!A] "..s.." | "..m.."\n")
+    file:close()
+end
+function logWarn(s, m)
+    if s == nil then
+        local s = ""
+    end
+    file = assert(io.open("/System/Latest.log", "a"))
+    file:write("["..os.uptime().."|!Warn] "..s.." | "..m.."\n")
+    file:close()
+end
+function logInfo(s, m)
+    if s == nil then
+        local s = ""
+    end
+    file = assert(io.open("/System/Latest.log", "a"))
+    file:write("["..os.uptime().."|Info] "..s.." | "..m.."\n")
+    file:close()
+end
+
 function log(t, m)
     local file = assert(io.open("/System/Latest.log", "a"))
     file:write("["..os.uptime().."|"..t.."] "..m.."\n")
@@ -74,4 +72,7 @@ function reloadLog()
     local h = assert(io.open("/System/Latest.log","w"))
     h:write("-- RitoOS log --\n")
     h:close()
+end
+function startupFile()
+    return "local function main()\ndofile('/System/.Boot/Boot')\ndo return end\nend\nlocal ok, err = pcall(main)\nif not ok then\n    local x,_ = term.getSize()\n    term.setBackgroundColor(colors.blue)\n    term.setTextColor(1)\n    term.clear()\n    term.setCursorPos(math.floor(x-string.len(':('))/2,2)\n    print(':(')\n    term.setCursorPos(math.floor(x-string.len('Fatal error!'))/2, 4)\n    print('Fatal error!')\n    term.setTextColor(colors.red)\n    term.setCursorPos(3, 6)\n    print(err)\n    term.setTextColor(1)\n    term.setCursorPos(math.floor(x-string.len('Try running: /System/.Recovery/.Recover '))/2, 10)\n    print('Try running: /System/.Recovery/.Recover ')\nend"
 end

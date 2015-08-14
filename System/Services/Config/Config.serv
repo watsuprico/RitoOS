@@ -1,39 +1,54 @@
+local function getTable(path)
+    if fs.exists(path) then
+        local file = io.open(path, "r")
+        local lines = {}
+        local i = 1
+        local line = file:read("*l")
+        while line ~= nil do
+            lines[i] = line
+            line = file:read("*l")
+            i = i + 1
+        end
+        file:close()
+        return lines
+    end
+    return {}
+end
 if fs.exists("/System/Configs/.Rito.conf") then
-    system.outputInfo("Config service started","Config Service")
-    __RitoOS_Config_service_started = true
+    System.logInfo("Config Service","Config service started")
+    RitoOS_Config_service_started = true
 else
-    System:outputAlert("Could not Start config service","Config Service")
-    System:outputAlert("No config file","Config Service")
-    System:outputAlert("Sending reboot command","Config Service")
+    System.logAlert("Config Service","Could not Start config service")
+    System.logAlert("Config Service","No config file")
+    System.logAlert("Sending reboot command")
     sleep(5)
-    __RitoOS__Enter_Recovery = true
+    RitoOSEnter_Recovery = true
     os.reboot()
 end
 while true do -- Load configs
     if fs.exists("/System/Configs/.Rito.conf") then
-        __RitoOS_Config =  system.getTable("/System/Configs/.Rito.conf")
-        __RitoOS_crash_Action = string.sub(__RitoOS_Config[2],string.find(__RitoOS_Config[2],":")+2)
-        __RitoOS_Text_Color = string.sub(__RitoOS_Config[3],string.find(__RitoOS_Config[3],":")+2)
-        __RitoOS_Background_Color = string.sub(__RitoOS_Config[4],string.find(__RitoOS_Config[4],":")+2)
-        __RitoOS_Error_Background_Color = string.sub(__RitoOS_Config[5],string.find(__RitoOS_Config[5],":")+2)
-        __RitoOS_Error_Text_Color = string.sub(__RitoOS_Config[6],string.find(__RitoOS_Config[6],":")+2)
-        __RitoOS_Version = string.sub(__RitoOS_Config[7],string.find(__RitoOS_Config[7],":")+2)
-        __RitoOS_Computer_Label = string.sub(__RitoOS_Config[8],string.find(__RitoOS_Config[8],":")+2)
-        __RitLock__Enabled = string.sub(__RitoOS_Config[9],string.find(__RitoOS_Config[9],":")+2)
-        __RitoOS_Monitor_Service_New_Connection_Action = tonumber(string.sub(__RitoOS_Config[13],string.find(__RitoOS_Config[13],":")+2))
-        __RitoOS_Monitor_Service_Monitor_Scale = tonumber(string.sub(__RitoOS_Config[14],string.find(__RitoOS_Config[14],":")+2))
-        __RitoOSUpdater__Enable_Betas = string.sub(__RitoOS_Config[21],string.find(__RitoOS_Config[21],":")+2)
-        __CodeX_Text_Color = tonumber(string.sub(__RitoOS_Config[26],string.find(__RitoOS_Config[26],":")+2))
-        __CodeX_Background_Color = tonumber(string.sub(__RitoOS_Config[27],string.find(__RitoOS_Config[27],":")+2))
-        __CodeX_Prompt_Color = tonumber(string.sub(__RitoOS_Config[28],string.find(__RitoOS_Config[28],":")+2))
-        __CodeX_Input_Color = tonumber(string.sub(__RitoOS_Config[29],string.find(__RitoOS_Config[29],":")+2))
-        __CodeX_Error_Color = tonumber(string.sub(__RitoOS_Config[30],string.find(__RitoOS_Config[30],":")+2))
-        __CodeX_Register_Key_Length = tonumber(string.sub(__RitoOS_Config[31],string.find(__RitoOS_Config[31],":")+2))
+        RitoOS_Config =  getTable("/System/Configs/.Rito.conf")
+        RitoOS_crash_Action = string.sub(RitoOS_Config[2],string.find(RitoOS_Config[2],":")+2)
+        RitoOS_Text_Color = string.sub(RitoOS_Config[3],string.find(RitoOS_Config[3],":")+2)
+        RitoOS_Background_Color = string.sub(RitoOS_Config[4],string.find(RitoOS_Config[4],":")+2)
+        RitoOS_Error_Background_Color = string.sub(RitoOS_Config[5],string.find(RitoOS_Config[5],":")+2)
+        RitoOS_Error_Text_Color = string.sub(RitoOS_Config[6],string.find(RitoOS_Config[6],":")+2)
+        RitoOS_Version = string.sub(RitoOS_Config[7],string.find(RitoOS_Config[7],":")+2)
+        RitoOS_Computer_Label = string.sub(RitoOS_Config[8],string.find(RitoOS_Config[8],":")+2)
+        RitLockEnabled = string.sub(RitoOS_Config[9],string.find(RitoOS_Config[9],":")+2)
+        RitoOS_Monitor_Service_New_Connection_Action = tonumber(string.sub(RitoOS_Config[13],string.find(RitoOS_Config[13],":")+2))
+        RitoOS_Monitor_Service_Monitor_Scale = tonumber(string.sub(RitoOS_Config[14],string.find(RitoOS_Config[14],":")+2))
+        RitoOSUpdaterEnable_Betas = string.sub(RitoOS_Config[21],string.find(RitoOS_Config[21],":")+2)
+        CodeX_Text_Color = tonumber(string.sub(RitoOS_Config[26],string.find(RitoOS_Config[26],":")+2))
+        CodeX_Background_Color = tonumber(string.sub(RitoOS_Config[27],string.find(RitoOS_Config[27],":")+2))
+        CodeX_Prompt_Color = tonumber(string.sub(RitoOS_Config[28],string.find(RitoOS_Config[28],":")+2))
+        CodeX_Input_Color = tonumber(string.sub(RitoOS_Config[29],string.find(RitoOS_Config[29],":")+2))
+        CodeX_Error_Color = tonumber(string.sub(RitoOS_Config[30],string.find(RitoOS_Config[30],":")+2))
+        CodeX_Register_Key_Length = tonumber(string.sub(RitoOS_Config[31],string.find(RitoOS_Config[31],":")+2))
     else
-        System:outputAlert("Config file not found","Config Service")
-        System:outputAlert("Sending reboot command","Config Service")
+        System.logAlert("Config service","Config file not found")
         sleep(5)
-        __RitoOS__Enter_Recovery = true
+        RitoOSEnter_Recovery = true
         os.reboot()
     end
     sleep(1)

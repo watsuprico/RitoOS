@@ -1,49 +1,16 @@
---[[
+--[[ 
 
+    
 
-                        _________
-                       |_|_|_|_|_|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-      ___________________|__|__|___
-     /                             \
-    /     Rito OS, Created By:      \
-   /          @Watsuprico            \
-  /                                   \
- /                                     \
-/                                       \
-|_______________________________________|
-|                                       |
-|   _______                   _______   |
-|  |   |   |                 |   |   |  |
-|  |---|---|                 |---|---|  |
-|  |___|___|                 |___|___|  |
-|                                       |
-|                                       |
-|                                       |
-|               _________               |
-|              |         |              |
-|              |  Rito   |              |
-|              |         |              |
-|              |       σ |              |
-|              |         |              |
-|______________|_________|______________|
-]]--
-cleanEnvironment = {}
-for k, v in pairs(_G) do
-    cleanEnvironment[k] = v
-end
---Write functions
-local function fwrite(path, text)
-        local file = assert(io.open(path, "w"))
-        file:write(text)
-        file:close()
-end
+]]
+-- Set Vars
+-- Load System API
+-- Check for recovery
+-- IF needed, start recovery
+-- Load APIs
+-- Start services
+-- Start CodeX
+
 local function getTable(path)
     if fs.exists(path) then
         local file = io.open(path, "r")
@@ -60,444 +27,213 @@ local function getTable(path)
     end
     return {}
 end
-local function append(text, path)
-    local file = assert(io.open(path, "a"))
-    file:write(text.."\n")
-    file:close()
-end
---End
 
---Term functions
-local function tsbc(c)
-    term.setBackgroundColor(c)
+-- Services
+local function startConfigService()
+    System.logInfo("System","Starting config service.")
+    local ok, err = pcall(function() dofile('/System/Services/Config/Config.serv') end)
+    if ok then
+        System.logInfo("System","Started config service.")
+    else
+        System.logAlert("System","Error: config serivce either couldn't load, or crashed. Error code: "..err)
+    end
 end
-local function tstc(c)
-    term.setTextColor(c)
+local function startMonitorService()
+    System.logInfo("System","Starting monitor service.")
+    local ok, err = pcall(function() dofile('/System/Services/Monitor/Monitor.serv') end)
+    if ok then
+        System.logInfo("System","Started monitor service.")
+    else
+        System.logAlert("System","Error: monitor serivce either couldn't load, or crashed. Error code: "..err)
+    end
 end
-local function tscp(x,y)
-    term.setCursorPos(x,y)
+local function startUpdateService()
+    System.logInfo("System","Starting update service.")
+    dofile('/System/Services/Update/Update.serv')
+    local ok, err = pcall(function() dofile('/System/Services/Update/Update.serv') end)
+    if ok then
+        System.logInfo("System","Started config service.")
+    else
+        System.logAlert("System","Error: config serivce either couldn't load, or crashed. Error code: "..err)
+    end
 end
-local function tc()
+local function startRitLock()
+    System.logInfo("System","Starting RitLock.")
+    dofile('/System/Services/RitLock/RitLock.serv')
+end
+-- End services
+
+-- Main
+local function main()
+    sleep(0)
+    term.setBackgroundColor(colors.gray)
     term.clear()
-end
---End
+    sleep(0)
+    term.setBackgroundColor(colors.lightGray)
+    term.clear()
+    sleep(0)
+    term.setBackgroundColor(colors.white)
+    term.clear()
+    _G.shell = shell -- Make shell.run() usable
+    _G.RitoOS = true -- We're booting
+    _G.RitoOS_CC_Version = os.version() -- Computercraft version
+    _G.RitoOS_Version = "Beta build 2.0.1" -- Our version
 
--- Vars
-__RitoOS_CC_Version = os.version()
-local mhf = ""
-local mhb = ""
-local ALERTCOLOR = 16384
-local WARNCOLOR = 2
-local INFOCOLOR = 8192
-local ErrBGC = 32768
-local __RitoOS_Version = "Beta build 2.0.1"
---End vars
-
---Error function
-function sr(id, e)
-    if e == nil then
-        e = "-|none|-"
-    end
-    if shell.getRunningProgram() == "System/.Boot/Boot" then
-        r = "RitoOS Boot"
+    -- Load a few APIs
+    if os.loadAPI("/System/APIs/System/System") then
+        _G.system = System
+        System.reloadLog()
+        System.logInfo("System","Core API loaded.")
     else
-        r = shell.getRunningProgram()
+        error("Failed to load system API.")
     end
-    printError("|-  RitoOS has stopped responding  -|")
-    printError("|-  Code: RXF-0-"..r.."-"..id.."  -|")
-    printError("|-  Possible cause: "..e.."  -|")
-    printError("|-  Please, press any key to reboot  -|")
-    sleep(1)
-    os.pullEvent("key")
-    os.reboot()
-end
---End
 
-function os.pullEvent( sFilter )
-    local eventData = { os.pullEventRaw( sFilter ) }
-    if eventData[1] == "terminate" then
-        os.shutdown()
-    end
-    return unpack( eventData )
-end
-
-function __RitoOS_Boot__Monitor_Service_Started()
-    __RitoOS_Monitor_service_started = true
-end
-
--- OS functions
-function __RitoOS_Global_Functions()
-function os.ccversion()
-    return __RitoOS_CC_Version
-end
-function os.version()
-    return __RitoOS_Version
-end
-local nativeShutdown = os.shutdown
-function os.shutdown()
-    tsbc(colors.white)
-    tc()
-    tscp(1,1)
-    system.outputAlert("Shutdown command issued")
-    if __RitoOS_Main_Monitor then
-        system.outputInfo("Disconnecting monitor.")
-        __Monitor_Service_disconnect()
-        system.outputInfo("Monitor disconnected.")
-    end
-    if __RitLock__Ran == true then
-        if __RitLock___Save___Hash___Value_ ~= nil then
-            tstc(colors.black)
-            system.outputInfo("RitLock | Copying Backuped Files...")
-                local function __RitLock__Delete_Files(l)
-                    if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files"..l) == true then
-                        if fs.exists(l) == true then
-                            fs.delete(l)
-                        end
-                        fs.copy("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files"..l,l)
-                    end
-                    system.outputAlert("RitLock | No file found")
-                end
-                local function __RitLock__Delete_Dirs(l)
-                    if fs.isDir("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files"..l) == true then
-                        if fs.isDir(l) == true then
-                            fs.delete(l)
-                        end
-                        fs.copy("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files"..l,l)
-                    end
-                    system.outputAlert("RitLock | No dir found")
-                end
-            --Boot
-            __RitLock__Delete_Files("/System/.Boot/Boot")
-            --Recovery
-            __RitLock__Delete_Dirs("/System/.Recovery")
-            --CodeX
-            __RitLock__Delete_Files("/System/CodeX.rxf")
-            --Explorera
-            __RitLock__Delete_Files("/System/Explorera.rxf")
-            --CMD
-            __RitLock__Delete_Files("/System/CMD.rxf")
-            --User
-            __RitLock__Delete_Files("/System/User.rxf")
-            system.outputInfo("RitLock | Deleting some files...")
-            if fs.isDir("/.RitLock"..__RitLock___Save___Hash___Value_) == true then
-                fs.delete("/.RitLock"..__RitLock___Save___Hash___Value_)
+    System.logInfo("System","Checking last shutdown state.")
+    if not LastShutdownSuccessful then
+        System.logAlert("System","Failed to shutdown correctly.")
+        if fs.exists("/System/.Boot/BN") then
+            BN =  getTable("/System/.Boot/BN")
+            BNi = tonumber(string.sub(BN[1],string.find(BN[1],"!")+1))
+            if BNi >= 3 then
+                System.logWarn("System","Possibly damaged, booting into recovery")
+                RitoOS_Enter_Recovery = true
+            else
+                BNi = BNi + 1
+                local file = assert(io.open("/System/.Boot/BN", "w"))
+                file:write("!"..BNi)
+                 file:close()
             end
-            system.outputInfo("RitLock | Finished")
+        else
+            local file = assert(io.open("/System/.Boot/BN", "w"))
+            file:write("!1")
+            file:close()
         end
     end
-    -- Updater
-    print()
-    system.outputInfo("Please wait, saving a few things")
-    local StartupFile = assert(io.open("/Startup", "w"))
-    StartupFile:write("LastShutdownSuccessful = '238N@Ne8jd#*nc'\nshell.run('/System/.Boot/Boot')")
-    StartupFile:close()
-    if __RitoOSUpdater__Reboot_To_Complete_Updates_Complete_Updates == true then
-        append("__RitoOSUpdater__Reboot_To_Complete_Updates_Complete_Updates = true","/Startup")
+    if RitoOS_Enter_Recovery == true then
+        System.logAlert("System","Enterying recovery mode.")
+        dofile("/System/.Recovery/.Recover")
     end
-    --Recover
-    if __RitoOS__Enter_Recovery == true then
-        append("__RitoOS__Enter_Recovery = true", "/Startup")
+
+    -- Load APIs
+    System.logInfo("System","Loading APIs.")
+
+    System.logInfo("System","Loading monitor API.")
+    if os.loadAPI("/System/APIs/Monitor/Monitor") then
+        _G.monitor = Monitor
+        System.logInfo("System","Monitor API loaded.")
+    else
+        System.logAlert("System","Monitor API failed to load.")
     end
-    --Remove bootnumber
-    if fs.exists("/System/.Boot/BootNumber") then
-        fs.delete("/System/.Boot/BootNumber")
+    System.logInfo("System","Loading update API")
+    if os.loadAPI("/System/APIs/Update/Update") then
+        System.logInfo("System","Update API loaded.")
+    else
+        System.logInfo("System","Update API failed to load.")
     end
-    system.outputInfo("Complete. Shuting down now.")
-    tsbc(colors.lightGray)
-    tc()
-    sleep(0)
-    tsbc(colors.gray)
-    tc()
-    sleep(0)
-    tsbc(colors.black)
-    tc()
-    nativeShutdown()
-    while true do
-        coroutine.yield()
+
+    System.logInfo("System","Loading StrUtils API.")
+    if os.loadAPI("/System/APIs/StrUtils/StrUtils") then
+        System.logInfo("System","StrUtils API loaded.")
+    else
+        System.logAlert("System","StrUtils API failed to load.")
     end
-end
-local nativeReboot = os.reboot
-function os.reboot()
-    tsbc(colors.white)
-    tc()
-    tscp(1,1)
-    system.outputAlert("Reboot command issued")
-    if __RitoOS_Main_Monitor then
-        system.outputInfo("Disconnecting monitor.")
-        __Monitor_Service_disconnect()
-        system.outputInfo("Monitor disconnected.")
-    end
-    if __RitLock__Ran == true then
-        if __RitLock___Save___Hash___Value_ ~= nil then
-            tstc(colors.black)
-            system.outputInfo("RitLock | Copying Backuped Files...")
-                local function __RitLock__Delete_Files(l)
-                    if fs.exists("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files"..l) == true then
-                        if fs.exists(l) == true then
-                            fs.delete(l)
-                        end
-                        fs.copy("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files"..l,l)
-                    else
-                        system.outputAlert("RitLock | No file found")
-                    end
-                end
-                local function __RitLock__Delete_Dirs(l)
-                    if fs.isDir("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files"..l) == true then
-                        if fs.isDir(l) == true then
-                            fs.delete(l)
-                        end
-                        fs.copy("/.RitLock"..__RitLock___Save___Hash___Value_.."/.Files"..l,l)
-                    else
-                        system.outputAlert("RitLock | No dir found")
-                    end
-                end
-            --Boot
-            __RitLock__Delete_Files("/System/.Boot/Boot")
-            --Recovery
-            __RitLock__Delete_Dirs("/System/.Recovery")
-            --CodeX
-            __RitLock__Delete_Files("/System/CodeX.rxf")
-            --Explorera
-            __RitLock__Delete_Files("/System/Explorera.rxf")
-            --CMD
-            __RitLock__Delete_Files("/System/CMD.rxf")
-            --User
-            __RitLock__Delete_Files("/System/User.rxf")
-            system.outputInfo("RitLock | Deleting some files...")
-            if fs.isDir("/.RitLock"..__RitLock___Save___Hash___Value_) == true then
-                fs.delete("/.RitLock"..__RitLock___Save___Hash___Value_)
+
+    local function finishBoot()
+        --Set a few more vars
+        System.logInfo("System","Setting computer label")
+        os.setComputerLabel(RitoOS_Computer_Label)
+        System.logInfo("System","Loading CodeX")
+        local ok, err = pcall(function() term.setBackgroundColor(colors.black) term.clear() dofile("/System/CodeX.rxf") end)
+        if not ok then
+            configfiledata = "Sorry, I couldn't retrieve that data ): "
+            local crash = assert(io.open("/System/Latest.log", "a"))
+            crash:write("\n^ System log file ^\n\nRitoOS crashed.\nHere's some of that juicy debugging info.\n\nCrash info: \nError: "..err.." \n\nGeneral system info: \nCC version: "..RitoOS_CC_Version.."\nRitoOS version: "..RitoOS_Version.."\nConfig file: "..configfiledata.."\n\n\nEnd of the crash log.")
+            crash:close()
+            if fs.exists("/System/crash.log") then
+                fs.delete("/System/crash.log")
             end
-            system.outputInfo("RitLock | Finished")
+            fs.copy("/System/Latest.log","/System/crash.log")
+            local x,Y = term.getSize()
+            term.setTextColor(colors.white)
+            term.setBackgroundColor(colors.white)
+            term.clear()
+            sleep(0)
+            term.setBackgroundColor(colors.lightGray)
+            term.clear()
+            sleep(0)
+            term.setBackgroundColor(colors.gray)
+            term.clear()
+            sleep(0)
+            term.setBackgroundColor(colors.black)
+            term.clear()
+            term.setCursorPos(math.floor(x-string.len("This isn't too good..."))/2, math.floor(Y/2))
+            print("That isn't too good...")
+            sleep(2.35)
+            term.setBackgroundColor(colors.gray)
+            term.clear()
+            sleep(0)
+            term.setBackgroundColor(colors.lightGray)
+            term.setTextColor(colors.brown)
+            term.clear()
+            term.setBackgroundColor(colors.white)
+            term.clear()
+            sleep(0)
+            term.setCursorPos(math.floor(x-string.len('Sorry about that :('))/2, 2)
+            write("Sorry about that. ): ")
+            term.setTextColor(colors.black)
+            term.setCursorPos(math.floor(x-string.len('RicoOS has crashed.'))/2, 5)
+            print("RitoOS has crashed.")
+            term.setCursorPos(3, 7)
+            print("Please, report this error to Watsuprico via PM:")
+            term.setTextColor(colors.red)
+            term.setCursorPos(3, 8)
+            print(err)
+            print(snkadksand)
+            term.setTextColor(colors.gray)
+            term.setCursorPos(math.floor(x-string.len('Please remember, when sending the bug report"'))/2, 11)
+            print("Please remember, when sending the bug report")
+            term.setCursorPos(math.floor(x-string.len('.include the log file at "/System/crash.log"'))/2, 12)
+            print("include the log file at: '/System/crash.log'")
         end
     end
-    -- Updater
-    print()
-    system.outputInfo("Please wait, saving a few things.")
-    local StartupFile = assert(io.open("/Startup", "w"))
-    StartupFile:write("LastShutdownSuccessful = '238N@Ne8jd#*nc'\nshell.run('/System/.Boot/Boot')")
-    StartupFile:close()
-    if __RitoOSUpdater__Reboot_To_Complete_Updates_Complete_Updates == true then
-        append("__RitoOSUpdater__Reboot_To_Complete_Updates_Complete_Updates = true","/Startup")
-    end
-    --Recover
-    if __RitoOS__Enter_Recovery == true then
-        append("__RitoOS__Enter_Recovery = true", "/Startup")
-    end
-    --Remove bootnumber
-    if fs.exists("/System/.Boot/BootNumber") then
-        fs.delete("/System/.Boot/BootNumber")
-    end
-    system.outputInfo("Complete. Rebooting now.")
-    tstc(colors.white)
-    tsbc(colors.lightGray)
-    tc()
-    sleep(0)
-    tsbc(colors.gray)
-    tc()
-    sleep(0)
-    tsbc(colors.black)
-    tc()
-    nativeReboot()
-    while true do
-        coroutine.yield()
-    end
-end
-end --Function
---end
-
-
-
--- Functions
-local function PrintCentered(m)
-    if m == nil then
-        m = ""
-    end
-    local _mL = string.len(m)
-    local _scw,_ = term.getSize()
-    local _xC = tonumber(math.ceil((_scw / 2) - (_mL / 2)))
-    local _,tY = term.getCursorPos()
-    term.setCursorPos(_xC,tY)
-    print(m)
-end -- End function
-
---Config
-local function __Config_Service()
-    __Bootfunction = "Config Service"
-    if fs.exists("/System/Configs/.Rito.conf") then
-        system.outputInfo("Config service started")
-        __RitoOS_Config_service_started = true
-    else
-        system.outputAlert("Could not start config service")
-        system.outputAlert("No config file")
-        system.outputAlert("Sending reboot command")
-        sleep(5)
-        __RitoOS__Enter_Recovery = true
-        os.reboot()
-    end
-    while true do -- Load configs
-        if fs.exists("/System/Configs/.Rito.conf") then
-            __RitoOS_Config =  getTable("/System/Configs/.Rito.conf")
-            __RitoOS_crash_Action = string.sub(__RitoOS_Config[2],string.find(__RitoOS_Config[2],":")+2)
-            __RitoOS_Text_Color = string.sub(__RitoOS_Config[3],string.find(__RitoOS_Config[3],":")+2)
-            __RitoOS_Background_Color = string.sub(__RitoOS_Config[4],string.find(__RitoOS_Config[4],":")+2)
-            __RitoOS_Error_Background_Color = string.sub(__RitoOS_Config[5],string.find(__RitoOS_Config[5],":")+2)
-            __RitoOS_Error_Text_Color = string.sub(__RitoOS_Config[6],string.find(__RitoOS_Config[6],":")+2)
-            __RitoOS_Version = string.sub(__RitoOS_Config[7],string.find(__RitoOS_Config[7],":")+2)
-            __RitoOS_Computer_Label = string.sub(__RitoOS_Config[8],string.find(__RitoOS_Config[8],":")+2)
-            __RitLock__Enabled = string.sub(__RitoOS_Config[9],string.find(__RitoOS_Config[9],":")+2)
-            __RitoOS_Monitor_Service_New_Connection_Action = tonumber(string.sub(__RitoOS_Config[13],string.find(__RitoOS_Config[13],":")+2))
-            __RitoOS_Monitor_Service_Monitor_Scale = tonumber(string.sub(__RitoOS_Config[14],string.find(__RitoOS_Config[14],":")+2))
-            __RitoOSUpdater__Enable_Betas = string.sub(__RitoOS_Config[21],string.find(__RitoOS_Config[21],":")+2)
-            __CodeX_Text_Color = tonumber(string.sub(__RitoOS_Config[26],string.find(__RitoOS_Config[26],":")+2))
-            __CodeX_Background_Color = tonumber(string.sub(__RitoOS_Config[27],string.find(__RitoOS_Config[27],":")+2))
-            __CodeX_Prompt_Color = tonumber(string.sub(__RitoOS_Config[28],string.find(__RitoOS_Config[28],":")+2))
-            __CodeX_Input_Color = tonumber(string.sub(__RitoOS_Config[29],string.find(__RitoOS_Config[29],":")+2))
-            __CodeX_Error_Color = tonumber(string.sub(__RitoOS_Config[30],string.find(__RitoOS_Config[30],":")+2))
-            __CodeX_Register_Key_Length = tonumber(string.sub(__RitoOS_Config[31],string.find(__RitoOS_Config[31],":")+2))
-        else
-            system.outputAlert("Config file not found")
-            system.outputAlert("Sending reboot command")
-            sleep(5)
-            __RitoOS__Enter_Recovery = true
-            os.reboot()
-        end
-        sleep(1)
-    end
-end
---End
-
-local function __Boot2()
-    __Bootfunction = "RitoOS"
-    system.outputInfo("Setting Computer Label")
-    os.setComputerLabel(__RitoOS_Computer_Label)
-    system.outputInfo("RitoOS loaded, starting CodeX")
-    __Bootfunction = "CodeX"
-    system.outputInfo("Creating window")
-    local X,Y = term.getSize()
-    _CodeX_Main_Window = window.create(_RitoOS_Main_Window,1,1,X,Y,true)
-    system.outputInfo("Attempting to redirect to the CodeX window")
-    term.redirect(_CodeX_Main_Window)
-    system.outputInfo("Redirect established")
-    system.outputInfo("Loading CodeX")
-    tsbc(colors.black)
-    tc()
-    sleep(0)
-    tsbc(colors.gray)
-    tc()
-    sleep(0)
-    tsbc(colors.lightGray)
-    tc()
-    sleep(0)
-    tsbc(colors.white)
-    tc()
-    __RitoOS_Boot_Complete = true
-    tscp(1,1)
-    shell.run("/System/CodeX.rxf")
+    --Start services
+    System.logInfo("System","Starting services.")
+    parallel.waitForAll(startConfigService,startMonitorService,startUpdateService,startRitLock,finishBoot)
 end
 
-function __Boot1()
-__Bootfunction = "RitoOS"
-system.outputInfo("Checking last boot info","RitoOS")
-if LastShutdownSuccessful ~= "238N@Ne8jd#*nc" then
-    system.outputAlert("RitoOS did not shutdown correctly","RitoOS shutdown state")
-    if fs.exists("/System/.Boot/BootNumber") == true then
-        BootNumber =  getTable("/System/.Boot/BootNumber")
-        BootNumberi = tonumber(string.sub(BootNumber[1],string.find(BootNumber[1],"!")+1))
-        if BootNumberi >= 2 then
-            system.outputAlert("System failed to shutdown correcly 3 times","RitoOS shutdown state")
-            system.outputAlert("Booting into recovery mode","RitoOS shutdown state")
-            __RitoOS__Enter_Recovery = true
-        else
-            BootNumberi = BootNumberi + 1
-            fwrite("/System/.Boot/BootNumber","!"..BootNumberi)
-        end
-    else
-        fwrite("/System/.Boot/BootNumber","!1")
-    end
-end
-if __RitoOS__Enter_Recovery == true then
-    system.outputWarn("Entering recovery mode","RitoOS recovery")
-    shell.run("/System/.Recovery/.Recover")
-    sr("BOOT1-01","OS (recovery) return")
-end
-local a = fs.open("/Startup", "w")
-a.write("shell.run('/System/.Boot/Boot')")
-a.close()
-system.outputInfo("Loading StrUtils API","RitoOS API loader")
-os.loadAPI("/System/APIs/StrUtils/StrUtils")
-system.outputInfo("Complete","RitoOS API loader")
-system.outputInfo("Checking","RitLock")
-    if fs.exists("/System/.RitLock/.RitLockHash") == true then
-        local RitLockHash =  getTable("/System/.RitLock/.RitLockHash")
-        local HashValue = string.sub(RitLockHash[1],string.find(RitLockHash[1]," ")+1)
-        local Hash = StrUtils.decrypt(HashValue,"299384")
-        if fs.isDir("/.RitLock"..Hash) == true then
-            fs.delete("/.RitLock"..Hash)
-        end
-        fs.delete("/System/.RitLock/.RitLockHash")
-    end
-system.outputInfo("Checked","RitLock")
-system.outputInfo("Starting services","ServiceMan")
-    function __Config_Service_Start_()
-        shell.run("/System/Services/Config/Config.serv")
-    end
-    function __Monitor_Service_Start_()
-        shell.run("/System/Services/Monitor/Monitor.serv")
-    end
-    function __Update_Service_Start_()
-        shell.run("/System/Services/Update/Update.serv")
-    end
-    function __RitLock_Service_Start_( ... )
-        shell.run("/System/Services/RitLock/RitLock.serv")
-    end
-    function __StartSer1()
-        parallel.waitForAll(__RitLock_Service_Start_,__Boot2)
-    end
-    function __StartSer2()
-        parallel.waitForAll(__Update_Service_Start_,__StartSer1)
-    end
-    function __StartSer3()
-        parallel.waitForAll(__Monitor_Service_Start_,__StartSer2)
-    end
-    parallel.waitForAll(__Config_Service_Start_,__StartSer3)
-sr("BOOT1-01","OS return")
-end
 
-function start()
-if __RitoOS__Boot_Started == true then
-    print("RitoOS is already running.")
-    return false
-else
-print("Loading System API")
-os.loadAPI("/System/APIs/System/system")
-__RitoOS__Boot_Started = true
-term.clearLine()
-PrintCentered("RitoOS")
-system.reloadLog()
-system.log("Booting","- Booting RitoOS -")
-system.outputInfo("Creating RitoOS main window","Window manager")
-local X,Y = term.getSize()
-local native = term.current()
-_RitoOS_Main_Window = window.create(native,1,1,X,Y,true)
-system.outputInfo("Attempting redirect to RitoOS main window","Window manager")
-term.redirect(_RitoOS_Main_Window)
-system.outputInfo("Redirect to RitoOS main window established","Window manager")
-system.outputInfo("RitoOS version "..__RitoOS_Version,"RitoOS")
-system.outputInfo("Setting global os functions","RitoOS")
-parallel.waitForAll(__Boot1,__RitoOS_Global_Functions)
-sr("BOOT-00","OS return/internal error")
-end
-end
-
-function TimeKeeper()
-    __RitoOS_Time = 0
+local function TimeKeeper()
+    RitoOS_Time = 0
     while true do
         function os.uptime()
-            return __RitoOS_Time
+            return RitoOS_Time
         end
         sleep(0)
-        __RitoOS_Time = __RitoOS_Time + 0.05
+        RitoOS_Time = RitoOS_Time + 0.05
     end
 end
 
-parallel.waitForAll(TimeKeeper,start)
+local function start()
+    local ok, err = pcall(main)
+    if not ok then
+        term.redirect(term)
+        term.setBackgroundColor(colors.white)
+        term.clear()
+        sleep(1)
+        term.setBackgroundColor(colors.lightGray)
+        term.clear()
+        sleep(0.1)
+        term.setBackgroundColor(colors.gray)
+        term.setTextColor(colors.red)
+        term.clear()
+        print("Sorry about that. :(")
+        print("RitoOS has crashed.")
+        printError(err)
+    end
+end
+
+if not RitoOS then
+    parallel.waitForAll(TimeKeeper,start)
+else
+    error("RitoOS already running.")
+end

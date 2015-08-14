@@ -1,24 +1,24 @@
-while __RitoOS_Config_service_started ~= true do
-        if ___c == true then
+while _G.RitoOS_Config_service_started ~= true do
+        if _c == true then
         else
-            system.outputInfo("Waiting for Config service to start...")
-            ___c = true
+            system.outputInfo("Waiting for Config service to start","Update Service")
+            _c = true
         end
     sleep(0)
 end
-while __RitoOS_Monitor_service_started ~= true do
-        if ___c == true then
+while _G.RitoOS_Monitor_service_started ~= true do
+        if _c == true then
         else
-            system.outputInfo("Waiting for Config service to start...")
-            ___c = true
+            system.outputInfo("Waiting for Monitor service to start...","Update Service")
+            _c = true
         end
     sleep(0)
 end
 system.outputInfo("Checking for updates")
-if __RitoOSUpdater__Reboot_To_Complete_Updates_Complete_Updates == true then
+if _G.RitoOSUpdater_Reboot_To_Complete_Updates_Complete_Updates == true then
     if http then
         system.outputInfo("Finishing updates")
-        __RitoOSUpdater__Reboot_To_Complete_Updates_Complete_Updates = true
+        _G.RitoOSUpdater_Reboot_To_Complete_Updates_Complete_Updates = true
         shell.run("/System/.Updater/UpgradeSystem.rxf")
         system.outputInfo("Updates complete! Rebooting")
         sleep(3)

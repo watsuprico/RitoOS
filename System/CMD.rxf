@@ -19,19 +19,19 @@ local function append(text, path)
     file:write(text.."\n")
     file:close()
 end
-local function __config()
-if fs.exists("/Users/"..__CodeX_Username.."/.Configs/Explorera.conf") == true then
-    local userfile =  getTable("/Users/"..__CodeX_Username.."/.Configs/Explorera.conf")
-    __Explorera_User_Background_Color = tonumber(string.sub(userfile[1],string.find(userfile[1],":")+2))
-    __Explorera_User_Prompt_Color = tonumber(string.sub(userfile[2],string.find(userfile[2],":")+2))
-    __Explorera_User_Text_Color = tonumber(string.sub(userfile[3],string.find(userfile[3],":")+2))
+local function config()
+if fs.exists("/Users/"..CodeX_Username.."/.Configs/Explorera.conf") == true then
+    local userfile =  getTable("/Users/"..CodeX_Username.."/.Configs/Explorera.conf")
+    Explorera_User_Background_Color = tonumber(string.sub(userfile[1],string.find(userfile[1],":")+2))
+    Explorera_User_Prompt_Color = tonumber(string.sub(userfile[2],string.find(userfile[2],":")+2))
+    Explorera_User_Text_Color = tonumber(string.sub(userfile[3],string.find(userfile[3],":")+2))
 else
-    __Explorera_User_Prompt_Color = tonumber(string.sub(__RitoOS_Config[36],string.find(__RitoOS_Config[36],":")+2))
-    __Explorera_User_Background_Color = tonumber(string.sub(__RitoOS_Config[37],string.find(__RitoOS_Config[37],":")+2))
-    __Explorera_User_Text_Color = tonumber(string.sub(__RitoOS_Config[38],string.find(__RitoOS_Config[38],":")+2))
+    Explorera_User_Prompt_Color = tonumber(string.sub(RitoOS_Config[36],string.find(RitoOS_Config[36],":")+2))
+    Explorera_User_Background_Color = tonumber(string.sub(RitoOS_Config[37],string.find(RitoOS_Config[37],":")+2))
+    Explorera_User_Text_Color = tonumber(string.sub(RitoOS_Config[38],string.find(RitoOS_Config[38],":")+2))
 end
 end
-if __CodeX_HasUserLogged == StrUtils.SHA1(__CodeX_Logname) then
+if CodeX_HasUserLogged == StrUtils.SHA1(CodeX_Logname) then
 -- Simple Write Script
 local function fwrite(path, text)
         local file = assert(io.open(path, "w"))
@@ -72,10 +72,10 @@ CMDVer = '0.5'
 function os.pullEvent( sFilter )
     local eventData = { os.pullEventRaw( sFilter ) }
     if eventData[1] == "terminate" then
-        if __Termed ~= true then
-           term.setTextColour(__Explorera_User_Prompt_Color)
-            __CodeX_logout()
-            __Termed = true
+        if Termed ~= true then
+           term.setTextColour(Explorera_User_Prompt_Color)
+            CodeX_logout()
+            Termed = true
         end
     end
     return unpack( eventData )
@@ -85,7 +85,7 @@ end
 local function RunCommand( _sCommand, ... )
     local Xcord, Ycord = term.getCursorPos()
     term.setCursorPos(1, 1)
-    term.setTextColour(__Explorera_User_Prompt_Color)
+    term.setTextColour(Explorera_User_Prompt_Color)
     term.clearLine()
     PrintCentered("Rito OS CMD V"..os.version())
     term.clearLine()
@@ -100,30 +100,30 @@ local function RunCommand( _sCommand, ... )
         system.log("CMD - User","[ Run command ] ".._sCommand)
     end
     term.setCursorPos(Xcord, Ycord)
-    term.setTextColour(__Explorera_User_Text_Color)
+    term.setTextColour(Explorera_User_Text_Color)
     if _sCommand == "reboot" then
         os.reboot()
     elseif _sCommand == "shutdown" then
         os.shutdown()
     elseif _sCommand == "recovery" then
-        __RitoOS__Enter_Recovery = true
+        RitoOSEnter_Recovery = true
     elseif _sCommand == "update" then
         PrintCentered("/- Updating -/")
         updateGit("/System/.Updater/UpgradeSystem.rxf")
         PrintCentered("/- Please type 'upgrade' to upgrade the system -/")
     elseif _sCommand == "upgrade" then
         shell.run("/System/.Updater/UpgradeSystem.rxf")
-    elseif _sCommand == "__CrashMe!" then
+    elseif _sCommand == "CrashMe!" then
         print("Okay.")
         sleep(5)
         rit.run("rit.crash")
     elseif _sCommand == "exit" then
         error("Exit Command Ran")
     elseif _sCommand == "logout" then
-        __CodeX_logout()
+        CodeX_logout()
     elseif _sCommand == "user" then
         shell.run("/System/User.rxf")
-        term.setBackgroundColour(__Explorera_User_Background_Color)
+        term.setBackgroundColour(Explorera_User_Background_Color)
         term.clear()
     elseif _sCommand == "resize" then
         shell.run("/System/Programs/resize")
@@ -174,20 +174,20 @@ local function runLine( _sLine )
     return false
 end
 
-local function __command()
-term.setBackgroundColor(__Explorera_User_Background_Color)
-term.setTextColour(__Explorera_User_Prompt_Color)
+local function command()
+term.setBackgroundColor(Explorera_User_Background_Color)
+term.setTextColour(Explorera_User_Prompt_Color)
 term.clear()
 term.setCursorPos(1,1)
 PrintCentered("Rito OS CMD V"..os.version())
 PrintCentered("For help, type 'commands'")
 PrintCentered("You are in your home folder, do 'cd /'")
-shell.setDir("Users/"..__CodeX_Username.."")
+shell.setDir("Users/"..CodeX_Username.."")
 local tCommandHistory = {}
 while not bExit do
     _on_promt_ = true
-    term.setBackgroundColor(__Explorera_User_Background_Color)
-    term.setTextColour(__Explorera_User_Prompt_Color)
+    term.setBackgroundColor(Explorera_User_Background_Color)
+    term.setTextColour(Explorera_User_Prompt_Color)
     local Xcord, Ycord = term.getCursorPos()
     if Ycord == 1 then
     Ycord = 4
@@ -196,14 +196,14 @@ while not bExit do
     term.setCursorPos(Xcord, Ycord)
     end
     write( "/" .. shell.dir() .. "/-} " )
-    term.setTextColour(__Explorera_User_Text_Color)
+    term.setTextColour(Explorera_User_Text_Color)
     local sLine = read( nil, tCommandHistory )
     table.insert( tCommandHistory, sLine )
     _on_promt_ = false
     runLine( sLine )
 end
 end --command
-parallel.waitForAll(__config,__command)
+parallel.waitForAll(config,command)
 else
 printError("No user logged in.")
 sleep(1)

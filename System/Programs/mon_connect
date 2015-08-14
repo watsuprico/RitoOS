@@ -1,2 +1,6 @@
-__Monitor_Service_User_Said_No = false
-__RitoOS_Main_Monitor = nil
+local RitoOS_Main_Monitor = peripheral.find("monitor", function(name, object) return object.isColour() end)
+if RitoOS_Main_Monitor then
+	Monitor_Service_Connect(__RitoOS_Main_Monitor)
+else
+	print("No monitor found")
+end

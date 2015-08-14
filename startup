@@ -1,2 +1,21 @@
-LastShutdownSuccessful = '238N@Ne8jd#*nc'
-shell.run('/System/.Boot/Boot')
+local function main()
+dofile('/System/.Boot/Boot')
+do return end
+end
+local ok, err = pcall(main)
+if not ok then
+    local x,_ = term.getSize()
+    term.setBackgroundColor(colors.blue)
+    term.setTextColor(1)
+    term.clear()
+    term.setCursorPos(math.floor(x-string.len(':('))/2,2)
+    print(':(')
+    term.setCursorPos(math.floor(x-string.len('Fatal error!'))/2, 4)
+    print('Fatal error!')
+    term.setTextColor(colors.red)
+    term.setCursorPos(3, 6)
+    print(err)
+    term.setTextColor(1)
+    term.setCursorPos(math.floor(x-string.len('Try running: /System/.Recovery/.Recover '))/2, 10)
+    print('Try running: /System/.Recovery/.Recover ')
+end
