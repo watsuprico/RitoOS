@@ -1,232 +1,193 @@
--- RITO OS RECOVERY V0.1
---[[
+--[[ 
+
+     _________________________________________________________________________
+    |                                                                         |
+    |                      RitoOS - ALPHA BUILD -  ^.^                        |
+    |                                                                         |
+    | - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+    |                                                                         |
+    |                      Recovery Version Alpha 2.0                         |
+    |                                                                         |
+    |  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  |
+    |                                                                         |
+    |   Thank you for looking at RitoOS, (or downloading it), it means alot.  |
+    |    If you would like to learn more, head on over to the Github page:    |
+    |              https://www.github.com/Watsuprico/RitoOS/                  |
+    |                                                                         |
+    |- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+   _|                                                                         |
+  |             Some extended info on copying and using RitoOS                |______________________________________________________ 
+  |                                                                                                                                 |
+  | Permission is hereby granted, free of charge, to any person obtaining a copy of this software and                               |
+  | associated documentation files (the "Software"), to deal in the Software without restriction,                                   |
+  | including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,                           |
+  | copies of the Software, and to permit persons to whom the Software is furnished to do so,                                       |
+  | subject to the following conditions:                                                                                            |
+  |                                                                                                                                 |
+  | -The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. |
+  | -Visible credit is given to the original author.                                                                                |
+  | -The software is distributed in a non-profit way.                                                                               |
+  |                                                                                                                                 |
+  | THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE            |
+  | WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR           |
+  | COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,     |
+  | ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                           |
+  |                                                                                                                                 |
+  |_________________________________________________________________________________________________________________________________|
 
 
-                        _________
-                       |_|_|_|_|_|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-      ___________________|__|__|___
-     /                             \
-    /     Rito OS, Created By:      \
-   /          @Watsuprico            \
-  /                                   \
- /   Bedrock API/Framwork Created By:  \
-/                                       \
-|_______________________________________|
-|                                       |
-|   _______                   _______   |
-|  |   |   |                 |   |   |  |
-|  |---|---|                 |---|---|  |
-|  |___|___|                 |___|___|  |
-|                                       |
-|                                       |
-|                                       |
-|               _________               |
-|              |         |              |
-|              |  Rito   |              |
-|              |         |              |
-|              |       σ |              |
-|              |         |              |
-|______________|_________|______________|
-]]--
--- Functions
-local function trunc(s, i)
-    local mult = 10^(i or 0)
-    return math.floor(s * mult + 0.5) / mult
+]]
+
+
+function PrintCentered(sText)
+    local w, h = term.getSize()
+    local x, y = term.getCursorPos()
+    x = math.max(math.floor((w / 2) - (#sText / 2)), 0)
+    term.setCursorPos(x, y)
+    print(sText)
 end
-local function ALERT(m)
-    term.setTextColor(ALERTCOLOR)
-    print("[ "..trunc(os.time() * 50).." - ALERT] "..m)
+
+function CUI(m, head)
+  n=1
+  l=#m
+  while true do
+    term.setBackgroundColor(colors.blue)
+    term.setTextColor(colors.white)
+    term.clear()
+    term.setCursorPos(1,1)
+    term.setBackgroundColor(colors.cyan)
+    term.clearLine()
+    PrintCentered(head)
+    term.setBackgroundColor(colors.blue)
+    print("Please select an option. [arrow up/down]")
     print()
-    term.setTextColor(colors.black)
-end
-local function WARN(m)
-    term.setTextColor(WARNCOLOR)
-    print("[ "..trunc(os.time() * 50).." - WARN] "..m)
+    for i=1, l, 1 do
+      if i==n then print(" "..m[i].." - ]\n") else print(" ", m[i], "\n") end
+    end
     print()
-    term.setTextColor(colors.black)
-end
-local function INFO(m)
-    term.setTextColor(INFOCOLOR)
-    print("[ "..trunc(os.time() * 50).." - Info] "..m)
-    print()
-    term.setTextColor(colors.black)
-end
-local function NOTE(m)
-    term.setTextColor(NOTECOLOR)
-    print("[ "..trunc(os.time() * 50).." - Notify] "..m)
-    term.setTextColor(colors.black)
-end
-local function PrintCentered(m)
-local _mL = string.len(m)
-local _scw,_ = term.getSize()
-local _xC = tonumber(math.ceil((_scw / 2) - (_mL / 2)))
-local _,tY = term.getCursorPos()
-term.setCursorPos(_xC,tY)
-print(m)
-end
-local function c()
-  term.clear()
-end
-local function stc(c)
-  term.setTextColor(c)
-end
-local function sbc(c)
-  term.setBackgroundColor(c)
-end
-local function scp(x,y)
-  term.setCursorPos(x,y)
-end
--- End functions
-function start()
-sleep(1)
-c()
-stc(colors.white)
-sbc(colors.blue)
-c()
-scp(1,1)
-sbc(colors.cyan)
-term.clearLine()
-PrintCentered("Rito OS Recovery")
-sbc(colors.blue)
-print("Please select an option ")
-
-
-local menu_options = { --This is our menu table. It contains basic data about the menu
-  [1] = {text="Exit", color=colors.red},
-  [2] = {text="Shutdown", color=colors.orange},
-  [3] = {text="Update", color=colors.green},
-  [4] = {text="Roll Back", color=colors.brown},
-  [5] = {text="Wipe computer", color=colors.red}
-}
-local termX, termY = term.getSize() --The x/y size of the terminal
-local function menuDraw(selected) --Our main draw function
-  local yPos = termY/2 - #menu_options/2 --The initial y position
-  for index, data in pairs(menu_options) do
-    menu_options[index].bounds = { --Create a new table in each option with the boundary data
-      x1 = termX/2 - (#data.text+4)/2;
-      x2 = termX/2 + (#data.text+4)/2;
-      y = yPos;
-    }
-    term.setTextColor(data.color)
-    term.setCursorPos(data.bounds.x1, data.bounds.y)
- 
-    local text =
-      index==selected and "- "..data.text.."" or
-      "| "..data.text.."" --Essentially an if statement, but in a contracted form
-    term.write(text)
-    yPos = yPos+1 --Increment the initial y pos so we can move on the next line
-  end
-end
- 
-local function checkClick(x,y) --Check the mouse click to see if there's a menu option
-  for index, data in pairs(menu_options) do
-    if x>= data.bounds.x1 and x<= data.bounds.x2 and y==data.bounds.y then
-      return index --Returns the index of the clicked option
+    a, b= os.pullEventRaw()
+    if a == "key" then
+      if b==200 and n>1 then n=n-1 end
+      if b==208 and n<=l then n=n+1 end
+      if b==28 then break end
     end
   end
-  return false --If it went through the entire for loop without success, return false
+  term.clear() term.setCursorPos(1,1)
+  return n
 end
- 
-local selector = 1 --Our selector
-while true do --The main loop. I would generally put this inside of a function for a program.
-  menuDraw(selector) --Draw the menu first
-  local e = {os.pullEvent()} --Pull an event and put the returned values into a table
-  if e[1] == "key" then --If it's a key...
-    if e[2] == keys.down then -- ... and it's the down arrow
-      selector = selector < #menu_options and selector+1 or 1 --Increment the selector if the selector < #menu_options. Otherwise reset it to 1
-    elseif e[2] == keys.up then
-      selector = selector > 1 and selector-1 or #menu_options --Decrement the selector if the selector > 1. Otherwise, reset it to #menu_options
-    elseif e[2] == keys.enter then
-      if selector == 1 then --Exit
-        __RitoOS__Enter_Recovery = nil
-        os.reboot()
-      elseif selector == 2 then --Shutdown
-        __RitoOS__Enter_Recovery = nil
-        os.shutdown()
-      elseif selector == 3 then --Update
-        term.setBackgroundColor(colors.white)
-        term.setTextColor(colors.red)
-        term.clear()
-        term.setCursorPos(1,1)
-        PrintCentered("/- Updating -/")
 
-        PrintCentered("/- Complete -/")
-        sleep(2)
-        start()
-      elseif selector == 4 then --Rollback
-        term.setBackgroundColor(colors.white)
-        term.setTextColor(colors.red)
-        term.clear()
-        term.setCursorPos(1,1)
-          if fs.isDir("/Old/") == true then
-            if fs.isDir("/Old/System/") == true then
-              fs.copy("/Old/System/","/System/")
-            else
-              printError("/- ! /System/ could not be rolledback ! -/")
-            end
-            if fs.isDir("/Old/APIs/") == true then
-              fs.copy("/Old/APIs/","/APIs/")
-            else
-              printError("/- ! /APIs/ could not be rolledback ! -/")
-            end
-            if fs.isDir("/Old/Configs/") == true then
-              fs.copy("/Old/Configs/","/Configs/")
-            else
-              printError("/- ! /Configs/ could not be rolledback ! -/")
-            end
-            if fs.isDir("/Old/Programs/") == true then
-              fs.copy("/Old/Programs/","/Programs/")
-            else
-              printError("/- ! /Programs/ could not be rolledback ! -/")
-            end
-          else
-            print("/- ! /Old/ could not be found ! -/")
-            print("/- ! No files to rollback too, sorry ! -/")
-          end
-          sleep(2)
-          start()
-      elseif selector == 5 then
-        term.setBackgroundColor(colors.white)
-        term.setTextColor(colors.red)
-        term.clear()
-        term.setCursorPos(1,1)
-        l = 10
-        local c = "" -- Start string
-        for i = 1, l do
-          c = c .. string.char(math.random(33, 126))
-        end
-        print()
-        stc(colors.red)
-        print("- This will delete ALL data on this computer -")
-        print("- Please type the 10 character code below to comfirm -")
-        print(c)
-        print()
-        local cc = read()
-        if cc == c then
-          print("/- Good bye -/")
-          for _,file in ipairs(fs.list("/")) do
-            if not fs.isReadOnly(file) then
-              fs.delete(file)
-              print("Deleting "..file)
-            end
-          end
-        else
-        print("- Code did not match -")
-        print("- Returning -")
-        sleep(2)
-        start()
-        end
+
+local function Recovery()
+  local options={
+    "[1] Boot RitoOS",
+    "[2] Troubleshoot",
+    "[3] Shutdown"
+  }
+  local n=CUI(options,"RitoOS Recovery")
+  if n then
+    if n == 1 then
+      if fs.exists("/System/.Boot/BN") then
+        fs.delete("/System/.Boot/BN")
       end
+      os.reboot()
+    elseif n == 2 then
+
+        local options={
+          "[1] Back",
+          "[2] Refresh RitoOS - Reinstall RitoOS and keep your files",
+          "[3] Reset RitoOS - Remove all files and reinstall RitoOS",
+          "[4] Advance - More options"
+        }
+        local n=CUI(options,"Troubleshoot")
+        
+        if n then
+          if n == 1 then
+            Recovery()
+          elseif n == 2 then
+            shell.run("/System/.Recovery/.Refresh")
+            Recovery()
+          elseif n == 3 then
+            shell.run("/System/.Recovery/.Reset")
+            Recovery()
+          elseif n == 4 then
+
+            local options={
+              "[1] Back",
+              "[2] System Restore - Restore RitoOS from a restore point on a disk",
+              "[3] Update Manager - Update or rollback an update",
+              "[4] Command Prompt - Use the command prompt",
+              "[5] Automatic Repair - Have RitoOS fix it's self",
+              "[6] Wipe The Computer - Remove everything"
+            }
+            local n=CUI(options,"Advance Troubleshooting")
+              if n then 
+                if n == 1 then
+                  Recovery()
+                elseif n == 2 then
+                  shell.run("/System/.Recovery/.Restore")
+                  Recovery()
+                elseif n == 3 then
+                  shell.run("/System/.Recovery/.UpdateMan")
+                  Recovery()
+                elseif n == 4 then
+                  shell.run("/System/CMD.rxf")
+                  sleep(1)
+                  Recovery()
+                elseif n == 5 then
+                  shell.run("/System/.Recovery/.AutomaticRepair")
+                  Recovery()
+                elseif n == 6 then
+
+                  term.setBackgroundColor(colors.white)
+                  term.setTextColor(colors.red)
+                  term.clear()
+                  term.setCursorPos(1,1)
+                  l = 10
+                  local c = "" -- Start string
+                  for i = 1, l do
+                    c = c .. string.char(math.random(33, 126))
+                  end
+                  print()
+                  term.setTextColor(colors.red)
+                  print("- This will delete ALL data on this computer -")
+                  print("- Please type the 10 character code below to comfirm -")
+                  print(c)
+                  print()
+                  local cc = read()
+                  if cc == c then
+                    print("/- Good bye -/")
+                    for _,file in ipairs(fs.list("/")) do
+                      if not fs.isReadOnly(file) then
+                        fs.delete(file)
+                        print("Deleting "..file)
+                      end
+                    end
+                    print("/- System deleted -/")
+                    sleep(5)
+                    Recovery()
+                  else
+                    print("- Code did not match -")
+                    print("- Returning -")
+                    sleep(3)
+                    Recovery()
+                  end
+
+
+                end
+              end
+
+          elseif n == 5 then
+            Recovery()
+          end
+        end
+
+    elseif n == 3 then
+      os.shutdown()
+    elseif n == 4 then
+      Recovery()
     end
   end
 end
-end
 
-start()
+System.logInfo("Recovery","Loaded.")
+Recovery()

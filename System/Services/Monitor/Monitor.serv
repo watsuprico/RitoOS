@@ -1,4 +1,4 @@
-- if RitoOS_Monitor_service_started ~= true then
+if not Monitor_Service_started then
 
    while RitoOS_Config_service_started ~= true do
         if c == true then
@@ -9,173 +9,45 @@
         sleep(0)
     end
 
-
-if Monitor_Service_Connect ~= true then
-            if m then -- Check if there's a actual monitor
-                RitoOS_Main_Monitor = peripheral.find("monitor", function(name, object) return object.isColour() end) -- A advance monitor
-                system.log("Info","[ Monitor Service ] Attempting connection to the monitor")
-                system.log("Info","[ Monitor Service ] Attempting redirection")
-                Monitor_ServiceMain_Term = term.current()
-                term.redirect(RitoOS_Main_Monitor)
-                system.log("Info","[ Monitor Service ] Redirected")
-                system.log("Info","[ Monitor Service ] Setting monitor scale setting")
-                RitoOS_Main_Monitor.setTextScale(RitoOS_Monitor_Service_Monitor_Scale)
-                system.log("Info","[ Monitor Service ] Attempting reconfiguration of the main window")
-                local X,Y = RitoOS_Main_Monitor.getSize()
-                X,Y = RitoOS_Main_Monitor.getSize()
-                _RitoOS_Main_Window = window.create(RitoOS_Main_Monitor,1,1,X,Y,true)
-                system.log("Info","[ Monitor Service ] Reconfigured. Attempting redraw")
-                _RitoOS_Main_Window.redraw()
-                system.log("Info","[ Monitor Service ] Redrawed")
-                if _CodeX_Main_Window then
-                    system.log("Info","[ Monitor Service ] Attempting reconfiguration of CodeX_Main_Window")
-                    local X,Y = RitoOS_Main_Monitor.getSize()
-                    local _X,_Y = _CodeX_Main_Window.getPosition()
-                    _CodeX_Main_Window = window.create(_RitoOS_Main_Window,_X,_Y,X,Y,true)
-                    _CodeX_Main_Window.redraw()
-                    system.log("Info","[ Monitor Service ] Completed CodeX_Main_Window reconfigure")
-                end
-                if _RitoOS_Explorera_Window then
-                    system.log("Info","[ Monitor Service ] Attempting reconfiguration of Explorera_Window")
-                    local X,Y = RitoOS_Main_Monitor.getSize()
-                    local _X,_Y = _RitoOS_Explorera_Window.getPosition()
-                    _RitoOS_Explorera_Window = window.create(_RitoOS_Main_Window,_X,_Y,X,Y,true)
-                    _RitoOS_Explorera_Window.redraw()
-                    system.log("Info","[ Monitor Service ] Completed Explorera_Window reconfigure")
-                end
-                system.log("Info","[ Monitor Service ] Completed monitor connection")
-                RitoOS_Monitor_Service_Connected_To_Monitor = true
-                Monitor_Service_connected()
-            else
-                return false --There's no monitor
-            end
-        end
-
-
+Monitor_Service_started = true
 System.logInfo("Monitor service","Started.")
 
-
 while true do
-    local RitoOS_Main_Monitor = peripheral.find("monitor", function(name, object) return object.isColor() end) -- Look for a advance monitor
-    if RitoOS_Main_Monitor then
-        -- New connection, or the same connected monitor?
-        if Monitor_Service_Connected then
-            while true do
-                if peripheral.find("monitor", function(name, object) return object.isColour() end) then
-                    -- Connected, resized?
-                    --[[local _Check_Size_X,_Check_Size_Y = RitoOS_Main_Monitor.getSize()
-                    if _Check_Size_X == X then
-                        -- Nope.
-                    else
-                        Monitor_Service_resize()
-                    end
-                    if _Check_Size_Y == Y then
-                        -- Nope.
-                    else
-                        Monitor_Service_resize()
-                    end]]
-                else
-                     --Oh no! Monitor disconnected!
-                     Monitor_Service_disconnect()
-                     break
-                 end -- End if connected
-            end -- While Loop
-        else
-            -- Nope, new monitor
-            if Monitor_Service_New_Connection_Action then
-                --Ask user what to do.
-                if Monitor_Service_User_Said_No ~= true then -- Disable the message box until  the monitor is repluged in
-                    -- Create a message window
-                    --Set window size
-                    system.log("Info","[ Monitor Service ] New monitor found, asking user on what to do")
-                    local X,Y = term.getSize()
-                    local X = math.floor(X/2)
-                    local Y = math.floor(Y/2)
-                    local _X,_Y = term.getSize()
-                    local _X = X - math.floor(X/2)
-                    local _Y = Y - math.floor(Y/2)
-                    system.log("Info","[ Monitor Service ] Creating message box")
-                    MessageBox = window.create(term.current(),_X,_Y,X,Y,false)
-                    while Explorera_Ran ~= true do
-                        sleep(1)
-                    end
-                    system.log("Info","[ Monitor Service ] Drawing message box")
-                    MessageBox.setVisible(true)
-                    MessageBox.setBackgroundColor(colors.lightGray)
-                    MessageBox.clear()
-                    MessageBox.setCursorPos(2,2)
-                    MessageBox.write("Monitor detected!")
-                    MessageBox.setCursorPos(2,4)
-                    MessageBox.write("Connect?\n")
-                    local tx, ty = _X + 2, _Y + Y - 2
-                    MessageBox.setCursorPos(2,8)
-                    MessageBox.write("Yes")
-                    local ttx, tty = _X + 8, _Y + Y - 2
-                    MessageBox.setCursorPos(10,8)
-                    MessageBox.write("No")
-                    while true do
-                        MessageBox.redraw()
-                        local e, but, cx, cy = os.pullEvent()
-                        if e == "mouse_click" then
-                            if cx >= tx and cx <= tx + 3 and cy == ty then
-                                MessageBox.clear()
-                                MessageBox.setVisible(false)
-                                sleep(0.1)
-                                _RitoOS_Main_Window.redraw()
-                                if _CodeX_Main_Window then
-                                    _CodeX_Main_Window.redraw()
-                                end
-                                if _RitoOS_Explorera_Window then
-                                    _RitoOS_Explorera_Window.redraw()
-                                end
-                                System.logInfo("Monitor Service", "User wishes to output to the monitor.")
-                                Monitor_Service_Connect(RitoOS_Main_Monitor)
-                                RitoOS_Main_Monitor.clear()
-                                break
-                            elseif cx >= ttx and cx <= ttx + 2 and cy == tty then
-                                Monitor_Service_User_Said_No = true
-                                System.logInfo("Monitor Service", "User wishes to not output to the monitor.")
-                                MessageBox.clear()
-                                MessageBox.reposition(-100,-100,1,1
-                                MessageBox.setVisible(false)
-                                sleep(0.1)
-                                _RitoOS_Main_Window.redraw()
-                                if _CodeX_Main_Window then
-                                    _CodeX_Main_Window.redraw()
-                                end
-                                if _RitoOS_Explorera_Window then
-                                    _RitoOS_Explorera_Window.redraw()
-                                end
-                                break
-                            end -- Box info
-                        end -- Mouse click
-                    end -- While loop for message box
-                end -- User said no
-            elseif Monitor_Service_New_Connection_Action == 2 then
-                while Explorera_Ran ~= true do
-                    sleep(1)
-                end
-                Monitor_Service_Connect(RitoOS_Main_Monitor)
-            elseif Monitor_Service_New_Connection_Action == 3 then
-                -- Do nothing
-            end
-        end -- Monitor Service Conneced statement
-    else
-        while RitoOS_Main_Monitor ~= nil do
-        if peripheral.find("monitor", function(name, object) return object.isColour() end) then
-        else
-            Monitor_Service_User_Said_No = false
-            RitoOS_Main_Monitor = nil
-            break
-        end
-        sleep(0.5)
-    end --End check disconnection loop
-        -- No monitor connected.
-    end
-end -- While loop
+print("i")
+    sleep(0)
+    if not Monitor_Service_Connected then
+        while true do -- While loop 2
+            sleep(0.5)
+            -- Look for a new monitor
+            RitoOS_Main_Monitor = peripheral.find("monitor", function(name, object) return object.isColor() end)
 
+            if RitoOS_Main_Monitor then
+                -- Connect to this new monitor
+                if Monitor_Service_New_Connection_Action == 1 then
+                    -- Ask the user
+                elseif Monitor_Service_New_Connection_Action == 2 then
+                    System.logInfo("Monitor Service","New connection! Connecting")
+                    Monitor.connect(RitoOS_Main_Monitor)
+                elseif Monitor_Service_New_Connection_Action == 3 then
+                    -- Do nothing.
+                end
+            end
+
+        end -- End while loop 2
+    else
+        while true do -- While loop 3
+            sleep(0.2)
+            if not peripheral.find("monitor", function(name, object) return object.isColour() end) then -- Connected?
+                --no ;-;
+                System.logInfo("Monitor Service","No monitor found, however, the computer is outputting to one. Changing that.")
+                Monitor_Service_disconnect() -- Disconnect!
+                break
+            end -- End if connected
+        end -- End while loop 3
+    end
+end
 
 else
-    system.outputInfo("Service already started","Montior Service")
+    System.outputInfo("Service already started","Montior Service")
     return false
 end

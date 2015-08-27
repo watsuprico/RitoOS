@@ -19,19 +19,26 @@ local function append(text, path)
     file:write(text.."\n")
     file:close()
 end
+
+Explorera_User_Prompt_Color = 512
+Explorera_User_Background_Color = 32768
+Explorera_User_Text_Color = 2048
+
 local function config()
-if fs.exists("/Users/"..CodeX_Username.."/.Configs/Explorera.conf") == true then
-    local userfile =  getTable("/Users/"..CodeX_Username.."/.Configs/Explorera.conf")
-    Explorera_User_Background_Color = tonumber(string.sub(userfile[1],string.find(userfile[1],":")+2))
-    Explorera_User_Prompt_Color = tonumber(string.sub(userfile[2],string.find(userfile[2],":")+2))
-    Explorera_User_Text_Color = tonumber(string.sub(userfile[3],string.find(userfile[3],":")+2))
-else
-    Explorera_User_Prompt_Color = tonumber(string.sub(RitoOS_Config[36],string.find(RitoOS_Config[36],":")+2))
-    Explorera_User_Background_Color = tonumber(string.sub(RitoOS_Config[37],string.find(RitoOS_Config[37],":")+2))
-    Explorera_User_Text_Color = tonumber(string.sub(RitoOS_Config[38],string.find(RitoOS_Config[38],":")+2))
+    if CodeX_Username then
+        if fs.exists("/Users/"..CodeX_Username.."/.Configs/Explorera.conf") == true then
+            local userfile =  getTable("/Users/"..CodeX_Username.."/.Configs/Explorera.conf")
+            Explorera_User_Background_Color = tonumber(string.sub(userfile[1],string.find(userfile[1],":")+2))
+            Explorera_User_Prompt_Color = tonumber(string.sub(userfile[2],string.find(userfile[2],":")+2))
+            Explorera_User_Text_Color = tonumber(string.sub(userfile[3],string.find(userfile[3],":")+2))
+        end
+    else
+            local RitoOS_Config = getTable("/System/Configs/.Rito.conf")
+            Explorera_User_Prompt_Color = tonumber(string.sub(RitoOS_Config[36],string.find(RitoOS_Config[36],":")+2))
+            Explorera_User_Background_Color = tonumber(string.sub(RitoOS_Config[37],string.find(RitoOS_Config[37],":")+2))
+            Explorera_User_Text_Color = tonumber(string.sub(RitoOS_Config[38],string.find(RitoOS_Config[38],":")+2))
+    end
 end
-end
-if CodeX_HasUserLogged == StrUtils.SHA1(CodeX_Logname) then
 -- Simple Write Script
 local function fwrite(path, text)
         local file = assert(io.open(path, "w"))
@@ -182,7 +189,11 @@ term.setCursorPos(1,1)
 PrintCentered("Rito OS CMD V"..os.version())
 PrintCentered("For help, type 'commands'")
 PrintCentered("You are in your home folder, do 'cd /'")
-shell.setDir("Users/"..CodeX_Username.."")
+if CodeX_Username then
+shell.setDir("/Users/"..CodeX_Username.."")
+else
+shell.setDir("/")
+end
 local tCommandHistory = {}
 while not bExit do
     _on_promt_ = true
@@ -204,7 +215,3 @@ while not bExit do
 end
 end --command
 parallel.waitForAll(config,command)
-else
-printError("No user logged in.")
-sleep(1)
-end

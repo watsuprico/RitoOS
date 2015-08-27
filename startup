@@ -1,5 +1,5 @@
 local function main()
-dofile('/System/.Boot/Boot')
+dofile('/System/.Boot/Boot.lua')
 do return end
 end
 local ok, err = pcall(main)

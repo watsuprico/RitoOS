@@ -1,21 +1,21 @@
-while _G.RitoOS_Config_service_started ~= true do
-        if _c == true then
+while RitoOS_Config_service_started ~= true do
+    if _c == true then
         else
-            system.outputInfo("Waiting for Config service to start","Update Service")
+            System.logInfo("Update Service","Waiting for Config service to start")
             _c = true
         end
     sleep(0)
 end
-while _G.RitoOS_Monitor_service_started ~= true do
+while Monitor_service_started ~= true do
         if _c == true then
         else
-            system.outputInfo("Waiting for Monitor service to start...","Update Service")
+            System.logInfo("Update System","Waiting for Monitor service to start...")
             _c = true
         end
     sleep(0)
 end
 system.outputInfo("Checking for updates")
-if _G.RitoOSUpdater_Reboot_To_Complete_Updates_Complete_Updates == true then
+if RitoOSUpdater_Reboot_To_Complete_Updates_Complete_Updates == true then
     if http then
         system.outputInfo("Finishing updates")
         _G.RitoOSUpdater_Reboot_To_Complete_Updates_Complete_Updates = true
