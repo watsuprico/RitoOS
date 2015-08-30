@@ -86,6 +86,7 @@ local function Recovery()
   local n=CUI(options,"RitoOS Recovery")
   if n then
     if n == 1 then
+      System.logInfo("Recovery","Booting into RitoOS")
       if fs.exists("/System/.Boot/BN") then
         fs.delete("/System/.Boot/BN")
       end
@@ -104,9 +105,11 @@ local function Recovery()
           if n == 1 then
             Recovery()
           elseif n == 2 then
+            System.logInfo("Recovery","Running the refresh tool")
             shell.run("/System/.Recovery/.Refresh")
             Recovery()
           elseif n == 3 then
+            System.logInfo("Recovery","Running the RitoOS reset tool")
             shell.run("/System/.Recovery/.Reset")
             Recovery()
           elseif n == 4 then
@@ -114,30 +117,34 @@ local function Recovery()
             local options={
               "[1] Back",
               "[2] System Restore - Restore RitoOS from a restore point on a disk",
-              "[3] Update Manager - Update or rollback an update",
+              "[3] Update Manager - Install or remove update(s)",
               "[4] Command Prompt - Use the command prompt",
               "[5] Automatic Repair - Have RitoOS fix it's self",
               "[6] Wipe The Computer - Remove everything"
             }
             local n=CUI(options,"Advance Troubleshooting")
-              if n then 
+              if n then
                 if n == 1 then
                   Recovery()
                 elseif n == 2 then
+                  System.logInfo("Recovery","Running the restore tool")
                   shell.run("/System/.Recovery/.Restore")
                   Recovery()
                 elseif n == 3 then
+                  System.logInfo("Recovery","Running UpdateMan")
                   shell.run("/System/.Recovery/.UpdateMan")
                   Recovery()
                 elseif n == 4 then
+                  System.logInfo("Recovery","Opening a command prompt")
                   shell.run("/System/CMD.rxf")
                   sleep(1)
                   Recovery()
                 elseif n == 5 then
+                  System.logInfo("Recovery","Running the AutomaticRepair tool")
                   shell.run("/System/.Recovery/.AutomaticRepair")
                   Recovery()
                 elseif n == 6 then
-
+                  System.logWarn("Recovery","'Wipe Data' selected!")
                   term.setBackgroundColor(colors.white)
                   term.setTextColor(colors.red)
                   term.clear()
@@ -155,24 +162,26 @@ local function Recovery()
                   print()
                   local cc = read()
                   if cc == c then
+                    System.logAlert("Recovery","The system has been wiped. User entered the confirmation code correctly.")
                     print("/- Good bye -/")
                     for _,file in ipairs(fs.list("/")) do
-                      if not fs.isReadOnly(file) then
+                      if not fs.isReadOnly(file) then if file ~= "/System/Latest.log" then
                         fs.delete(file)
                         print("Deleting "..file)
-                      end
+                      end end
                     end
                     print("/- System deleted -/")
                     sleep(5)
                     Recovery()
                   else
+                    System.logInfo("Recovery","Confirmation code failed to match, not wiping data.")
                     print("- Code did not match -")
                     print("- Returning -")
                     sleep(3)
                     Recovery()
                   end
-
-
+                elseif n == 7 then
+                  Recovery()
                 end
               end
 
@@ -182,6 +191,7 @@ local function Recovery()
         end
 
     elseif n == 3 then
+      System.logInfo("Recovery","System shutting down.")
       os.shutdown()
     elseif n == 4 then
       Recovery()

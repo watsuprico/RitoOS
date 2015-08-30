@@ -76,18 +76,6 @@ function downloadPaste(path,code)
     end
 end
 CMDVer = '0.5'
-function os.pullEvent( sFilter )
-    local eventData = { os.pullEventRaw( sFilter ) }
-    if eventData[1] == "terminate" then
-        if Termed ~= true then
-           term.setTextColour(Explorera_User_Prompt_Color)
-            CodeX_logout()
-            Termed = true
-        end
-    end
-    return unpack( eventData )
-end
-
 
 local function RunCommand( _sCommand, ... )
     local Xcord, Ycord = term.getCursorPos()
@@ -206,7 +194,7 @@ while not bExit do
     else
     term.setCursorPos(Xcord, Ycord)
     end
-    write( "/" .. shell.dir() .. "/-} " )
+    write( "{-/" .. shell.dir() .. "/-} " )
     term.setTextColour(Explorera_User_Text_Color)
     local sLine = read( nil, tCommandHistory )
     table.insert( tCommandHistory, sLine )

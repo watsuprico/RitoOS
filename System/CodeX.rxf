@@ -1,0 +1,424 @@
+--[[ 
+
+     _________________________________________________________________________
+    |                                                                         |
+    |                      RitoOS - ALPHA BUILD -  ^.^                        |
+    |                                                                         |
+    | - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+    |                                                                         |
+    |                       CodeX Version Alpha 4.5                           |
+    |                                                                         |
+    |  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  |
+    |                                                                         |
+    |   Thank you for looking at RitoOS, (or downloading it), it means alot.  |
+    |    If you would like to learn more, head on over to the Github page:    |
+    |              https://www.github.com/Watsuprico/RitoOS/                  |
+    |                                                                         |
+    |- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+   _|                                                                         |
+  |             Some extended info on copying and using RitoOS                |______________________________________________________ 
+  |                                                                                                                                 |
+  | Permission is hereby granted, free of charge, to any person obtaining a copy of this software and                               |
+  | associated documentation files (the "Software"), to deal in the Software without restriction,                                   |
+  | including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,                           |
+  | copies of the Software, and to permit persons to whom the Software is furnished to do so,                                       |
+  | subject to the following conditions:                                                                                            |
+  |                                                                                                                                 |
+  | -The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. |
+  | -Visible credit is given to the original author.                                                                                |
+  | -The software is distributed in a non-profit way.                                                                               |
+  |                                                                                                                                 |
+  | THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE            |
+  | WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR           |
+  | COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,     |
+  | ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                           |
+  |                                                                                                                                 |
+  |_________________________________________________________________________________________________________________________________|
+
+
+]]
+
+local codexVer = "4.5" 
+
+local function PrintCentered(sText)
+	msgLen = string.len(sText)
+	screenWidth,_ = term.getSize()
+	_xCoords = tonumber(math.ceil((screenWidth / 2 ) - (msgLen / 2)))
+	_,termY = term.getCursorPos()
+	term.setCursorPos(_xCoords,termY)
+	print(sText)
+end
+
+-- Write
+local function fwrite(path, text)
+        local file = assert(io.open(path, "w"))
+        file:write(text)
+        file:close()
+end
+local function getTable(path)
+	if fs.exists(path) then
+		local file = io.open(path, "r")
+		local lines = {}
+		local i = 1
+		local line = file:read("*l")
+		while line ~= nil do
+			lines[i] = line
+			line = file:read("*l")
+			i = i + 1
+		end
+		file:close()
+		return lines
+	end
+	return {}
+end
+local function append(path, text)
+	local file = assert(io.open(path, "a"))
+	file:write(text.."\n")
+	file:close()
+end
+--End
+
+
+--Local functions
+local function getSavedPass(getKey, username)
+	if not username then
+		username = CodeX_Username
+	end
+	local Key = StrUtils.SHA1(getKey)
+	local getKey = "Nope.avi"
+	local Passphrase_File = fs.open("/Users/"..username.."/.Passphrase.CodeX","r")
+	local Passphrase_Key = Passphrase_File.readAll()
+	Passphrase_File.close()
+	local UnsavedPassword = StrUtils.SHA1(Key..""..Passphrase_Key)
+	local Passphrase_Key = "Nope.avi"
+	local Passphrase_File = "Nope.avi"
+	return UnsavedPassword
+end
+--End local functions
+
+--API like functions
+function CodeX_logout()
+	CodeX_Username = nil
+	CodeX_Logname = nil
+	CodeX_HasUserLogged = nil
+	CodeX_USR_PASSCODE_ = nil
+end
+
+
+--End API like functions
+
+
+--Create user
+local function newUser(code)
+
+	if code then
+		if __CodeX_CreateUser_Code == code then
+			--NewUser()
+			System.logInfo("CodeX","Creating a new user.")
+			term.setCursorPos(1,1)
+			term.setBackgroundColor(CodeX_Background_Color)
+			term.clear()
+			term.setTextColor(CodeX_Text_Color)
+			PrintCentered("Please, type a username.")
+			PrintCentered("Example: John")
+			local NewUsername = read()
+			System.logInfo("CodeX","New username: "..NewUsername)
+			local function RegisterPassword()
+				local function fwrite(path, text)
+					local file = assert(io.open(path, "w"))
+					file:write(text)
+					file:close()
+				end
+				term.clear()
+				term.setCursorPos(1,1)
+				PrintCentered("Please type a password for this user.")
+				PrintCentered("(Press {Enter} to leave the password blank.")
+				local _newPassword1 = read("*")
+				PrintCentered("Please re-enter the user password.")
+				local _newPassword2 = read("*")
+				if _newPassword2 == _newPassword1 then
+					PrintCentered("Should this user be an admin?")
+					PrintCentered("Type 'y' for yes, and 'n' for no.")
+					local _newAdmin = read()
+					if _newAdmin == "y" then
+						_newAdmin = true
+					else
+						_newAdmin = false
+					end
+					System.logInfo("CodeX","New user admin? "..tostring(_newAdmin))
+					PrintCentered("Creating user.")
+					if not CodeX_Register_Key_Length then
+						CodeX_Register_Key_Length = 200
+					end
+					-- Create a random key
+					local s = ""
+					for i = 1, CodeX_Register_Key_Length do
+						s = s .. string.char(math.random(32, 126))
+					end
+					fwrite("/Users/"..NewUsername.."/.Passphrase.CodeX", s)
+					local newUserPasswordHashed = getSavedPass(_newPassword1, NewUsername)
+					_newPassword1 = nil
+					_newPassword2 = nil
+					PrintCentered("Hased! Saving.")
+					fwrite("/Users/"..NewUsername.."/."..NewUsername..".CodeX", "!"..newUserPasswordHashed.."\n!"..tostring(_newAdmin).."\n!".."4.5")
+					fwrite("/Users/.CC",codexVer)
+					System.logInfo("CodeX","User created using CodeX version "..codexVer)
+					PrintCentered("Complete!")
+				else
+					PrintCentered("The passwords you entered do not match. )^:")
+					System.logWarn("CodeX","The passwords for the new user didn't match")
+					sleep(2)
+					RegisterPassword()
+				end -- End of the checked entered password
+			end--End of the "RegisterPassword" function
+			RegisterPassword()
+		else
+			term.setTextColor(colors.red)
+			PrintCentered("You don't have premissions to create a user.")
+			System.logAlert("CodeX","There was an attempt to create a new user without proper premissions.")
+			sleep(3)
+		end -- Premission to create a user?
+	end -- Premission to create a user?
+
+end--End newUser()
+
+-- Main
+local function main()
+	System.logInfo("CodeX","Loaded.")
+	CodeX_logout()
+	CodeX_Started = true
+	term.setBackgroundColor(CodeX_Background_Color)
+	term.clear()
+	term.setTextColor(CodeX_Text_Color)
+	term.setCursorPos(1,1)
+	PrintCentered("CodeX")
+	term.setCursorPos(1,4)
+	term.setTextColor(CodeX_Prompt_Color)
+	print("Username: ")
+	term.setCursorPos(11,4)
+	term.setTextColor(CodeX_Input_Color)
+	System.logInfo("CodeX","Awaiting for a username.")
+	local Username = read()
+	 -- Check for the user
+	if fs.exists("/Users/"..Username.."/."..Username..".CodeX") then
+		CodeX_Username = Username
+		_G.CodeX_Username = Username
+		term.setTextColor(CodeX_Prompt_Color)
+		term.setCursorPos(1,1)
+		term.clearLine()
+		PrintCentered("Logging into: "..Username)
+		term.setCursorPos(1,5)
+		term.clearLine()
+		print("Password: ")
+		term.setCursorPos(11,5)
+		term.setTextColor(CodeX_Input_Color)
+		System.logInfo("CodeX","Awaiting for a password for the user: ' "..Username.." ' .")
+		local MultiKey = read("*")
+		local UnsavedPassword = getSavedPass(MultiKey)
+		local userfile =  getTable("/Users/"..CodeX_Username.."/."..CodeX_Username..".CodeX")
+		local SavedPassword = string.sub(userfile[1],string.find(userfile[1],"!")+1)
+		if UnsavedPassword == SavedPassword then
+			System.logInfo("CodeX","The entered password is correct! Logging in.")
+			CodeX_HasUserLogged = StrUtils.SHA1(CodeX_Username)
+			CodeX_USR_PASSCODE_ = UnsavedPassword
+			CodeX_USR_ADMIN = string.sub(userfile[2],string.find(userfile[2],"!")+1)
+			System.logInfo("CodeX","Loading user APIs.")
+			for _,file in ipairs(fs.list("/APIs/")) do
+            	if file ~= "read.txt" then
+				    os.loadAPI("/APIs/"..file)
+	            	System.logInfo("CodeX","Loaded /APIs/"..file)
+	            end
+          	end
+          	System.logInfo("CodeX","Starting Explorera.")
+          	local ok, err = pcall(function() dofile("/System/Explorera.rxf") end)
+			if not ok then
+				System.logAlert('CodeX','Explorera crashed ):')
+				if not err then
+    				err = "No error code! Oh noes! The crash point, however, branched off of the ' Run Explorer.rxf ' command in CodeX after login."
+    			end
+    			CodeX_logout()
+    			error(err)
+			end
+        else
+        	System.logWarn("CodeX","Incorrect password used for user: ' "..Username.." ' .")
+        	term.setTextColor(CodeX_Error_Color)
+        	term.setCursorPos(1,5)
+        	term.clearLine()
+        	print("Password incorrect! :(")
+        	sleep(1)
+        	main()
+        end
+    else
+    	term.setTextColor(CodeX_Prompt_Color)
+		term.setCursorPos(1,1)
+		term.clearLine()
+		PrintCentered("Logging into: "..Username)
+		term.setCursorPos(1,5)
+		term.clearLine()
+		print("Password: ")
+		term.setCursorPos(11,5)
+		term.setTextColor(CodeX_Input_Color)
+		local _ = read("*")
+		term.setTextColor(CodeX_Error_Color)
+        term.setCursorPos(1,5)
+        term.clearLine()
+        print("Password/Username incorrect!")
+        sleep(1)
+        main()
+    end
+end
+--End Main
+
+-- Is there a registered user with this version of CodeX?
+if fs.isDir("/Users/") then
+	if fs.exists("/Users/.CC") then
+		local ccfile = fs.open("/Users/.CC", "r")
+		local _ccfile = ccfile.readAll()
+		ccfile.close()
+		if _ccfile == codexVer then
+			--Yes
+		else
+			--no
+			__CodeX_CreateUser_Code = "83&#*"
+			newUser("83&#*")
+		end
+	else
+		__CodeX_CreateUser_Code = "83&#*"
+		newUser("83&#*")
+	end
+else
+	fs.makeDir("/Users/")
+	__CodeX_CreateUser_Code = "83&#*"
+	newUser("83&#*")
+end
+--End check version
+
+
+
+--Auth check, user already logged in?
+if CodeX_Username ~= nil then
+	System.logInfo("CodeX","User reported as 'logged in'. Checking their login info.")
+	if CodeX_HasUserLogged ~= nil then
+		if CodeX_HasUserLogged == StrUtils.SHA1(CodeX_Username) then
+			local userfile =  getTable("/Users/"..CodeX_Username.."/."..CodeX_Username..".codex")
+	    	local Pass = string.sub(userfile[1],string.find(userfile[1],"!")+1)
+			if CodeX_USR_PASSCODE_ == Pass then
+				System.logInfo("CodeX","The password was correct.")
+				local ok, err = pcall(function() dofile("/System/Explorera.rxf") end)
+				if not ok then
+					if not err then
+			    		err = "No error code! Oh noes! The crash point, however, branched off of the ' Run Explorer.rxf ' command in CodeX and the user was reported to be logged in."
+			    	end
+		    		CodeX_logout()
+			    	error(err)
+				end
+			else
+				System.logWarn("CodeX","The password failed to be verifed for user: ' "..CodeX_Username.." ' .")
+			end
+		else
+			System.logInfo("CodeX","User logged in, however, is reporting the incorrect login infomation.")
+		end
+	else
+		System.logAlert("CodeX","Username set, but that's it. Asking user to relogin.")
+	end
+end
+local ok, err = pcall(main)
+if not ok then
+	if not err then
+    	err = "No error code! Oh noes! The crash point, however, branched off of the ' Main call ' in CodeX."
+    end
+    		System.logAlert("CodeX PANIC","Explorera crashed.")
+            System.logAlert("CodeX PANIC","What caused this? Well, I don't know... but this does relate to the system crashing: ' "..err.." '.")
+            System.logAlert("CodeX PANIC","Please, send that error message to Watsuprico via PM. He'll tell you how to fix it, when it'll be patched, or at least what it means.")
+            System.logAlert("CodeX PANIC","Showing the BSOD message, nothing much I can do.")
+            configfiledata = "Sorry, I couldn't retrieve that data ): "
+            local crash = assert(io.open("/System/Latest.log", "a"))
+            crash:write("\n^ System log file ^\n\nExplorera crashed.\nHere's some of that juicy debugging info.\n\nCrash info: \nError: "..err.." \n\nGeneral system info: \nCC version: "..RitoOS_CC_Version.."\nRitoOS version: "..RitoOS_Version.."\nConfig file: "..configfiledata.."\n\n\nEnd of the crash log.\n\n")
+            crash:close()
+            if fs.exists("/System/crash.log") then
+                fs.delete("/System/crash.log")
+            end
+                fs.copy("/System/Latest.log","/System/crash.log")
+            local x,Y = term.getSize()
+            term.setTextColor(colors.white)
+            term.setBackgroundColor(colors.white)
+            term.clear()
+            sleep(0)
+            term.setBackgroundColor(colors.lightGray)
+            term.clear()
+            sleep(0)
+            term.setBackgroundColor(colors.gray)
+            term.clear()
+            sleep(0)
+            term.setBackgroundColor(colors.black)
+            term.clear()
+            term.setCursorPos(math.floor(x-string.len("This isn't too good..."))/2, math.floor(Y/2))
+            print("That isn't too good...")
+            sleep(0.1)
+            term.setBackgroundColor(colors.gray)
+            term.clear()
+            sleep(0)
+            term.setBackgroundColor(colors.lightGray)
+            term.setTextColor(colors.brown)
+            term.clear()
+            term.setBackgroundColor(colors.white)
+            term.clear()
+            sleep(0)
+            term.setCursorPos(math.floor(x-string.len('Sorry about that :('))/2, 2)
+            write("Sorry about that. ): ")
+            term.setTextColor(colors.black)
+            term.setCursorPos(math.floor(x-string.len('Explorera has crashed.'))/2, 5)
+            print("Explorera has crashed.")
+            term.setCursorPos(3, 7)
+            print("Please, report this error to Watsuprico via PM:")
+            term.setTextColor(colors.red)
+            term.setCursorPos(3, 8)
+            print(err)
+            print()
+            print()
+            term.setTextColor(colors.gray)
+            term.setCursorPos(math.floor(x-string.len('Please remember, when sending the bug report"'))/2, 11)
+            print("Please remember, when sending the bug report")
+            term.setCursorPos(math.floor(x-string.len('.include the log file at "/System/Latest.log"'))/2, 12)
+            print("include the log file at: '/System/Latest.log'")
+            print()
+            print("Press enter to try and save the system.")
+            print("Press R to go into recovery.")
+            print("Press S to use Computercraft's shell.")
+            print("Press any other key to shutdown.")
+            sleep(1)
+            local e,s = os.pullEvent("key")
+            while true do
+                sleep(0)
+                if s == 28 then
+                    if not attemptToSave then
+                        attemptToSave = true
+                        System.logAlert("CodeX PANIC","Attempting to restart Explorera.")
+                        local ok, err = pcall(function() dofile("/System/Explorera.rxf") end)
+						if not ok then
+							if not err then
+					    		err = "No error code! Oh noes! The crash point, however, branched off of the ' Run Explorer.rxf ' command in CodeX."
+					    	end
+					    	CodeX_logout()
+					    	error(err)
+						end
+                    else
+                        System.logAlert("CodeX PANIC","Crashed! Error: ' Attempted to restart explorera, it failed. Shutting down. ' ")
+                        os.shutdown()
+                    end
+                elseif s == 19 then
+                    System.logAlert("CodeX PANIC","Starting recovery program.")
+                    shell.run("/System/.Recovery/.Recover")
+                    System.logAlert("CodeX PANIC","Attempted to start recovery, it failed, crashed, or was closed. Shutting down.")
+                    os.shutdown()
+                elseif s == 31 then
+                    System.logAlert("CodeX PANIC","Starting Computercraft's shell.")
+                    shell.run("/rom/programs/shell")
+                    System.logAlert("CodeX PANIC","Attempted to start Computercraft's shell, it failed, crashed, or was closed. Shutting down.")
+                    os.shutdown()
+                else
+                    System.logAlert("CodeX PANIC","Shutting down. D:")
+                    os.shutdown()
+                end
+            end
+end

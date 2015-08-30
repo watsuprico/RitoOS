@@ -6,7 +6,7 @@
     |                                                                         |
     | - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
     |                                                                         |
-    |                      Recovery Version Alpha 2.0                         |
+    |                 Boot File Version Alpha 2.0.1 (B003)                    |
     |                                                                         |
     |  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  |
     |                                                                         |
@@ -41,7 +41,7 @@
 local devMode = false --Does nothing... for now.
 
 
-local ver = "RitoOS RitoOS Alpha 2.0.1; build 002"
+local ver = "RitoOS Alpha 2.0.1; build 003"
 _G.RitoOS_CC_Version = os.version() -- Computercraft version
 
 local function getTable(path)
@@ -143,7 +143,7 @@ local function main()
     end
     
     if RitoOS_Enter_Recovery == true then
-        System.logAlert("System","Enterying recovery mode.")
+        System.logAlert("System","Entering recovery mode.")
         dofile("/System/.Recovery/.Recover")
     end
 
@@ -176,10 +176,10 @@ local function main()
         System.logInfo("System","Setting computer label")
         os.setComputerLabel(RitoOS_Computer_Label)
         System.logInfo("System","Loading CodeX")
-        local ok, err = pcall(function() term.setBackgroundColor(colors.black) term.clear() dofile("/System/OLD_CodeX.rxf") end)
+        local ok, err = pcall(function() term.setBackgroundColor(colors.black) term.clear() dofile("/System/CodeX.rxf") end)
         if not ok then
             if not err then
-                err = "No error code! Oh noes! The crash point, however, branched off of line 177 in the boot file."
+                err = "No error code! Oh noes! The crash point, however, branched off of line 179 in the boot file."
             end
             System.logAlert("System PANIC","Oh noes! We crashed! D:")
             System.logAlert("System PANIC","What caused this? Well, I don't know... but this does relate to the system crashing: ' "..err.." '.")
@@ -238,7 +238,6 @@ local function main()
             print()
             print("Press enter to try and save the system.")
             print("Press R to go into recovery.")
-            print("Press S to use Computercraft's shell.")
             print("Press any other key to shutdown.")
             sleep(1)
             local e,s = os.pullEvent("key")
@@ -257,11 +256,6 @@ local function main()
                     System.logAlert("System PANIC","Starting recovery program.")
                     shell.run("/System/.Recovery/.Recover")
                     System.logAlert("System PANIC","Attempted to start recovery, it failed, crashed, or was closed. Shutting down.")
-                    os.shutdown()
-                elseif s == 31 then
-                    System.logAlert("System PANIC","Starting Computercraft's shell.")
-                    shell.run("/rom/programs/shell")
-                    System.logAlert("System PANIC","Attempted to start Computercraft's shell, it failed, crashed, or was closed. Shutting down.")
                     os.shutdown()
                 else
                     System.logAlert("System PANIC","Shutting down. D:")
