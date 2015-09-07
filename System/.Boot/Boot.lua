@@ -6,7 +6,7 @@
     |                                                                         |
     | - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
     |                                                                         |
-    |                 Boot File Version Alpha 2.0.1 (B003)                    |
+    |                 Boot File Version Alpha 2.0.1 (B004)                    |
     |                                                                         |
     |  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  |
     |                                                                         |
@@ -41,7 +41,7 @@
 local devMode = false --Does nothing... for now.
 
 
-local ver = "RitoOS Alpha 2.0.1; build 003"
+local ver = "RitoOS Alpha 2.0.1; build 004"
 _G.RitoOS_CC_Version = os.version() -- Computercraft version
 
 local function getTable(path)
@@ -66,33 +66,46 @@ local function startConfigService()
     System.logInfo("System","Starting config service.")
     local ok, err = pcall(function() dofile('/System/Services/Config/Config.serv') end)
     if ok then
-        System.logInfo("System","Started config service.")
+        System.logInfo("System","Started Config service.")
     else
-        System.logAlert("System","Error: config serivce either couldn't load, or crashed. Error code: "..err)
+        System.logAlert("System","Error: Config serivce either couldn't load, or crashed. Error code: "..err)
     end
 end
 local function startMonitorService()
     System.logInfo("System","Starting monitor service.")
     local ok, err = pcall(function() dofile('/System/Services/Monitor/Monitor.serv') end)
     if ok then
-        System.logInfo("System","Started monitor service.")
+        System.logInfo("System","Started Monitor service.")
     else
-        System.logAlert("System","Error: monitor serivce either couldn't load, or crashed. Error code: "..err)
+        System.logAlert("System","Error: Monitor serivce either couldn't load, or crashed. Error code: "..err)
     end
 end
 local function startUpdateService()
     System.logInfo("System","Starting update service.")
-    dofile('/System/Services/Update/Update.serv')
     local ok, err = pcall(function() dofile('/System/Services/Update/Update.serv') end)
     if ok then
-        System.logInfo("System","Started config service.")
+        System.logInfo("System","Started Update service.")
     else
-        System.logAlert("System","Error: config serivce either couldn't load, or crashed. Error code: "..err)
+        System.logAlert("System","Error: Update serivce either couldn't load, or crashed. Error code: "..err)
     end
 end
 local function startRitLock()
     System.logInfo("System","Starting RitLock.")
-    dofile('/System/Services/RitLock/RitLock.serv')
+    local ok, err = pcall(function() dofile('/System/Services/RitLock/RitLock.serv') end)
+    if ok then
+        System.logInfo("System","Started RitLock service.")
+    else
+        System.logAlert("System","Error: RitLock serivce either couldn't load, or crashed. Error code: "..err)
+    end
+end
+local function startOsFunction()
+    System.logInfo("System","Starting os function list.")
+    local ok, err = pcall(function() dofile('/System/Services/OS/OS.serv') end)
+    if ok then
+        System.logInfo("System","Started OS Function service.")
+    else
+        System.logAlert("System","Error: OS Function serivce either couldn't load, or crashed. Error code: "..err)
+    end
 end
 -- End services
 
@@ -155,7 +168,10 @@ local function main()
         _G.monitor = Monitor
         System.logInfo("System","Monitor API loaded.")
     else
-        System.logAlert("System","Error: Monitor API failed to load or crashed.")
+        if not err then
+            err = "No error code ):"
+        end
+        System.logAlert("System","Error: Monitor API failed to load or crashed. Error: "..err)
     end
     System.logInfo("System","Loading update API")
     if os.loadAPI("/System/APIs/Update/Update") then
@@ -266,7 +282,7 @@ local function main()
     end
     --Start services
     System.logInfo("System","Starting services.")
-    parallel.waitForAll(startConfigService,startMonitorService,startUpdateService,startRitLock,finishBoot)
+    parallel.waitForAll(startOsFunction,startConfigService,startMonitorService,startUpdateService,startRitLock,finishBoot)
 end
 
 

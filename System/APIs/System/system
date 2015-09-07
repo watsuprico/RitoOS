@@ -67,10 +67,16 @@ function log(t, m)
 end
 function reloadLog()
     if fs.exists("/System/Latest.log") then
+        local oldLog = fs.open("/System/Latest.log","r")
+        local readAllOldLog = oldLog.readAll()
+        oldLog.close()
+        local newLog = fs.open("/System/Logs/RitoOS.log", fs.exists("/System/Logs/RitoOS.log") and "a" or "w")
+        newLog.write(readAllOldLog.."\n\n ^ Old Log File ^ \n\n\n\n\n\n\n\n")
+        newLog.close()
         fs.delete("/System/Latest.log")
     end
     local h = assert(io.open("/System/Latest.log","w"))
-    h:write("-- RitoOS log --\n")
+    h:write("|-= RitoOS log =-|\n|-/ Log reloaded on: "..os.time().." /-|\n\n")
     h:close()
 end
 function startupFile()

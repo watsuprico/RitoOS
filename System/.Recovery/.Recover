@@ -38,6 +38,83 @@
 
 ]]
 
+local function getSavedPass(getKey, username) -- I'm take this from CodeX if you don't mind
+  if not username then
+    username = CodeX_Username
+  end
+  local Key = StrUtils.SHA1(getKey)
+  local getKey = "Nope.avi"
+  local Passphrase_File = fs.open("/Users/"..username.."/.Passphrase.CodeX","r")
+  local Passphrase_Key = Passphrase_File.readAll()
+  Passphrase_File.close()
+  local UnsavedPassword = StrUtils.SHA1(Key..""..Passphrase_Key)
+  local Passphrase_Key = "Nope.avi"
+  local Passphrase_File = "Nope.avi"
+  return UnsavedPassword
+end
+local function getTable(path)
+  if fs.exists(path) then
+    local file = io.open(path, "r")
+    local lines = {}
+    local i = 1
+    local line = file:read("*l")
+    while line ~= nil do
+      lines[i] = line
+      line = file:read("*l")
+      i = i + 1
+    end
+    file:close()
+    return lines
+  end
+  return {}
+end
+local function append(path, text)
+  local file = assert(io.open(path, "a"))
+  file:write(text.."\n")
+  file:close()
+end
+
+function Login() -- Login before messing with the system
+  System.logInfo("Recovery","Loading StrUtils for login script.")
+  os.loadAPI("/System/APIs/StrUtils/StrUtils")
+  term.setBackgroundColor(colors.white)
+  term.clear()
+  term.setTextColor(colors.white)
+  term.clear()
+  term.setCursorPos(1,1)
+  term.setBackgroundColor(colors.cyan)
+  term.clearLine()
+  PrintCentered("RitoOS Recovery")
+  term.setBackgroundColor(colors.white)
+  term.setTextColor(colors.black)
+  print("Please log in.")
+  print()
+  print("Username -")
+  term.setCursorPos(11,4)
+  local username = read()
+  if fs.exists("/Users/"..username.."/."..username..".CodeX") then
+    System.logInfo("Recovery","Awaiting for the password to user ' "..username.." ' .")
+    print("Password -")
+    term.setCursorPos(11,5)
+    local wizardpass = read("*")
+    local morewizards = getSavedPass(wizardpass, username)
+    local userfile =  getTable("/Users/"..username.."/."..username..".CodeX")
+    local lesswizards = string.sub(userfile[1],string.find(userfile[1],"!")+1)
+    if morewizards == lesswizards then
+      print("Loading ...")
+      System.logInfo("Recovery","Password recieved and correct.")
+      loggedIn = true
+    else
+      print('Password incorrect ):')
+      System.logInfo("Recovery","incorrect password used for user ' "..username.. " ' .")
+      sleep(2)
+    end
+  else
+    print('No such user.')
+    sleep(2)
+  end
+end
+
 
 function PrintCentered(sText)
     local w, h = term.getSize()
@@ -92,6 +169,11 @@ local function Recovery()
       end
       os.reboot()
     elseif n == 2 then
+
+
+        while not loggedIn do
+          Login()
+        end
 
         local options={
           "[1] Back",
