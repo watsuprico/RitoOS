@@ -101,11 +101,9 @@ local function RunCommand( _sCommand, ... )
     elseif _sCommand == "shutdown" then
         os.shutdown()
     elseif _sCommand == "recovery" then
-        RitoOSEnter_Recovery = true
+        RitoOS_bootIntoRecovery = true
     elseif _sCommand == "update" then
-        PrintCentered("/- Updating -/")
-        updateGit("/System/.Updater/UpgradeSystem.rxf")
-        PrintCentered("/- Please type 'upgrade' to upgrade the system -/")
+        dofile("/System/Programs/Update")
     elseif _sCommand == "upgrade" then
         shell.run("/System/.Updater/UpgradeSystem.rxf")
     elseif _sCommand == "CrashMe!" then

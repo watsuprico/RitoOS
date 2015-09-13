@@ -224,7 +224,7 @@ local function main()
 			CodeX_USR_ADMIN = string.sub(userfile[2],string.find(userfile[2],"!")+1)
 			System.logInfo("CodeX","Loading user APIs.")
 			for _,file in ipairs(fs.list("/APIs/")) do
-            	if file ~= "read.txt" then
+            	if file ~= "Readme.txt" then
 				    os.loadAPI("/APIs/"..file)
 	            	System.logInfo("CodeX","Loaded /APIs/"..file)
 	            end

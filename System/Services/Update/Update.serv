@@ -1,3 +1,56 @@
+local function getTable(path)
+    if fs.exists(path) then
+        local file = io.open(path, "r")
+        local lines = {}
+        local i = 1
+        local line = file:read("*l")
+        while line ~= nil do
+            lines[i] = line
+            line = file:read("*l")
+            i = i + 1
+        end
+        file:close()
+        return lines
+    end
+    return {}
+end
+
+-- Do we need to finish installing updates?
+
+if Update_Service_completeOnBoot then
+    Update_Service_completeOnBoot = false
+    -- Finish updates
+    term.setBackgroundColor(colors.white)
+    term.clear()
+    term.setTextColor(colors.black)
+    
+    local function printCenter(t)
+        local X,Y = term.getSize()
+        if not t then
+            t = ""
+        end
+        term.setCursorPos(math.floor(X-string.len(t))/2, Y/2)
+        write(t)
+    end
+    term.setBackgroundColor(colors.white)
+    term.clear()
+    term.setTextColor(colors.black)
+    os.loadAPI("/System/APIs/Update/Update")
+    System.logInfo("Update Service","Installing updates")
+    printCenter("Finishing updates, please do no restart RitoOS.")
+
+    Update.build()
+
+    term.clearLine()
+    printCenter("Updates complete! Rebooting.")
+    sleep(2)
+    if fs.isDir("/System/SoftwareDistribution/Downloads") then
+        fs.delete("/System/SoftwareDistribution/Downloads")
+    end
+    os.reboot()
+end
+
+
 while RitoOS_Config_service_started ~= true do
     if _c == true then
         else
@@ -6,7 +59,8 @@ while RitoOS_Config_service_started ~= true do
         end
     sleep(0)
 end
-while Monitor_service_started ~= true do
+
+while Monitor_Service_started ~= true do
         if _c == true then
         else
             System.logInfo("Update System","Waiting for Monitor service to start...")
@@ -14,19 +68,77 @@ while Monitor_service_started ~= true do
         end
     sleep(0)
 end
-system.outputInfo("Checking for updates")
-if RitoOSUpdater_Reboot_To_Complete_Updates_Complete_Updates == true then
-    if http then
-        system.outputInfo("Finishing updates")
-        _G.RitoOSUpdater_Reboot_To_Complete_Updates_Complete_Updates = true
-        shell.run("/System/.Updater/UpgradeSystem.rxf")
-        system.outputInfo("Updates complete! Rebooting")
-        sleep(3)
-        os.reboot()
-    else
-        System:WARN("Could not find update files")
-        sleep(1)
+
+
+-- Core service
+
+--Check for updates
+local newVersion = Update.grabNewVersion(Update_buildType, Update_site)
+VersionFile =  getTable("/System/.version")
+local currentVersion = string.sub(VersionFile[3],string.find(VersionFile[3],":")+2)
+if newVersion > currentVersion then
+    System.logInfo("Update Service","New update!")
+    newUpdate = true
+    
+    -- Tell the user of a new update and ask if we should update or not
+    local oldX, oldY = term.getCursorPos()
+    local X,Y = term.getSize()
+    local X = math.floor(X/2)
+    local Y = math.floor(Y/2)
+    local _X,_Y = term.getSize()
+    local _X = X - math.floor(X/2)
+    local _Y = Y - math.floor(Y/2)
+    MessageBox = window.create(term.current(),_X,_Y,X,Y,false)
+    System.logInfo("Update Service", "Prompting user about the update.")
+    MessageBox.setVisible(true)
+    MessageBox.setBackgroundColor(colors.lightGray)
+    MessageBox.clear()
+    MessageBox.setCursorPos(2,2)
+    MessageBox.write("New update!\n")
+    MessageBox.setCursorPos(2,4)
+    MessageBox.write("Download and install?\n")
+    local tx, ty = _X + 2, _Y + Y - 2
+    MessageBox.setCursorPos(2,8)
+    MessageBox.write("Yes")
+    local ttx, tty = _X + 8, _Y + Y - 2
+    MessageBox.setCursorPos(10,8)
+    MessageBox.write("No")
+    term.setCursorPos(oldX, oldY)
+    while true do
+        local oldX, oldY = term.getCursorPos()
+        MessageBox.redraw()
+        term.setCursorPos(oldX, oldY)
+        local e, but, cx, cy = os.pullEvent()
+        if e == "mouse_click" then
+            if cx >= tx and cx <= tx + 3 and cy == ty then
+                System.logInfo("Update Service","Updating RitoOS.")
+                MessageBox.setVisible(false)
+                MessageBox.redraw()
+                Windows_Main.redraw()
+                --Install
+                dofile("/System/Programs/Update")
+                term.redraw()
+                break
+            elseif cx >= ttx and cx <= ttx + 2 and cy == tty then
+                System.logInfo("Update Service","The new update will not be installed.")
+                MessageBox.setVisible(false)
+                MessageBox.redraw()
+                Windows_Main.redraw()
+                break
+            end
+        end
     end
-else
-system.outputInfo("Updates not needed")
+
+end
+
+while true do
+
+    sleep(600) -- Wait 10 minutes
+    local newVersion = Update.grabNewVersion(Update_buildType, Update_site)
+    VersionFile =  getTable("/System/.version")
+    local currentVersion = string.sub(VersionFile[3],string.find(VersionFile[3],":")+2)
+    if newVersion > currentVersion then
+        newUpdate = true
+    end
+
 end

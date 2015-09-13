@@ -1,3 +1,4 @@
+RitoOS_shutdownGood = true
 local function main()
 dofile('/System/.Boot/Boot.lua')
 do return end

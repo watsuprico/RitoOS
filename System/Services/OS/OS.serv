@@ -1,0 +1,123 @@
+-- RitoOS Global Function Overwrite
+
+
+function os.closeServices()
+	local function pprint(msg)
+		if RitoOS_showStats then
+			print(msg)
+		end
+	end
+	pprint("Notifying services of shutdown")
+	_G.RitoOS_goingDown = true
+	if Monitor_Service_started then
+		System.logInfo("System","Notifying Monitor service of termination.")
+		pprint("Notifying Monitor service of termination.")
+		Monitor.shutdown()
+	end
+	--System.logInfo("System","Wait for the termination of the RitLock service.")
+	--pprint("Notifying RitLock service of termination.")
+	--RitLock.shutdown("558")
+	--System.logInfo("System","Wait for the termination of the Update service.")
+	--pprint("Notifying Update service of termination.")
+	--update.close()
+	pprint("Done!")
+end
+
+
+
+local nativeShutdown = os.shutdown
+function os.shutdown()
+	if Monitor_Service_Connected then
+		Monitor.disconnect()
+	end
+	local function printCenter(t)
+		local X,Y = term.getSize()
+		if not t then
+			t = ""
+		end
+		term.setCursorPos(math.floor(X-string.len(t))/2, Y/2)
+		print(t)
+	end
+	printCenter("Shutting down")
+	System.logAlert("System PWR","Shutting down NOW!")
+	printCenter("Stopping services")
+	os.closeServices()
+	printCenter("Shutting down")
+
+    --Recovery
+    if RitoOS_bootIntoRecovery == true then
+        local rlockInput = fs.open("/Startup", "w")
+        rlockInput.write("RitoOS_shutdownGood = true\n_RitoOS_bootIntoRecovery = true\n")
+        rlockInput.close()
+    else
+    	local UpdateStartupFile = assert(io.open("/Startup", "w"))
+        UpdateStartupFile:write("RitoOS_shutdownGood = true\n")
+        UpdateStartupFile:close()
+    end
+
+    -- Updater
+    if Update_Service_completeOnBoot == true then
+        local UpdateStartupFile = assert(io.open("/Startup", "a"))
+        UpdateStartupFile:write("Update_Service_completeOnBoot = true\n"..System.startupFile())
+        UpdateStartupFile:close()
+    else
+        local UpdateStartupFile = assert(io.open("/Startup", "a"))
+        UpdateStartupFile:write(System.startupFile())
+        UpdateStartupFile:close()
+    end
+
+    System.logAlert("System PWR","Going down! (Shutting down now)")
+    nativeShutdown()
+    while true do
+        coroutine.yield()
+    end
+end
+
+
+local nativeReboot = os.reboot
+function os.reboot()
+	if Monitor_Service_Connected then
+		Monitor.disconnect()
+	end
+	local function printCenter(t)
+		local X,Y = term.getSize()
+		if not t then
+			t = ""
+		end
+		term.setCursorPos(math.floor(X-string.len(t))/2, Y/2)
+		print(t)
+	end
+	System.logAlert("System PWR","Rebooting NOW!")
+	printCenter("Rebooting")
+	printCenter("Stopping services")
+	os.closeServices()
+	printCenter("Shutting down")
+
+	--Recovery
+    if RitoOS_bootIntoRecovery == true then
+        local rlockInput = fs.open("/Startup", "w")
+        rlockInput.write("RitoOS_shutdownGood = true\n_RitoOS_bootIntoRecovery = true\n")
+        rlockInput.close()
+    else
+    	local UpdateStartupFile = assert(io.open("/Startup", "w"))
+        UpdateStartupFile:write("RitoOS_shutdownGood = true\n")
+        UpdateStartupFile:close()
+    end
+
+    -- Updater
+    if Update_Service_completeOnBoot == true then
+        local UpdateStartupFile = assert(io.open("/Startup", "a"))
+        UpdateStartupFile:write("Update_Service_completeOnBoot = true\n"..System.startupFile())
+        UpdateStartupFile:close()
+    else
+        local UpdateStartupFile = assert(io.open("/Startup", "a"))
+        UpdateStartupFile:write(System.startupFile())
+        UpdateStartupFile:close()
+    end
+
+    System.logAlert("System PWR","Going down! (Rebooting now)")
+    nativeReboot()
+    while true do
+        coroutine.yield()
+    end
+end

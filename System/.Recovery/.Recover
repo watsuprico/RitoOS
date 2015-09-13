@@ -167,6 +167,7 @@ local function Recovery()
       if fs.exists("/System/.Boot/BN") then
         fs.delete("/System/.Boot/BN")
       end
+      RitoOS_bootIntoRecovery = false
       os.reboot()
     elseif n == 2 then
 
@@ -247,10 +248,10 @@ local function Recovery()
                     System.logAlert("Recovery","The system has been wiped. User entered the confirmation code correctly.")
                     print("/- Good bye -/")
                     for _,file in ipairs(fs.list("/")) do
-                      if not fs.isReadOnly(file) then if file ~= "/System/Latest.log" then
+                      if not fs.isReadOnly(file) then if file ~= "/System/Latest.log" then if file ~= "/System/Logs/RitoOS.log" then
                         fs.delete(file)
                         print("Deleting "..file)
-                      end end
+                      end end end
                     end
                     print("/- System deleted -/")
                     sleep(5)
@@ -274,6 +275,7 @@ local function Recovery()
 
     elseif n == 3 then
       System.logInfo("Recovery","System shutting down.")
+      RitoOS_bootIntoRecovery = true
       os.shutdown()
     elseif n == 4 then
       Recovery()

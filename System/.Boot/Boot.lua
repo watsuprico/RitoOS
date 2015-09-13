@@ -6,7 +6,7 @@
     |                                                                         |
     | - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
     |                                                                         |
-    |                 Boot File Version Alpha 2.0.1 (B004)                    |
+    |                 Boot File Version Alpha 2.0.1 (B005)                    |
     |                                                                         |
     |  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  |
     |                                                                         |
@@ -41,7 +41,7 @@
 local devMode = false --Does nothing... for now.
 
 
-local ver = "RitoOS Alpha 2.0.1; build 004"
+local ver = "RitoOS Alpha 2.0.1; build 005"
 _G.RitoOS_CC_Version = os.version() -- Computercraft version
 
 local function getTable(path)
@@ -99,12 +99,22 @@ local function startRitLock()
     end
 end
 local function startOsFunction()
+    sleep(0.2)
     System.logInfo("System","Starting os function list.")
     local ok, err = pcall(function() dofile('/System/Services/OS/OS.serv') end)
     if ok then
         System.logInfo("System","Started OS Function service.")
     else
         System.logAlert("System","Error: OS Function serivce either couldn't load, or crashed. Error code: "..err)
+    end
+end
+local function startBackupService()
+    System.logInfo("System","Starting Backup service.")
+    local ok, err = pcall(function() dofile('/System/Services/Backup/Backup.serv') end)
+    if ok then
+        System.logInfo("System","Started Backup service.")
+    else
+        System.logInfo("System","Error: Backup service either couldn't load, or crashed. Error code: "..err)
     end
 end
 -- End services
@@ -121,6 +131,7 @@ local function main()
     term.setBackgroundColor(colors.white)
     term.clear()
     _G.shell = shell -- Make shell.run() usable
+    _G.fs = fs --Make fs usable
     _G.RitoOS = true -- We're booting
     _G.RitoOS_Version = ver -- Our version
 
@@ -134,14 +145,14 @@ local function main()
     end
 
     System.logInfo("System","Checking last shutdown state.")
-    if not LastShutdownSuccessful then
+    if not RitoOS_shutdownGood then
         System.logAlert("System","Failed to shutdown correctly.")
         if fs.exists("/System/.Boot/BN") then
             BN =  getTable("/System/.Boot/BN")
             BNi = tonumber(string.sub(BN[1],string.find(BN[1],"!")+1))
             if BNi >= 3 then
                 System.logWarn("System","Possibly damaged, booting into recovery")
-                RitoOS_Enter_Recovery = true
+                RitoOS_bootIntoRecovery = true
             else
                 BNi = BNi + 1
                 local file = assert(io.open("/System/.Boot/BN", "w"))
@@ -155,11 +166,20 @@ local function main()
         end
     end
     
-    if RitoOS_Enter_Recovery == true then
+    if _RitoOS_bootIntoRecovery == true then
         System.logAlert("System","Entering recovery mode.")
         dofile("/System/.Recovery/.Recover")
     end
 
+    if Update_Service_completeOnBoot then
+        Complete_Update = true
+        dofile("/System/Services/Update/Update.serv")
+    end
+    --Setup the main window
+    OldTerm = term.current()
+    local maxX, maxY = term.getSize()
+    Windows_Main = window.create(term.current(),1,1,maxX,maxY,true)
+    term.redirect(Windows_Main)
     -- Load APIs
     System.logInfo("System","Loading APIs.")
 
@@ -282,7 +302,7 @@ local function main()
     end
     --Start services
     System.logInfo("System","Starting services.")
-    parallel.waitForAll(startOsFunction,startConfigService,startMonitorService,startUpdateService,startRitLock,finishBoot)
+    parallel.waitForAll(startBackupService,startConfigService,startMonitorService,startUpdateService,startRitLock,finishBoot)
 end
 
 
@@ -304,7 +324,7 @@ local function VersionInfo()
 end
 
 if not RitoOS then
-    parallel.waitForAll(TimeKeeper,main,VersionInfo)
+    parallel.waitForAll(TimeKeeper,main,startOsFunction,VersionInfo)
 else
     error("RitoOS already running.")
 end

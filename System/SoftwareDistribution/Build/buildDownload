@@ -1,0 +1,74 @@
+local function getTable(path)
+    if fs.exists(path) then
+        local file = io.open(path, "r")
+        local lines = {}
+        local i = 1
+        local line = file:read("*l")
+        while line ~= nil do
+            lines[i] = line
+            line = file:read("*l")
+            i = i + 1
+        end
+        file:close()
+        return lines
+    end
+    return {}
+end
+
+Updatefig =  getTable("/System/Configs/.Update.conf")
+Update_buildType = string.sub(Updatefig[1],string.find(Updatefig[1],":")+2)
+Update_site = string.sub(Updatefig[2],string.find(Updatefig[2],":")+2)
+
+
+local buildDirs = {"/System/",
+"/System/.Boot",
+"/System/.Recovery",
+"/System/APIs/",
+"/System/Configs/",
+"/System/Logs/",
+"/System/Programs/",
+"/System/Services/",
+"/APIs/",
+"/Programs/",
+"/Users/"}
+
+local downloadFiles = {"/System/.Boot/Boot.lua",
+"/System/.Recovery/.Recover",
+"/System/.version",
+"/System/APIs/Monitor/Monitor",
+"/System/APIs/StrUtils/StrUtils",
+"/System/APIs/System/System",
+"/System/APIs/Update/Update",
+"/System/Configs/.Rito.conf",
+"/System/Programs/disconnect",
+"/System/Programs/mon_connect",
+"/System/Programs/resize",
+"/System/Programs/uptime",
+"/System/Programs/Update",
+"/System/Services/Config/Config.serv",
+"/System/Services/Monitor/Monitor.serv",
+"/System/Services/OS/OS.serv",
+"/System/Services/RitLock/RitLock.serv",
+"/System/Services/Update/Update.serv",
+"/System/CMD.rxf",
+"/System/CodeX.rxf",
+"/System/Explorera.rxf",
+"/System/User.rxf",
+"/APIs/Readme.txt",
+"/Startup"}
+
+System.logInfo("Update - buildDownload","Creating dirs.")
+
+for i=1,#buildDirs do
+	if not fs.isDir("/System/SoftwareDistribution/Downloads"..buildDirs[i]) then
+		fs.makeDir("/System/SoftwareDistribution/Downloads"..buildDirs[i])
+	end
+end
+
+System.logInfo("Update - buildDownload","Downloading files.")
+
+for i=1,#downloadFiles do
+	Update.downloadFile(Update_buildType, "direct.mine-a-craft.com", downloadFiles[i])
+end
+
+System.logInfo("Update - buildDownload","Complete.")

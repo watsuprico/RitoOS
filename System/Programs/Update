@@ -1,0 +1,24 @@
+local function printCenter(t)
+    local X,Y = term.getSize()
+	if not t then
+    	t = ""
+    end
+    term.setCursorPos(math.floor(X-string.len(t))/2, Y/2)
+    print(t)
+end
+
+
+term.setBackgroundColor(colors.white)
+term.clear()
+term.setTextColor(colors.black)
+System.logInfo("Updater","Updating RitoOS")
+printCenter("Downloading updates.")
+
+Update.grabBuild(Update_buildType, Update_site)
+
+dofile("/System/SoftwareDistribution/Build/buildDownload")
+
+printCenter("Updates downloaded, rebooting.")
+Update_Service_completeOnBoot = true
+sleep(2)
+os.reboot()

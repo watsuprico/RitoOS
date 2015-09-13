@@ -1,3 +1,7 @@
+function shutdown()
+    _G.MonitorService_goingDown = true
+end
+
 function connected()
     -- Clear main screen
     local __Prev_term = term.current()

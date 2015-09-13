@@ -1,0 +1,220 @@
+local function getTable(path)
+    if fs.exists(path) then
+        local file = io.open(path, "r")
+        local lines = {}
+        local i = 1
+        local line = file:read("*l")
+        while line ~= nil do
+            lines[i] = line
+            line = file:read("*l")
+            i = i + 1
+        end
+        file:close()
+        return lines
+    end
+    return {}
+end
+
+function grabNewVersion(buildType, updateSite)
+	if updateSite == "updates.watsuprico.com" then  --Set the URL up for Github or my custom servers
+		if buildType == "3" then
+			buildType = "Alpha"
+		elseif buildType == "2" then
+			buildType = "Beta"
+		else
+			buildType = "Stable"
+		end
+		updateLocation = "http://updates.watsuprico.com/RitoOS/Updates/"..buildType.."/Latest"
+	elseif updateSite == "direct.mine-a-craft.com" then
+		if buildType == "3" then
+			buildType = "Alpha"
+		elseif buildType == "2" then
+			buildType = "Beta"
+		else
+			buildType = "Stable"
+		end
+		updateLocation = "http://direct.mine-a-craft.com/RitoOS/Updates/"..buildType.."/Latest"
+	else
+		if buildType == "3" then
+			buildType = "Alpha-Builds"
+		elseif buildType == "2" then
+			buildType = "BetaUpdates"
+		else
+			buildType = "master"
+		end
+		updateLocation = "https://raw.githubusercontent.com/watsuprico/RitoOS/"..buildType..""
+	end
+
+	System.logInfo("Update API","Grabbing new update version from:  "..updateLocation.."/System/.version")
+	if not fs.isDir("/System/SoftwareDistribution/") then
+		fs.makeDir("/System/SoftwareDistribution/")
+	end
+	if http then
+        local h=http.get(updateLocation..'/System/.version')
+        if h then
+			local f=fs.open("/System/SoftwareDistribution/newVersionFile",'w')
+            f.write(h.readAll())
+            f.close()
+            h.close()
+            newVersionFile =  getTable("/System/SoftwareDistribution/newVersionFile")
+        	local newVersion = string.sub(newVersionFile[3],string.find(newVersionFile[3],":")+2)
+            System.logInfo("Update API","New version info obtained! New version: "..newVersion)
+            return newVersion
+        else
+        	System.logInfo("Update API","Failed to download update info from:  "..updateLocation.."/System/.version")
+            return false
+        end
+    else
+            System.logAlert("Update API","HTTP not enabled!")
+            return false
+    end
+end
+
+function grabBuild(buildType, updateSite)
+	if updateSite == "updates.watsuprico.com" then  --Set the URL up for Github or my custom servers
+		if buildType == "3" then
+			buildType = "Alpha"
+		elseif buildType == "2" then
+			buildType = "Beta"
+		else
+			buildType = "Stable"
+		end
+		updateLocation = "http://updates.watsuprico.com/RitoOS/Updates/"..buildType.."/Latest"
+	elseif updateSite == "direct.mine-a-craft.com" then
+		if buildType == "3" then
+			buildType = "Alpha"
+		elseif buildType == "2" then
+			buildType = "Beta"
+		else
+			buildType = "Stable"
+		end
+		updateLocation = "http://direct.mine-a-craft.com/RitoOS/Updates/"..buildType.."/Latest"
+	else
+		if buildType == "3" then
+			buildType = "Alpha-Builds"
+		elseif buildType == "2" then
+			buildType = "BetaUpdates"
+		else
+			buildType = "master"
+		end
+		updateLocation = "https://raw.githubusercontent.com/watsuprico/RitoOS/"..buildType..""
+	end
+
+	System.logInfo("Update API","Downloading RitoOS update build file(s).")
+	if not fs.isDir("/System/SoftwareDistribution/Build/") then
+		fs.makeDir("/System/SoftwareDistribution/Build/")
+	end
+	if http then
+		local file = "buildUpdate"
+        local h=http.get(updateLocation..'/System/SoftwareDistribution/Build/'..file)
+        if h then
+			local f=fs.open("/System/SoftwareDistribution/Build/"..file,'w')
+            f.write(h.readAll())
+            f.close()
+            h.close()
+        else
+        	System.logInfo("Update API","Failed to download update build file(s) from:  "..updateLocation.."/System/SoftwareDistribution/Build/"..file.." .")
+        end
+        local file = "buildDownload"
+        local h=http.get(updateLocation..'/System/SoftwareDistribution/Build/'..file)
+        if h then
+			local f=fs.open("/System/SoftwareDistribution/Build/"..file,'w')
+            f.write(h.readAll())
+            f.close()
+            h.close()
+        else
+        	System.logInfo("Update API","Failed to download update build file(s) from:  "..updateLocation.."/System/SoftwareDistribution/Build/"..file.." .")
+        end
+        local file = "buildUndo"
+        local h=http.get(updateLocation..'/System/SoftwareDistribution/Build/'..file)
+        if h then
+			local f=fs.open("/System/SoftwareDistribution/Build/"..file,'w')
+            f.write(h.readAll())
+            f.close()
+            h.close()
+        else
+        	System.logInfo("Update API","Failed to download update build file(s) from:  "..updateLocation.."/System/SoftwareDistribution/Build/"..file.." .")
+        end
+        local file = "buildConfirm"
+        local h=http.get(updateLocation..'/System/SoftwareDistribution/Build/'..file)
+        if h then
+			local f=fs.open("/System/SoftwareDistribution/Build/"..file,'w')
+            f.write(h.readAll())
+            f.close()
+            h.close()
+            System.logInfo("Update API","Downloaded upadate build file(s).")
+            return true
+        else
+        	System.logInfo("Update API","Failed to download update build file(s) from:  "..updateLocation.."/System/SoftwareDistribution/Build/"..file.." .")
+            return false
+        end
+    else
+            System.logAlert("Update API","HTTP not enabled!")
+            return false
+    end
+end
+
+function build()
+	--Run build file
+	dofile("/System/SoftwareDistribution/Build/buildUpdate")
+end
+
+function buildConfirm()
+	dofile("/System/SoftwareDistribution/Build/buildConfirm")
+end
+
+function buildUndo()
+	dofile("/System/SoftwareDistribution/Build/buildUndo")
+end
+
+function download()
+	dofile("/System/SoftwareDistribution/Build/buildDownload")
+end
+
+function downloadFile(buildType, updateSite, file)
+	if updateSite == "updates.watsuprico.com" then  --Set the URL up for Github or my custom servers
+		if buildType == "3" then
+			buildType = "Alpha"
+		elseif buildType == "2" then
+			buildType = "Beta"
+		else
+			buildType = "Stable"
+		end
+		updateLocation = "http://updates.watsuprico.com/RitoOS/Updates/"..buildType.."/Latest"
+	elseif updateSite == "direct.mine-a-craft.com" then
+		if buildType == "3" then
+			buildType = "Alpha"
+		elseif buildType == "2" then
+			buildType = "Beta"
+		else
+			buildType = "Stable"
+		end
+		updateLocation = "http://direct.mine-a-craft.com/RitoOS/Updates/"..buildType.."/Latest"
+	else
+		if buildType == "3" then
+			buildType = "Alpha-Builds"
+		elseif buildType == "2" then
+			buildType = "BetaUpdates"
+		else
+			buildType = "master"
+		end
+		updateLocation = "https://raw.githubusercontent.com/watsuprico/RitoOS/"..buildType..""
+	end
+	if http then
+        local h=http.get(updateLocation..''..file)
+        if h then
+        	local f=fs.open("/System/SoftwareDistribution/Downloads"..file,'w')
+            f.write(h.readAll())
+            f.close()
+            h.close()
+            System.logInfo("Update API","Downloaded file: ' "..file.." ' .")
+            return file
+        else
+        	System.logInfo("Update API","Failed to download file: ' "..updateLocation..""..file.." ' .")
+            return false
+        end
+    else
+            System.logAlert("Update API","Failed to download, HTTP not enabled!")
+            return false
+    end
+end
