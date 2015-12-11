@@ -6,7 +6,7 @@
     |                                                                         |
     | - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
     |                                                                         |
-    |                       CodeX Version Alpha 4.5                           |
+    |                       CodeX Version Alpha 4.7                           |
     |                                                                         |
     |  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  |
     |                                                                         |
@@ -38,7 +38,9 @@
 
 ]]
 
-local codexVer = "4.5" 
+local codexVer = "4.7" 
+
+loggedIn = nil
 
 local function PrintCentered(sText)
 	msgLen = string.len(sText)
@@ -48,6 +50,28 @@ local function PrintCentered(sText)
 	term.setCursorPos(_xCoords,termY)
 	print(sText)
 end
+
+if not term.isColor() then
+	colors.red = colors.black
+    colors.green = colors.gray
+    colors.brown = colors.black
+    colors.blue = colors.gray
+    colors.purple = colors.gray
+    colors.cyan = colors.gray
+    colors.pink = colors.gray
+    colors.lime = colors.lightGray
+    colors.yellow = colors.white
+    colors.lightBlue = colors.white
+    colors.magenta = colors.white
+    colors.orange = colors.lightGray
+end
+
+local BColor = System.transColor(CodeX_Background_Color)
+local TColor = System.transColor(CodeX_Text_Color)
+local EColor = System.transColor(CodeX_Error_Color)
+local PColor = System.transColor(CodeX_Prompt_Color)
+local IColor = System.transColor(CodeX_Input_Color)
+
 
 -- Write
 local function fwrite(path, text)
@@ -96,6 +120,41 @@ local function getSavedPass(getKey, username)
 end
 --End local functions
 
+
+--FOr BSOD
+local function Login() -- Login before messing with the system
+  term.clear()
+  term.setCursorPos(1,2)
+  print("Please log in.")
+  term.setCursorPos(1,4)
+  print("Username -")
+  term.setCursorPos(11,4)
+  local username = read()
+  if fs.exists("/Users/"..username.."/."..username..".CodeX") then
+    System.logInfo("CodeX PANIC","Awaiting for the password to user ' "..username.." ' .")
+    print("Password -")
+    term.setCursorPos(11,5)
+    local wizardpass = read("*")
+    local morewizards = getSavedPass(wizardpass, username)
+    local userfile =  getTable("/Users/"..username.."/."..username..".CodeX")
+    local lesswizards = string.sub(userfile[1],string.find(userfile[1],"!")+1)
+    if morewizards == lesswizards then
+      print("Loading ...")
+      System.logInfo("CodeX PANIC","Password received and correct.")
+      loggedIn = true
+    else
+      print('Incorrect password / username')
+      System.logInfo("CodeX PANIC","incorrect password used for user ' "..username.. " ' .")
+      sleep(2)
+    end
+  else
+    print('No such user.')
+    sleep(2)
+  end
+end
+--End
+
+
 --API like functions
 function CodeX_logout()
 	CodeX_Username = nil
@@ -116,9 +175,9 @@ local function newUser(code)
 			--NewUser()
 			System.logInfo("CodeX","Creating a new user.")
 			term.setCursorPos(1,1)
-			term.setBackgroundColor(CodeX_Background_Color)
+			term.setBackgroundColor(BColor)
 			term.clear()
-			term.setTextColor(CodeX_Text_Color)
+			term.setTextColor(TColor)
 			PrintCentered("Please, type a username.")
 			PrintCentered("Example: John")
 			local NewUsername = read()
@@ -187,23 +246,23 @@ local function main()
 	System.logInfo("CodeX","Loaded.")
 	CodeX_logout()
 	CodeX_Started = true
-	term.setBackgroundColor(CodeX_Background_Color)
+	term.setBackgroundColor(BColor)
 	term.clear()
-	term.setTextColor(CodeX_Text_Color)
+	term.setTextColor(TColor)
 	term.setCursorPos(1,1)
 	PrintCentered("CodeX")
 	term.setCursorPos(1,4)
-	term.setTextColor(CodeX_Prompt_Color)
+	term.setTextColor(PColor)
 	print("Username: ")
 	term.setCursorPos(11,4)
-	term.setTextColor(CodeX_Input_Color)
+	term.setTextColor(IColor)
 	System.logInfo("CodeX","Awaiting for a username.")
 	local Username = read()
 	 -- Check for the user
 	if fs.exists("/Users/"..Username.."/."..Username..".CodeX") then
 		CodeX_Username = Username
 		_G.CodeX_Username = Username
-		term.setTextColor(CodeX_Prompt_Color)
+		term.setTextColor(PColor)
 		term.setCursorPos(1,1)
 		term.clearLine()
 		PrintCentered("Logging into: "..Username)
@@ -211,7 +270,7 @@ local function main()
 		term.clearLine()
 		print("Password: ")
 		term.setCursorPos(11,5)
-		term.setTextColor(CodeX_Input_Color)
+		term.setTextColor(IColor)
 		System.logInfo("CodeX","Awaiting for a password for the user: ' "..Username.." ' .")
 		local MultiKey = read("*")
 		local UnsavedPassword = getSavedPass(MultiKey)
@@ -229,27 +288,28 @@ local function main()
 	            	System.logInfo("CodeX","Loaded /APIs/"..file)
 	            end
           	end
-          	System.logInfo("CodeX","Starting Explorera.")
-          	local ok, err = pcall(function() dofile("/System/Explorera.rxf") end)
+          	System.logInfo("CodeX","Starting CMD.")
+          	local ok, err = pcall(function() dofile("/System/userEnvironment.rxf") end)
 			if not ok then
 				System.logAlert('CodeX','Explorera crashed ):')
 				if not err then
     				err = "No error code! Oh noes! The crash point, however, branched off of the ' Run Explorer.rxf ' command in CodeX after login."
     			end
     			CodeX_logout()
+    			local crashPoint = "CMD"
     			error(err)
 			end
         else
         	System.logWarn("CodeX","Incorrect password used for user: ' "..Username.." ' .")
-        	term.setTextColor(CodeX_Error_Color)
+        	term.setTextColor(EColor)
         	term.setCursorPos(1,5)
         	term.clearLine()
-        	print("Password incorrect! :(")
+        	print("Password/Username incorrect!")
         	sleep(1)
         	main()
         end
     else
-    	term.setTextColor(CodeX_Prompt_Color)
+    	term.setTextColor(PColor)
 		term.setCursorPos(1,1)
 		term.clearLine()
 		PrintCentered("Logging into: "..Username)
@@ -257,9 +317,9 @@ local function main()
 		term.clearLine()
 		print("Password: ")
 		term.setCursorPos(11,5)
-		term.setTextColor(CodeX_Input_Color)
+		term.setTextColor(IColor)
 		local _ = read("*")
-		term.setTextColor(CodeX_Error_Color)
+		term.setTextColor(EColor)
         term.setCursorPos(1,5)
         term.clearLine()
         print("Password/Username incorrect!")
@@ -304,12 +364,14 @@ if CodeX_Username ~= nil then
 	    	local Pass = string.sub(userfile[1],string.find(userfile[1],"!")+1)
 			if CodeX_USR_PASSCODE_ == Pass then
 				System.logInfo("CodeX","The password was correct.")
-				local ok, err = pcall(function() dofile("/System/Explorera.rxf") end)
+				System.logInfo("CodeX","Starting CMD")
+				local ok, err = pcall(function() dofile("/System/CMD.rxf") end)
 				if not ok then
 					if not err then
-			    		err = "No error code! Oh noes! The crash point, however, branched off of the ' Run Explorer.rxf ' command in CodeX and the user was reported to be logged in."
+			    		err = "No error code! Oh noes! The crash point, however, branched off of the ' Run Explorera.rxf ' command in CodeX and the user was reported to be logged in."
 			    	end
 		    		CodeX_logout()
+		    		local crashPoint = "CMD"
 			    	error(err)
 				end
 			else
@@ -322,6 +384,7 @@ if CodeX_Username ~= nil then
 		System.logAlert("CodeX","Username set, but that's it. Asking user to relogin.")
 	end
 end
+
 local ok, err = pcall(main)
 if not ok then
 	if not err then
@@ -331,44 +394,40 @@ if not ok then
             System.logAlert("CodeX PANIC","What caused this? Well, I don't know... but this does relate to the system crashing: ' "..err.." '.")
             System.logAlert("CodeX PANIC","Please, send that error message to Watsuprico via PM. He'll tell you how to fix it, when it'll be patched, or at least what it means.")
             System.logAlert("CodeX PANIC","Showing the BSOD message, nothing much I can do.")
-            configfiledata = "Sorry, I couldn't retrieve that data ): "
+            if RitoOS_Config_service_started then
+                configfileran = "Yes"
+            else
+                configfileran = "Unknown, but probably not."
+            end
             local crash = assert(io.open("/System/Latest.log", "a"))
-            crash:write("\n^ System log file ^\n\nExplorera crashed.\nHere's some of that juicy debugging info.\n\nCrash info: \nError: "..err.." \n\nGeneral system info: \nCC version: "..RitoOS_CC_Version.."\nRitoOS version: "..RitoOS_Version.."\nConfig file: "..configfiledata.."\n\n\nEnd of the crash log.\n\n")
+            crash:write("\n^ System log file ^\n\nRitoOS crashed.\nHere's some of that juicy debugging info.\n\nCrash info: \nError: "..err.." \n\nGeneral system info: \nCC version: "..RitoOS_CC_Version.."\nRitoOS version: "..RitoOS_Version.."\nConfig file ran: "..configfileran.."\n\n\nEnd of the crash log.\n\n")
             crash:close()
             if fs.exists("/System/crash.log") then
                 fs.delete("/System/crash.log")
             end
                 fs.copy("/System/Latest.log","/System/crash.log")
             local x,Y = term.getSize()
-            term.setTextColor(colors.white)
-            term.setBackgroundColor(colors.white)
-            term.clear()
-            sleep(0)
-            term.setBackgroundColor(colors.lightGray)
-            term.clear()
-            sleep(0)
-            term.setBackgroundColor(colors.gray)
-            term.clear()
-            sleep(0)
             term.setBackgroundColor(colors.black)
             term.clear()
-            term.setCursorPos(math.floor(x-string.len("This isn't too good..."))/2, math.floor(Y/2))
-            print("That isn't too good...")
-            sleep(0.1)
+            sleep(0)
             term.setBackgroundColor(colors.gray)
             term.clear()
             sleep(0)
             term.setBackgroundColor(colors.lightGray)
-            term.setTextColor(colors.brown)
+            term.setTextColor(colors.red)
             term.clear()
+            sleep(0)
             term.setBackgroundColor(colors.white)
             term.clear()
             sleep(0)
             term.setCursorPos(math.floor(x-string.len('Sorry about that :('))/2, 2)
             write("Sorry about that. ): ")
             term.setTextColor(colors.black)
-            term.setCursorPos(math.floor(x-string.len('Explorera has crashed.'))/2, 5)
-            print("Explorera has crashed.")
+            if not crashPoint then
+            	crashPoint = "CodeX"
+            end
+            term.setCursorPos(math.floor(x-string.len(crashPoint..' has crashed.'))/2, 5)
+            print(crashPoint.." has crashed.")
             term.setCursorPos(3, 7)
             print("Please, report this error to Watsuprico via PM:")
             term.setTextColor(colors.red)
@@ -382,9 +441,11 @@ if not ok then
             term.setCursorPos(math.floor(x-string.len('.include the log file at "/System/Latest.log"'))/2, 12)
             print("include the log file at: '/System/Latest.log'")
             print()
-            print("Press enter to try and save the system.")
+            if not attemptToSave then
+            	print("Press enter to try and save the system.")
+            end
             print("Press R to go into recovery.")
-            print("Press S to use Computercraft's shell.")
+            print("Press S for CC shell. [Requires a user account]")
             print("Press any other key to shutdown.")
             sleep(1)
             local e,s = os.pullEvent("key")
@@ -393,17 +454,17 @@ if not ok then
                 if s == 28 then
                     if not attemptToSave then
                         attemptToSave = true
-                        System.logAlert("CodeX PANIC","Attempting to restart Explorera.")
-                        local ok, err = pcall(function() dofile("/System/Explorera.rxf") end)
+                        System.logAlert("CodeX PANIC","Attempting to restart CodeX.")
+                        local ok, err = pcall(function() dofile("/System/CodeX.rxf") end)
 						if not ok then
 							if not err then
-					    		err = "No error code! Oh noes! The crash point, however, branched off of the ' Run Explorer.rxf ' command in CodeX."
+					    		err = "No error code! Oh noes! The crash point, however, branched off of the ' Run CodeX.rxf ' command in CodeX PANIC."
 					    	end
 					    	CodeX_logout()
 					    	error(err)
 						end
                     else
-                        System.logAlert("CodeX PANIC","Crashed! Error: ' Attempted to restart explorera, it failed. Shutting down. ' ")
+                        System.logAlert("CodeX PANIC","Crashed! Error: ' Attempted to restart CodeX, it failed. Shutting down. ' ")
                         os.shutdown()
                     end
                 elseif s == 19 then
@@ -412,10 +473,20 @@ if not ok then
                     System.logAlert("CodeX PANIC","Attempted to start recovery, it failed, crashed, or was closed. Shutting down.")
                     os.shutdown()
                 elseif s == 31 then
-                    System.logAlert("CodeX PANIC","Starting Computercraft's shell.")
-                    shell.run("/rom/programs/shell")
-                    System.logAlert("CodeX PANIC","Attempted to start Computercraft's shell, it failed, crashed, or was closed. Shutting down.")
-                    os.shutdown()
+                	System.logAlert("CodeX PANIC","The user wishes to use CC's shell, asking for them to login first.")
+                	Login()
+                	if loggedIn == true then
+                    	System.logAlert("CodeX PANIC","Starting Computercraft's shell.")
+                    	term.setBackgroundColor(colors.black)
+                    	term.clear()
+                    	term.setCursorPos(1,1)
+                    	shell.run("/rom/programs/shell")
+                    	System.logAlert("CodeX PANIC","Attempted to start Computercraft's shell, it failed, crashed, or was closed. Shutting down.")
+                    	os.shutdown()
+                    else
+                    	System.logAlert("CodeX PANIC","User did not log in, not starting the CC shell.")
+                    	os.shutdown()
+                    end
                 else
                     System.logAlert("CodeX PANIC","Shutting down. D:")
                     os.shutdown()

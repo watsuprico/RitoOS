@@ -67,18 +67,93 @@ function log(t, m)
 end
 function reloadLog()
     if fs.exists("/System/Latest.log") then
-        local oldLog = fs.open("/System/Latest.log","r")
-        local readAllOldLog = oldLog.readAll()
+        local oldLog = fs.open("/System/Latest.log","w")
+        oldLog.write("")
         oldLog.close()
-        local newLog = fs.open("/System/Logs/RitoOS.log", fs.exists("/System/Logs/RitoOS.log") and "a" or "w")
-        newLog.write(readAllOldLog.."\n\n ^ Old Log File ^ \n\n\n\n\n\n\n\n")
-        newLog.close()
-        fs.delete("/System/Latest.log")
     end
     local h = assert(io.open("/System/Latest.log","w"))
     h:write("|-= RitoOS log =-|\n|-/ Log reloaded on: "..os.time().." /-|\n\n")
     h:close()
 end
 function startupFile()
-    return "local function main()\ndofile('/System/.Boot/Boot.lua')\ndo return end\nend\nlocal ok, err = pcall(main)\nif not ok then\n    local x,_ = term.getSize()\n    term.setBackgroundColor(colors.blue)\n    term.setTextColor(1)\n    term.clear()\n    term.setCursorPos(math.floor(x-string.len(':('))/2,2)\n    print(':(')\n    term.setCursorPos(math.floor(x-string.len('Fatal error!'))/2, 4)\n    print('Fatal error!')\n    term.setTextColor(colors.red)\n    term.setCursorPos(3, 6)\n    print(err)\n    term.setTextColor(1)\n    term.setCursorPos(math.floor(x-string.len('Try running: /System/.Recovery/.Recover '))/2, 10)\n    print('Try running: /System/.Recovery/.Recover ')\nend"
+    return 'if not term.isColor() then\n    colors.red = colors.black\n    colors.green = colors.gray\n    colors.brown = colors.black\n    colors.blue = colors.gray\n    colors.purple = colors.gray\n    colors.cyan = colors.gray\n    colors.pink = colors.gray\n    colors.lime = colors.lightGray\n    colors.yellow = colors.white\n    colors.lightBlue = colors.white\n    colors.magenta = colors.white\n    colors.orange = colors.lightGray\n    orange = colors.lightGray\n    magenta = colors.white\n    lightBlue = colors.white\n    yellow = colors.white\n    lime = colors.lightGray\n    pink = colors.lightGray\n    gray = colors.gray\n    lightGray = colors.lightGray\n    cyan = colors.gray\n    purple = colors.gray\n    blue = colors.gray\n    brown = colors.black\n    green = colors.gray\n    red = colors.black\n    white = colors.white --Be sure\n    black = colors.black\nelse\n    white = colors.white\n    orange = colors.orange\n    magenta = colors.magenta\n    lightBlue = colors.lightBlue\n    yellow = colors.yellow\n    lightGreen = colors.lime\n    pink = colors.pink\n    gray = colors.gray\n    lightGray = colors.lightGray\n    cyan = colors.cyan\n    purple = colors.purple\n    blue = colors.blue\n    brown = colors.brown\n    green = colors.green\n    red = colors.red\n    black = colors.black\nend\nlocal ok, err = pcall(function() dofile("/System/.Boot/Boot.lua") end)\nif not ok then\n        function os.pullEvent( _sFilter )\n            local event, p1, p2, p3, p4, p5 = os.pullEventRaw( _sFilter )\n            if event == "terminate" then\n                sleep(1)\n            end\n            return event, p1, p2, p3, p4, p5\n        end\n    if err == nil then\n        err = "No error code, however, this was reported from the startup file. (/Startup)."\n    end\n    local crash = assert(io.open("/crash.log", "w"))\n    crash:write("RitoOS crashed! D: . Error: "..err.." . Os.version: "..os.version().." . Os.time(): "..os.time())\n    crash:close()\n    local x,Y = term.getSize()\n    term.setBackgroundColor(white)\n    term.clear()\n    sleep(0)\n    term.setCursorPos(math.floor(x-string.len("Sorry about that :("))/2, 2)\n    term.setTextColor(red)\n    write("Sorry about that. ): ")\n    term.setTextColor(black)\n    term.setCursorPos(math.floor(x-string.len("RicoOS has crashed."))/2, 5)\n    print("RitoOS has crashed.")\n    term.setCursorPos(3, 7)\n    print("Please, report this error to Watsuprico via PM:")\n    term.setTextColor(red)\n    term.setCursorPos(3, 8)\n    print(err)\n    print()\n    print()\n    term.setTextColor(gray)\n    term.setCursorPos(math.floor(x-string.len("Please remember, when sending the bug report"))/2, 11)\n    print("Please remember, when sending the bug report")\n    term.setCursorPos(math.floor(x-string.len(".include the log file at /crash.log"))/2, 12)\n    print("include the log file at: /crash.log")\n    print()\n    print("Press R to enter recovery.")\n    print("Press any other key to shutdown.")\n    sleep(1)\n    local e,s = os.pullEvent("key")\n    while true do\n        sleep(0)\n        if s == 19 then\n            shell.run("/System/.Recovery/.Recover")\n            printError("RitoOS shutting down.")\n            sleep(2)\n            os.shutdown(0,true)\n        else\n            os.shutdown(0,true)\n        end\n    end\nend'
+end
+
+function saveRecoveryScript(s)
+    file = assert(io.open("/System/.Recovery/recoveryScript.arg","w"))
+    file:write("--Recovery Script saved on "..os.uptime().." --\n\n--Recovery script:\n"..s)
+    file:close()
+    return true
+end
+
+function runRecoveryScript(s)
+    os.runRecovScript()
+    return true
+end
+
+function transColor(c)
+    if c == 1 then
+        return colors.white
+    elseif c == 2 then
+        return colors.orange
+    elseif c == 4 then
+        return colors.magenta
+    elseif c == 8 then
+        return colors.lightBlue
+    elseif c == 16 then
+        return colors.yellow
+    elseif c == 32 then
+        return colors.lime
+    elseif c == 64 then
+        return colors.pink
+    elseif c == 128 then
+        return colors.gray
+    elseif c == 256 then
+        return colors.lightGray
+    elseif c == 512 then
+        return colors.cyan
+    elseif c == 1024 then
+        return colors.purple
+    elseif c == 2048 then
+        return colors.lightBlue
+    elseif c == 4096 then
+        return colors.brown
+    elseif c == 8192 then
+        return colors.green
+    elseif c == 16384 then
+        return colors.red
+    else
+        return colors.black
+    end
+end
+
+function aniB(color,wait)
+    if wait ~= 0 then
+        sleep(wait)
+    end
+    local _,Y = term.getSize()
+    local Y1 = Y/2
+    local YM = Y+1
+    while Y1 <= YM do
+        sleep(0)
+        term.setCursorPos(1,Y1)
+        term.setBackgroundColor(color)
+        term.clearLine()
+        Y1 = Y1+1
+    end
+end
+
+function aniT(color,wait)
+    if wait ~= 0 then
+        sleep(wait)
+    end
+    local _,Y = term.getSize()
+    local Y = Y/2
+    while Y >= 0 do
+        term.setCursorPos(1,Y)
+        term.setBackgroundColor(color)
+        term.clearLine()
+        Y = Y-1
+        sleep(0)
+    end
 end

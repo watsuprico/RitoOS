@@ -1,0 +1,73 @@
+local function getTable(path)
+    if fs.exists(path) then
+        local file = io.open(path, "r")
+        local lines = {}
+        local i = 1
+        local line = file:read("*l")
+        while line ~= nil do
+            lines[i] = line
+            line = file:read("*l")
+            i = i + 1
+        end
+        file:close()
+        return lines
+    end
+    return {}
+end
+
+
+System.logInfo("User Environment","Loading ...")
+
+
+
+PersonalizationColor = System.transColor(512)
+PersonalizationBackgroundColor = System.transColor(1)
+PersonalizationBackgroundColor2 = System.transColor(32768)
+PersonalizationTextColor = System.transColor(2048)
+
+if fs.exists("/Users/"..CodeX_Username.."/.Configs/userEnvironment.conf") then
+	local userfile =  getTable("/Users/"..CodeX_Username.."/.Configs/userEnvironment.conf")
+    PersonalizationBackgroundColor = System.transColor(tonumber(string.sub(userfile[1],string.find(userfile[1],":")+2)))
+    PersonalizationColor = System.transColor(tonumber(string.sub(userfile[2],string.find(userfile[2],":")+2)))
+    PersonalizationTextColor = System.transColor(tonumber(string.sub(userfile[3],string.find(userfile[3],":")+2)))
+elseif fs.exists("/System/Configs/.Rito.conf") then
+   	local RitoOS_Config = getTable("/System/Configs/.Rito.conf")
+   	PersonalizationColor = System.transColor(tonumber(string.sub(RitoOS_Config[36],string.find(RitoOS_Config[36],":")+2)))
+   	PersonalizationBackgroundColor = System.transColor(tonumber(string.sub(RitoOS_Config[37],string.find(RitoOS_Config[37],":")+2)))
+   	PersonalizationTextColor = System.transColor(tonumber(string.sub(RitoOS_Config[38],string.find(RitoOS_Config[38],":")+2)))
+end
+
+
+
+parallel.waitForAll(
+function() -- Boot screen
+    local _,Y = term.getSize()
+    local Y = Y/2
+    while Y >= 0 do
+        term.setCursorPos(1,Y)
+        term.setBackgroundColor(PersonalizationBackgroundColor)
+        term.clearLine()
+        Y = Y-1
+        sleep(0)
+    end
+end, function()
+    local _,Y1 = term.getSize()
+    local Y1 = Y1/2
+    local _,YM = term.getSize()
+    local YM = YM+1
+    while Y1 <= YM do
+        sleep(0)
+        term.setCursorPos(1,Y1)
+        term.setBackgroundColor(PersonalizationBackgroundColor)
+        term.clearLine()
+        term.setTextColor(PersonalizationTextColor)
+        local X3,Y3 = term.getSize()
+        term.setCursorPos(math.floor(X3-string.len("Welcome"))/2, Y3/2)
+		print("Welcome")
+        Y1 = Y1+1
+    end
+end)
+
+sleep(0.3)
+
+dofile("/System/CMD.rxf")

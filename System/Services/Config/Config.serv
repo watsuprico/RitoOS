@@ -15,7 +15,7 @@ local function getTable(path)
     return {}
 end
 if fs.exists("/System/Configs/.Rito.conf") then
-    System.logInfo("Config Service","Config service started")
+    System.logInfo("Config Service","Started")
     RitoOS_Config_service_started = true
 else
     System.logAlert("Config Service","Could not Start config service")
@@ -29,7 +29,7 @@ while true do -- Load configs
     if fs.exists("/System/Configs/.Rito.conf") then
         RitoOS_Config =  getTable("/System/Configs/.Rito.conf")
         RitoOS_Crash_Action = string.sub(RitoOS_Config[3],string.find(RitoOS_Config[3],":")+2)
-        RitoOS_Computer_Name = string.sub(RitoOS_Config[6],string.find(RitoOS_Config[6],":")+2)
+        RitoOS_Name = string.sub(RitoOS_Config[6],string.find(RitoOS_Config[6],":")+2)
         RitLock_Enabled = string.sub(RitoOS_Config[9],string.find(RitoOS_Config[9],":")+2)
         Monitor_Service_New_Connection_Action = tonumber(string.sub(RitoOS_Config[13],string.find(RitoOS_Config[13],":")+2))
         Monitor_Service_Monitor_Scale = tonumber(string.sub(RitoOS_Config[14],string.find(RitoOS_Config[14],":")+2))

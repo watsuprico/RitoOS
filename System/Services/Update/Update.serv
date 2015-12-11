@@ -129,6 +129,8 @@ if newVersion > currentVersion then
         end
     end
 
+else
+    System.logInfo("Update Service","No new updates found.")
 end
 
 while true do

@@ -13,7 +13,6 @@ Monitor_Service_started = true
 System.logInfo("Monitor service","Started.")
 
 while true do
-print("i")
     sleep(0)
     if not Monitor_Service_Connected then
         while true do -- While loop 2
