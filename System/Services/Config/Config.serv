@@ -14,38 +14,97 @@ local function getTable(path)
     end
     return {}
 end
-if fs.exists("/System/Configs/.Rito.conf") then
-    System.logInfo("Config Service","Started")
-    RitoOS_Config_service_started = true
-else
-    System.logAlert("Config Service","Could not Start config service")
-    System.logAlert("Config Service","No config file")
-    System.logAlert("Sending reboot command")
-    sleep(5)
-    RitoOSEnter_Recovery = true
-    os.reboot()
-end
+
+local nameFile=fs.open("/System/.name", "r")
+_G.RitoOS_Name=nameFile.readAll()
+nameFile.close()
+
 while true do -- Load configs
-    if fs.exists("/System/Configs/.Rito.conf") then
-        RitoOS_Config =  getTable("/System/Configs/.Rito.conf")
-        RitoOS_Crash_Action = string.sub(RitoOS_Config[3],string.find(RitoOS_Config[3],":")+2)
-        RitoOS_Name = string.sub(RitoOS_Config[6],string.find(RitoOS_Config[6],":")+2)
-        RitLock_Enabled = string.sub(RitoOS_Config[9],string.find(RitoOS_Config[9],":")+2)
-        Monitor_Service_New_Connection_Action = tonumber(string.sub(RitoOS_Config[13],string.find(RitoOS_Config[13],":")+2))
-        Monitor_Service_Monitor_Scale = tonumber(string.sub(RitoOS_Config[14],string.find(RitoOS_Config[14],":")+2))
-        Update_buildType = string.sub(RitoOS_Config[21],string.find(RitoOS_Config[21],":")+2)
-        Update_site = string.sub(RitoOS_Config[22],string.find(RitoOS_Config[22],":")+2)
-        CodeX_Text_Color = tonumber(string.sub(RitoOS_Config[26],string.find(RitoOS_Config[26],":")+2))
-        CodeX_Background_Color = tonumber(string.sub(RitoOS_Config[27],string.find(RitoOS_Config[27],":")+2))
-        CodeX_Prompt_Color = tonumber(string.sub(RitoOS_Config[28],string.find(RitoOS_Config[28],":")+2))
-        CodeX_Input_Color = tonumber(string.sub(RitoOS_Config[29],string.find(RitoOS_Config[29],":")+2))
-        CodeX_Error_Color = tonumber(string.sub(RitoOS_Config[30],string.find(RitoOS_Config[30],":")+2))
-        CodeX_Register_Key_Length = tonumber(string.sub(RitoOS_Config[31],string.find(RitoOS_Config[31],":")+2))
+    --Update
+    if fs.exists("/System/Configs/.Update.conf") then
+        local configFile = getTable("/System/Configs/.Update.conf")
+        _G.Update_buildType = string.sub(configFile[1],string.find(configFile[1],":")+2)
+        _G.Update_site = string.sub(configFile[2],string.find(configFile[2],":")+2)
     else
-        System.logAlert("Config service","Config file not found")
-        sleep(5)
-        RitoOSEnter_Recovery = true
-        os.reboot()
+        if not logged then System.logAlert("Config service","Missing update config!") _G.Update_buildType="1" _G.Update_site="updates.watsuprico.com" local logged=true end
     end
-    sleep(1)
+
+    --Monitor
+    if fs.exists("/System/Configs/Monitor.conf") then
+        local configFile = getTable("/System/Configs/Monitor.conf")
+        _G.Monitor_Service_New_Connection_Action = tonumber(string.sub(configFile[1],string.find(configFile[1],":")+2))
+        _G.Monitor_Service_Monitor_Scale = tonumber(string.sub(configFile[2],string.find(configFile[2],":")+2))
+    else
+        if not logged2 then System.logAlert("Config service","Missing monitor config!") _G.Monitor_Service_Monitor_Scale=1 _G.Monitor_Service_New_Connection_Action=3 local logged2=true end -- Set monitor defaults
+    end
+
+    -- CodeX
+    if fs.exists("/System/Configs/CodeX.conf") then
+        local configFile = getTable("/System/Configs/CodeX.conf")
+        _G.CodeX_BColor = System.stringToColor(string.sub(configFile[1],string.find(configFile[1],":")+2))
+        _G.CodeX_TBColor = System.stringToColor(string.sub(configFile[2],string.find(configFile[2],":")+2))
+        _G.CodeX_TBTColor = System.stringToColor(string.sub(configFile[3],string.find(configFile[3],":")+2))
+        _G.CodeX_TColor = System.stringToColor(string.sub(configFile[4],string.find(configFile[4],":")+2))
+        _G.CodeX_IColor = System.stringToColor(string.sub(configFile[5],string.find(configFile[5],":")+2))
+        _G.CodeX_EColor = System.stringToColor(string.sub(configFile[6],string.find(configFile[6],":")+2))
+        _G.CodeX_ButtonBackground = System.stringToColor(string.sub(configFile[7],string.find(configFile[7],":")+2))
+        _G.CodeX_ButtonActiveColor = System.stringToColor(string.sub(configFile[8],string.find(configFile[8],":")+2))
+        _G.CodeX_ButtonTextColor = System.stringToColor(string.sub(configFile[9],string.find(configFile[9],":")+2))
+        _G.CodeX_ButtonFocused = System.stringToColor(string.sub(configFile[10],string.find(configFile[10],":")+2))
+        _G.CodeX_registerKeyLength = tonumber(string.sub(configFile[11],string.find(configFile[11],":")+2))
+    else
+        if not logged3 then
+            System.logAlert("Config service","Missing CodeX config!")
+            -- Set CodeX's defaults to avoid a crash
+            _G.CodeX_BColor = colors.lightBlue
+            _G.CodeX_TBColor = colors.gray
+            _G.CodeX_TBTColor = colors.white
+            _G.CodeX_TColor = colors.black
+            _G.CodeX_IColor = colors.yellow
+            _G.CodeX_EColor = colors.red
+            _G.CodeX_ButtonBackground = colors.gray
+            _G.CodeX_ButtonActiveColor = colors.green
+            _G.CodeX_ButtonTextColor = colors.orange
+            _G.CodeX_ButtonFocused = colors.blue
+            _G.CodeX_registerKeyLength = 200
+            local logged3=true
+        end
+    end
+
+    -- Defaults
+    if not CodeX_Username then
+        if fs.exists("/System/Configs/Defaults.conf") then
+            local configFile = getTable("/System/Configs/Defaults.conf")
+            _G.RitoOS_PersonalizationBackgroundColor = System.stringToColor(string.sub(configFile[1],string.find(configFile[1],":")+2))
+            _G.RitoOS_PersonalizationBackgroundColor2 = System.stringToColor(string.sub(configFile[2],string.find(configFile[2],":")+2))
+            _G.RitoOS_PersonalizationTextColor = System.stringToColor(string.sub(configFile[3],string.find(configFile[3],":")+2))
+            _G.RitoOS_PersonalizationTextColor2 = System.stringToColor(string.sub(configFile[4],string.find(configFile[4],":")+2))
+        else
+            if not logged4 then
+                System.logAlert("Config service","Missing defaults config!")
+                -- Set CodeX's defaults to avoid a crash
+                _G.RitoOS_PersonalizationBackgroundColor = colors.lightBlue
+                _G.RitoOS_PersonalizationBackgroundColor2 = colors.gray
+                _G.RitoOS_PersonalizationTextColor = colors.black
+                _G.RitoOS_PersonalizationTextColor2 = colors.white
+                local logged4=true
+            end
+        end
+    else
+        if fs.exists("/Users/"..CodeX_Username.."/.Configs/userEnvironment.conf") then
+            local configFile = getTable("/Users/"..CodeX_Username.."/.userEnvironment.conf")
+            _G.RitoOS_PersonalizationBackgroundColor = System.stringToColor(string.sub(configFile[1],string.find(configFile[1],":")+2))
+            _G.RitoOS_PersonalizationBackgroundColor2 = System.stringToColor(string.sub(configFile[2],string.find(configFile[2],":")+2))
+            _G.RitoOS_PersonalizationTextColor = System.stringToColor(string.sub(configFile[3],string.find(configFile[3],":")+2))
+            _G.RitoOS_PersonalizationTextColor2 = System.stringToColor(string.sub(configFile[4],string.find(configFile[4],":")+2))
+        else
+            local configFile = getTable("/System/Configs/Defaults.conf")
+            _G.RitoOS_PersonalizationBackgroundColor = System.stringToColor(string.sub(configFile[1],string.find(configFile[1],":")+2))
+            _G.RitoOS_PersonalizationBackgroundColor2 = System.stringToColor(string.sub(configFile[2],string.find(configFile[2],":")+2))
+            _G.RitoOS_PersonalizationTextColor = System.stringToColor(string.sub(configFile[3],string.find(configFile[3],":")+2))
+            _G.RitoOS_PersonalizationTextColor2 = System.stringToColor(string.sub(configFile[4],string.find(configFile[4],":")+2))
+        end
+    end
+
+    sleep(0.5) -- Refresh every .5 seconds.
 end

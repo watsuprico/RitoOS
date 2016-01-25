@@ -1,0 +1,744 @@
+--
+--[[
+ggui library
+a wip, basic api for handling gui-based programs.
+
+Currently features labels, edit boxes, buttons, and graphic elements, and has
+basic support for running guis on multiple monitors with one program.
+
+designed, hopefully, to be easy-to-use, to give useful error messages for easier debugging, and
+to generally protect the user from their mistakes.
+
+--]]
+
+local nilSubstitute={"NIL"}
+local HANDLE={"HANDLE"}
+
+local nextScreenID=1
+
+local function newElement(screen,isDrawn)
+  local newElement={isDrawn=isDrawn}
+  screen.elements[#screen.elements+1]=newElement
+  return #screen.elements, newElement
+end
+
+
+
+local defaultStyle={
+  ["label"]= {
+    fg=colors.white,
+    bg=colors.black,
+    textAlign="left",
+    anchorX="left",
+    anchorY="top",
+  },
+  ["button"]={
+    textAlign="center",
+    leftCh="",
+    rightCh="",
+    anchorX="left",
+    anchorY="top",
+    mono={
+      fg=colors.white,
+      bg=colors.black,
+      fgFocused=colors.black,
+      bgFocused=colors.white,
+      leftChFocused="[",
+      rightChFocused="]",
+    },
+    color={
+      fg=colors.white,
+      bg=colors.gray,
+      fgFocused=colors.yellow,
+      bgFocused=colors.blue,
+      leftChFocused="",
+      rightChFocused="",
+    },     
+  },
+  
+  ["textField"]={
+    textAlign="left",
+    leftCh="",
+    rightCh="",
+    anchorX="left",
+    anchorY="top",
+    mono={
+      fg=colors.black,
+      bg=colors.white,
+      fgFocused=colors.white,
+      bgFocused=colors.black,
+      leftChFocused="[",
+      rightChFocused="]",
+    },
+    color={
+      fg=colors.white,
+      bg=colors.black,
+      fgFocused=colors.yellow,
+      bgFocused=colors.blue,
+      leftChFocused="",
+      rightChFocused="",
+    },
+  },
+  
+  ["graphic"]={
+    anchorX="left",
+    anchorY="top",
+    bg=colors.black,
+    hAlign="center",
+    vAlign="center",
+  },
+  
+  ["screen"]={
+    anchorX="center",
+    anchorY="center",
+    bg=colors.black,
+  },
+}
+
+
+
+
+--[[
+  get the id of the tab group for a specified container object. By default gets the top-level
+  container. 
+  NOTE: Containers not implemented yet, always returns the app container regardless of parameters.
+--]]
+local screenMembers={}
+
+function screenMembers.getTabGroupID(screen)
+  return screen.tabGroupID
+end
+
+--removes all items from the specified tab group.
+function screenMembers.clearTabGroup(screen, groupID)
+  for i=#screen.tabOrder,1,-1 do
+    screen.tabOrder[i]=nil
+  end
+end
+
+
+function screenMembers.setStyle(screen, objID, styleObj)
+  local e=screen.elements[objID]
+  if e==nil then
+    error("Invalid id in call to screen.setStyle",2)
+  end
+  e.style=styleObj 
+end
+
+function screenMembers.getStyleProperty(screen, objID, property, isColor)
+  local e=screen.elements[objID]
+  if e==nil then
+    error("Invalid id in call to screen.getStyleProperty",2)
+  end
+  if isColor==nil then 
+    isColor=term.isColor and term.isColor() or nil
+  end
+  local style=e.style
+  local s=style and style[isColor and "color" or "mono"]
+  if s and s[property] then
+    style=s
+  end
+  if style==nil or style[property]==nil then    
+    style=defaultStyle[e.type]
+    local s=style and style[isColor and "color" or "mono"]
+    if s and s[property] then
+      style=s
+    end
+  end
+  return style and style[property]
+end
+
+
+function screenMembers.setFocus(screen, objID)
+  local e=screen.elements[objID]
+  if e==nil then
+    error("Invalid id in call to ggui.setStyle",2)
+  end
+  local prevFocus=screen.tabFocus
+  screen.tabFocus=objID
+  screen.tabIndex=0
+  for i=1,#screen.tabOrder do
+    if screen.tabOrder[i]==objID then
+      screen.tabIndex=i
+      break
+    end
+  end
+  if e.type=="textField" then
+    --text field got focus, give it key focus
+    screen.keyFocus=objID
+  else
+    screen.keyFocus=0
+  end  
+  screen.dirtySet[prevFocus]=true
+  screen.dirtySet[screen.tabFocus]=true
+end
+
+function screenMembers.focusNext(screen)
+  screen.tabIndex=screen.tabIndex%#screen.tabOrder + 1
+  screenMembers.setFocus(screen,screen.tabOrder[screen.tabIndex])
+end
+
+function screenMembers.focusPrev(screen)
+  screen.tabIndex=(screen.tabIndex+#screen.tabOrder-2)%#screen.tabOrder+1
+  screenMembers.setFocus(screen,screen.tabOrder[screen.tabIndex])
+end
+
+--[[  
+  Equivalent to table.insert, inserts the gui element with id itemID to the tab group with groupID, 
+  at specified index. If index not specified, adds to the end of the group.
+--]]
+function screenMembers.insertTabItem(screen, groupID, arg2, arg3)
+  local itemID=arg3 or arg2
+  local index=arg3 and arg2 or (#screen.elements[groupID]+1)
+  table.insert(screen.elements[groupID],index,itemID)
+  if #screen.elements[groupID]==1 then
+    screen.tabIndex=1
+    screen.tabFocus=itemID  
+  end
+end
+
+--makes a label, returns id of the label
+function screenMembers.addLabel(screen, x,y, width, height, label)
+  local id, e=newElement(screen,true)  
+  e.x=x
+  e.y=y
+  e.width=width
+  e.height=height
+  e.label=label
+  e.type="label"
+  return id
+end
+
+
+--basically same as label, just creates a button that generates click events.
+function screenMembers.addButton(screen, x,y, width,height, label)
+  local id=screen.addLabel(x,y,width,height,label)
+  local e=screen.elements[id]
+  e.type="button"
+  screen.clickables[#screen.clickables+1]=id
+  screenMembers.insertTabItem(screen,screen.tabGroupID,id)
+  return id
+end
+
+function screenMembers.addGraphic(screen, x,y, width,height, file, srcx, srcy, srcw, srch)
+  local id,e=newElement(screen,true)
+  e.x, e.y, e.width, e.height=x,y,width,height
+  
+  if file then -- Allow not adding an image be an option. ~Watsuprico
+    local rawImg=screen.imageCache[file] or paintutils.loadImage(file)
+    screen.imageCache[file]=rawImg
+    if rawImg==nil then
+      error("graphic file '"..file.."' not found!",2)
+    end
+  else
+    rawImg ={ "","" }
+  end
+  
+  srcx=srcx or 1
+  srcy=srcy or 1
+  srch=srch or #rawImg
+  srcw=srcw or #rawImg[1]
+  --crop the image data to this size
+  if srcy<1 or srcx<1 or srcy+srch-1>#rawImg or srcx+srcw-1>#rawImg[1] then
+    error("image source ranges out of bounds!",2)
+  end
+  --clamp w/h
+  if srcw>width then
+    srcw=width
+  end
+  if srch>height then
+    srch=height
+  end
+  e.imgData={}
+  for y=1,srch do
+    e.imgData[y]={}
+    for x=1,srcw do
+      e.imgData[y][x]=rawImg[y+srcy-1][x+srcx-1]
+    end
+  end
+  e.type="graphic"
+  return id
+end
+
+function screenMembers.addTextField(screen, x,y,width,height,initialValue,limit)
+  initialValue=initialValue or ""
+  limit=limit or width
+  local id=screen.addLabel(x,y,width,height,initialValue)
+  e=screen.elements[id]
+  e.type="textField"
+  e.cursorPos=#initialValue+1
+  e.limit=limit
+  e.x=x
+  e.y=y
+  e.width=width
+  e.height=height
+  if limit>width then
+    error("limit must be no larger than width!",2)
+  end
+  screen.clickables[#screen.clickables+1]=id
+  screenMembers.insertTabItem(screen,screen.tabGroupID,id)
+  return id
+end
+
+--[[
+  adds a function to be called when an event occurs matching eventFilter.
+
+  eventFilter can be just a string, in which case the handler will be called every time the named
+  event occurs. Can also be an array of filters; any non-nil values will be matched to the event
+  and it's parameters, and only when all match will handler be called.
+
+  handler is a function that will be called when the filter is met. Handler will be always be passed
+  one argument, an array of the complete parameters of the event, including the event type, the same 
+  as would be gotten by {os.pullEvent()}
+
+  Any additional parameters will be additional arguments passed to handler when the event occurs.
+--]]
+function screenMembers.addEventHandler(screen, eventFilter, handler, ...)
+  if type(eventFilter)=="string" then
+    eventFilter={eventFilter}
+  end
+  local eh=screen.eventHandlers
+  for i=1,#eventFilter do
+    local filter=eventFilter[i]
+    if filter==nil then 
+      filter=nilSubstitute
+    end
+    if eh[filter]==nil then
+      local new={[HANDLE]={}}
+      eh[filter]=new
+      eh=new
+    else
+      eh=eh[filter]
+    end
+  end
+  eh[HANDLE][#eh+1]={handler, {...}}
+end
+
+--[[
+  change the label of a gui item. guiID is the value returned by the ggui.addXXX function that created
+  the element.
+--]]
+function screenMembers.setText(screen, guiID, newLabel)
+  local e=screen.elements[guiID]
+  if e==nil then
+    error("Invalid element ID in call to ggui.setText!",2)
+  end
+  e.label=newLabel
+  if e.cursorPos and e.cursorPos>#newLabel+1 then
+    e.cursorPos=#newLabel+1
+  end
+  screen.dirtySet[guiID]=true  
+end
+
+function screenMembers.getText(screen, guiID)
+  local e=screen.elements[guiID]
+  if e then
+    return e.label
+  end
+  error("Invalid gui element in call to getText!",2)
+end
+
+
+function newScreen(display,width,height)
+  local screen={id=nextScreenID}
+  nextScreenID=nextScreenID+1
+  
+  screen.display=display or "term"
+  local scrW,scrH=term.getSize()  
+  if screen.display~="term" then
+    screen.redirect=peripheral.wrap(display)
+    if screen.redirect==nil or peripheral.getType(display)~="monitor" then
+      error("Invalid display '"..display.."'!",2)
+    end
+    scrW,scrH=screen.redirect.getSize()
+    if (width and width>scrW) or (height and height>scrH) then
+      error("screen larger than target display!",2)
+    end
+  else
+    screen.redirect=term
+  end
+  screen.width=width or scrW
+  screen.height=height or scrH
+
+  screen.elements={}
+  screen.clickables={}
+  screen.textClickables={}
+  screen.tabGroupID, screen.tabOrder=newElement(screen,false)
+  screen.tabOrder.type="tabGroup"
+  screen.imageCache={}
+  screen.eventHandlers={}
+  
+  screen.tabIndex=0
+  screen.tabFocus=0
+  screen.dirtySet={}
+  screen.keyFocus=0
+
+  local function wrap(screen,func) 
+    return function(...) 
+      --noob-friendly, supporting . or :. if they used : we'll get screen again.
+      --so, check for it, and drop it if they did.
+      local i=1 
+      if ({...})[1]==screen then 
+        i=2 
+      end 
+
+      return func(screen,select(i,...))
+    end
+  end
+
+  for k,v in pairs(screenMembers) do
+    screen[k]=wrap(screen,v)
+  end
+  
+  return screen
+end
+
+
+local function makeLabelString(text,width,align,left,right)
+  local left, right=left or "", right or ""
+  local text = text or "" -- Added so we don't "get length of a number" ~Watsuprico
+  --constrain text length
+  local len=#text+#left+#right
+  if len>width then
+    text=text:sub(1+#left,width-#right)
+  elseif len<width then
+    if align=="right" then
+      text=string.rep(" ",width-len)..text
+    elseif align=="center" then
+      local half=(width-len)/2
+      text=string.rep(" ",math.floor(half))..text..string.rep(" ",math.ceil(half))
+    else
+      text=text..string.rep(" ",width-len)
+    end
+  end
+  text=left..text..right
+  return text
+end
+
+local function positionElements(screen)
+  local scrOffX,scrOffY=0,0
+  local scrW,scrH=screen.redirect.getSize()
+  if scrW~=screen.width or scrH~=screen.height then
+    scrOffX=math.floor((scrW-screen.width)/2)
+    scrOffY=math.floor((scrH-screen.height)/2)
+  end
+  for i=1,#screen.elements do
+    local e=screen.elements[i]
+    if e.isDrawn then
+      local scrX,scrY=e.x,e.y
+      local anchorX,anchorY=screen.getStyleProperty(i,"anchorX"),screen.getStyleProperty(i,"anchorY")
+      if anchorX=="right" then
+        scrX=screen.width-e.x-e.width+1
+      elseif anchorX=="center" then
+        scrX=math.floor((screen.width-e.width+e.x)/2)
+      end
+      if anchorY=="bottom" then
+        scrY=screen.height-e.y-e.height+1
+      elseif anchorY=="center" then
+        scrY=math.floor((screen.height-e.height+e.y)/2)
+      end
+      e.scrX=scrX+scrOffX
+      e.scrY=scrY+scrOffY
+    end
+  end
+  dirtyAll(screen)
+end
+
+local function drawElement(screen, id)
+  local e=screen.elements[id]
+  local scrX,scrY=e.scrX,e.scrY
+  
+  if e.type=="label" then
+    term.setCursorPos(scrX, scrY+math.floor((e.height-1)/2))
+    term.setTextColor(screen.getStyleProperty(id,"fg"))
+    term.setBackgroundColor(screen.getStyleProperty(id,"bg"))
+    term.write(makeLabelString(e.label,e.width,screen.getStyleProperty(id,"textAlign")))
+  elseif e.type=="button" or e.type=="textField" then
+    local focused=screen.tabFocus==id
+    term.setCursorPos(scrX,scrY+math.floor((e.height-1)/2))
+    term.setTextColor(screen.getStyleProperty(id,focused and "fgFocused" or "fg"))
+    term.setBackgroundColor(screen.getStyleProperty(id,focused and "bgFocused" or "bg"))
+    local pwChar=screen.getStyleProperty(id,"pwChar")
+    local text=e.label
+    if pwChar then
+      text=string.rep(pwChar,#e.label)  
+    end
+    term.write(makeLabelString(text,e.width,screen.getStyleProperty(id,"textAlign"),screen.getStyleProperty(id,focused and "leftChFocused" or "leftCh"),screen.getStyleProperty(id,focused and "rightChFocused" or "rightCh")))
+  elseif e.type=="graphic" then
+    --clear the area first
+    term.setBackgroundColor(screen.getStyleProperty(id,"bg"))
+    for y=1,e.height do
+      term.setCursorPos(scrX,scrY+y-1)
+      term.write(string.rep(" ",e.width))
+    end
+    --now blit the image
+    --calc and add offsets based on alignment
+    local hAlign, vAlign=screen.getStyleProperty(id,"hAlign"),screen.getStyleProperty(id,"vAlign")
+    if hAlign=="right" then
+      scrX=scrX+e.width-#e.imgData[1]
+    elseif hAlign=="center" then
+      scrX=scrX+math.floor((e.width-#e.imgData[1])/2)
+    end
+    if vAlign=="right" then
+      scrY=scrY+e.height-#e.imgData
+    elseif vAlign=="center" then
+      scrY=scrY+math.floor((e.height-#e.imgData)/2)
+    end
+    
+    paintutils.drawImage(e.imgData,scrX,scrY)
+      
+  end
+end
+
+local function handleClick(screen, x,y, btn) -- I made it so you also have to already have the button focused inorder to activate it. ~Watsuprico
+  for i=1,#screen.clickables do
+    local id=screen.clickables[i]
+    local e=screen.elements[id]
+    if e then
+      if e.type=="button" and btn==1 and e.scrX<=x and e.scrY<=y and e.scrX+e.width>x and e.scrY+e.height>y then
+        if e.type=="button" and screen.tabFocus==id then
+          screen.setFocus(id)
+          os.queueEvent("button_activate",screen.id,id)
+          return
+        else
+          screen.setFocus(id)
+          return
+        end
+      elseif e.type=="textField" and e.x<=x and e.y<=y and e.x+e.width>x and e.y+e.height>y then -- Make textboxes clickable ~Watsuprico
+        screen.setFocus(id)
+        return
+      end
+    end
+  end--End for
+end
+
+
+local function activateElement(screen, id)
+  local e=screen.elements[id]
+  if e then
+    if e.type=="button" then
+      os.queueEvent("button_activate",screen.id, id)
+    end
+  end
+end
+
+
+local function handleEvent(event,h,handlers)
+  if h and type(h)=="table" then
+    --indexed items will be handlers with no more filters
+    for i=1,#h[HANDLE] do
+      if h==nil then
+        error("nil h in handleEvent",2)
+      elseif h[HANDLE][i]==nil then          
+        error("nil h["..i.."] in handleEvent",2)
+      elseif h[HANDLE][i][1]==nil then
+        error("nil h["..i.."][1] in handleEvent",2)          
+      end
+
+      h[HANDLE][i][1](event,unpack(h[HANDLE][i][2]))
+    end
+    --even if had indexed handlers, may have more keyed handlers
+    handlers[#handlers+1]=h
+  end
+end
+
+--called when keyboard focus is held by a text field
+local function handleKeyboardEvent(screen, event)
+  
+  local label=screen.getText(screen.keyFocus)
+  local e=screen.elements[screen.keyFocus]
+  
+  if event[1]=="key" then
+    if event[2]==keys.enter then
+      --shift focus forward
+      screen.focusNext()
+      --if the next guy is a button, allow the event to pass through
+      if screen.elements[screen.tabFocus].type~="button" then
+        return true
+      end
+    elseif event[2]==keys.left then
+      --cursor left
+      e.cursorPos=math.max(1,e.cursorPos-1)
+      return true
+    elseif event[2]==keys.right then
+      --cursor right
+      e.cursorPos=math.min(#label+1,e.cursorPos+1)
+      return true
+    elseif event[2]==keys.home then
+      --cursor to beginning
+      e.cursorPos=1
+      return true
+    elseif event[2]==keys["end"] then
+      --cursor to end
+      e.cursorPos=#label+1
+      return true
+    elseif event[2]==keys.backspace then
+      --backspace
+      label=label:sub(1,e.cursorPos-2)..label:sub(e.cursorPos)
+      e.cursorPos=math.max(1,e.cursorPos-1)
+      screen.setText(screen.keyFocus,label)
+      return true
+    elseif event[2]==keys.delete then
+      label=label:sub(1,e.cursorPos-1)..label:sub(e.cursorPos+1)
+      screen.setText(screen.keyFocus,label)
+      return true
+    end    
+  elseif event[1]=="char" then
+    --insert to text    
+    if #label<e.limit then
+      label=label:sub(1,e.cursorPos-1)..event[2]..label:sub(e.cursorPos)
+      e.cursorPos=e.cursorPos+1
+      screen.setText(screen.keyFocus,label)
+    end
+    
+    return true
+  end
+  --anything else, return true so it can be handled elsewhere
+  return false  
+end
+
+function fixCursorPos(screen)
+  local e=screen.elements[screen.keyFocus]
+  if e==nil then
+    error("Invalid objID "..tostring(objID).."!",2)
+  end
+  local leftCh=screen.getStyleProperty(screen.keyFocus,"leftChFocused")  
+  term.setCursorPos(e.x+#leftCh+e.cursorPos-1, e.y)
+  term.setCursorBlink(true)
+end
+
+
+function dirtyAll(screen)
+  for i=1,#screen.elements do
+    screen.dirtySet[i]=true
+  end
+end
+
+--run the gui. Once your gui controls are set up, you just call ggui.run with the array of screens
+--and you're set
+function run(...)
+  local screens={...}
+  local screenByDisplay={}
+  for i=1,#screens do
+    local screen=screens[i]
+    if screenByDisplay[screen.display] then
+      error("Multiple screens targeting display '"..screen.display.."'!",2)
+    end
+
+    screenByDisplay[screen.display]=screen
+
+    --position everything
+    positionElements(screen)
+    screen.redirect.setBackgroundColor(colors.black)
+    screen.redirect.clear()
+    if screen.display=="term" and screen.elements[screen.tabFocus] and screen.elements[screen.tabFocus].type=="textField" then
+      screen.keyFocus=screen.tabFocus
+    end
+  end
+  
+  
+    
+    
+  while true do
+    --draw dirty
+    for i=1,#screens do
+      local screen=screens[i]
+      local prevRedir
+      if screen.display~="term" then
+        prevRedir=term.redirect(screen.redirect)
+      end
+      for element in pairs(screen.dirtySet) do
+        drawElement(screen,element)
+      end
+      if screen.display~="term" then
+        if term.restore then
+          term.restore()
+        else
+          term.redirect(prevRedir)
+        end
+      else
+        if screen.keyFocus~=0 then
+          fixCursorPos(screen)        
+        else
+          term.setCursorBlink(false)
+        end
+      end
+      --clear dirty set
+      screen.dirtySet={}
+    end
+    --fix cursor if necessary
+
+    --wait for event
+    local event={os.pullEventRaw()}
+    --process system-level events
+    local eventType=event[1]
+    
+    local handled=false    
+    
+    if eventType=="exitgguiloop" then -- change this from terminate so I don't break something. ~Watsuprico
+      break
+    elseif eventType=="mouse_click" then
+      local screen=screenByDisplay["term"] 
+      if screen then
+        handleClick(screen, event[3],event[4],event[2])
+      end
+      handled=true
+    elseif eventType=="monitor_touch" then
+      local screen=screenByDisplay[event[2]]
+      if screen then
+        handleClick(screen, event[3],event[4],1)
+        handled=true
+      end
+    elseif eventType=="key" or eventType=="char" then
+      local screen=screenByDisplay["term"]
+      if screen then
+        if screen.keyFocus~=0 then
+          handled=handleKeyboardEvent(screen,event)
+        end
+        if not handled then
+          local key=event[2]
+          if key==keys.tab or key==keys.right or key==keys.down then
+              --tab to next control in tab group
+            screen.focusNext()          
+            handled=true
+          elseif key==keys.left or key==keys.up then
+            screen.focusPrev()
+            handled=true
+          elseif key==keys.enter then
+            activateElement(screen,screen.tabFocus)
+            handled=true
+          end
+        end
+      end
+    elseif eventType=="monitor_resize" then
+      local screen=screensByDisplay[event[2]]
+      if screen then
+        positionElements(screen)
+      end
+    end
+    
+    if not handled then
+      --now pass events off to any registered event handlers
+      local handlers={}
+      for i=1,#screens do
+        handlers[#handlers+1]=screens[i].eventHandlers
+      end
+      for i=1,#event do
+        local filter=event[i]      
+        local newHandlers={}        
+        for i=1,#handlers do      
+          handleEvent(event,handlers[i][filter],newHandlers)
+          handleEvent(event,handlers[i][nilSubstitute],newHandlers)
+        end
+        handlers=newHandlers
+        if #handlers==0 then
+          break
+        end
+      end
+    end
+  end    
+end
+
+
+
+--]]

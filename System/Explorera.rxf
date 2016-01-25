@@ -1,3 +1,2 @@
 Explorera_Ran = true
-shell.run("/System/CMD.rxf")
-return
+dofile("/System/CMD.rxf")

@@ -1,0 +1,136 @@
+--[[ 
+
+     _________________________________________________________________________
+    |                                                                         |
+    |                         CodeX API Version 1                             |
+    |                                                                         |
+    |  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  |
+   _|                                                                         |
+  |          Some extended info on copying and using the CodeX API            |______________________________________________________ 
+  |                                                                                                                                 |
+  | Permission is hereby granted, free of charge, to any person obtaining a copy of this software and                               |
+  | associated documentation files (the "Software"), to deal in the Software without restriction,                                   |
+  | including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,                           |
+  | copies of the Software, and to permit persons to whom the Software is furnished to do so,                                       |
+  | subject to the following conditions:                                                                                            |
+  |                                                                                                                                 |
+  | -The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. |
+  | -Visible credit is given to the original author.                                                                                |
+  | -The software is distributed in a non-profit way.                                                                               |
+  |                                                                                                                                 |
+  | THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE            |
+  | WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR           |
+  | COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,     |
+  | ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                           |
+  |                                                                                                                                 |
+  |_________________________________________________________________________________________________________________________________|
+
+
+]]
+
+local CodeX_Username = nil
+local CodeX_LoggedIn = nil
+local CodeX_HasUserLogged = nil
+local CodeX_USR_PASSCODE_ = nil
+
+function hashPassword(hashThis, userPassphrasefile)
+  local Key = SHA256.sha256(hashThis)
+  local PassphraseFile = fs.open(userPassphrasefile, "r")
+  local PassphraseKey = PassphraseFile.readAll()
+  PassphraseFile.close()
+  return SHA256.sha256(hashThis..""..PassphraseKey)
+end
+
+local function savedPassword(userAuthfile)
+  local savedHashfile = fs.open(userAuthfile, "r")
+  local savedHash = savedHashfile.readAll()
+  savedHashfile.close()
+  return savedHash
+end
+
+local function hash(action, hash, location)
+  if action == "store" then
+    local hashFile = fs.open(location,"w")
+    hashFile.write(hash)
+    hashFile.close()
+  else
+    local hashFile1 = fs.open(location,"r")
+    local hash = hashFile1.readAll()
+    hashFile1.close()
+    return hash
+  end
+end
+
+function testPictureHash(username, hashedCords)
+
+end
+
+function checkAuthFile(username)
+  if fs.isDir("/Users/"..username) then
+    if fs.exists("/Users/"..username.."/.auth.codex") then
+      if fs.exists("/Users/"..username.."/.passphrase.codex") then
+        return true, "User there." -- All found
+      else
+        return false, "Missing passphrase file!" -- No passphrase
+      end
+    else
+      return false, "Missing auth file!" -- No auth file
+    end
+  else
+    return false, "Unknown username/password." -- No user
+  end
+end
+
+function testTextHash(username, password)
+  if checkAuthFile(username) then
+    if savedPassword("/Users/"..username.."/.auth.codex") == hashPassword(password, "/Users/"..username.."/.passphrase.codex") then
+      return true, "Correct password."
+    else
+      return false, "Incorrect password/username." -- Wrong password
+    end
+  else
+    return false, "Missing auth file!" -- No auth file
+  end
+end
+
+function logout()
+  CodeX_Username = nil
+  CodeX_LoggedIn = nil
+  CodeX_HasUserLogged = nil
+  CodeX_USR_PASSCODE_ = nil
+end
+
+function login(username, password)
+  CodeX_LoggedIn = true
+  CodeX_Username = username
+  CodeX_HasUserLogged = hashPassword(username, "/Users/"..username.."/.passphrase.codex")
+  CodeX_USR_PASSCODE_ = hashPassword(password, "/Users/"..username.."/.passphrase.codex")
+end
+
+function username()
+  return CodeX_Username
+end
+
+function checkLoggedIn()
+  if CodeX_LoggedIn then
+    if CodeX_Username ~= nil then
+      if CodeX_HasUserLogged == hashPassword(CodeX_Username, "/Users/"..CodeX_Username.."/.passphrase.codex") then
+        if CodeX_USR_PASSCODE_ == savedPassword("/Users/"..CodeX_Username.."/.auth.codex") then
+          return true, "Logged in."
+        else
+          System.logInfo("CodeX API","Attempt to login, however, CodeX_USR_PASSCODE_ incorrect.")
+          return false
+        end
+      else
+        System.logInfo("CodeX API","Attempt to login, however, CodeX_HasUserLogged incorrect.")
+        return false
+      end
+    else
+      System.logInfo("CodeX API","Attempt to login, however, CodeX_Username false.")
+      return false
+    end
+  else
+    System.logInfo("CodeX API","Attempt to login, however, CodeX_LoggedIn false.")
+    return false
+  end
+end

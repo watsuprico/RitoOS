@@ -1,3 +1,4 @@
+RitoOS_shutdownGood = true
 if not term.isColor() then
     colors.red = colors.black
     colors.green = colors.gray
@@ -11,39 +12,6 @@ if not term.isColor() then
     colors.lightBlue = colors.white
     colors.magenta = colors.white
     colors.orange = colors.lightGray
-    orange = colors.lightGray
-    magenta = colors.white
-    lightBlue = colors.white
-    yellow = colors.white
-    lime = colors.lightGray
-    pink = colors.lightGray
-    gray = colors.gray
-    lightGray = colors.lightGray
-    cyan = colors.gray
-    purple = colors.gray
-    blue = colors.gray
-    brown = colors.black
-    green = colors.gray
-    red = colors.black
-    white = colors.white --Be sure
-    black = colors.black
-else
-    white = colors.white
-    orange = colors.orange
-    magenta = colors.magenta
-    lightBlue = colors.lightBlue
-    yellow = colors.yellow
-    lightGreen = colors.lime
-    pink = colors.pink
-    gray = colors.gray
-    lightGray = colors.lightGray
-    cyan = colors.cyan
-    purple = colors.purple
-    blue = colors.blue
-    brown = colors.brown
-    green = colors.green
-    red = colors.red
-    black = colors.black
 end
 local ok, err = pcall(function() dofile("/System/.Boot/Boot.lua") end)
 if not ok then

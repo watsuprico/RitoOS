@@ -46,12 +46,19 @@ local bootScreen = true -- False allows for an instant boot, and removes the boo
 shutdownAnimation = true -- False speeds up shutdowns by 0.3 seconds, and removes the animation. (Similar to shutting down via recovery) (Also effects reboots)
 shutdownWaitTime = 0.05 -- !SETTING THIS INCORRECTLY CAN F*%k YOUR SYSTEM! The time the system will wait in between messages on the shutdown / reboot screen(s). (Set this number to 0 and turn off shutdown animations for instant reboots and shutdowns)
 
-bw = false -- Run in black and white mode?
+_G.allowAnimations = true -- Allow global animations?
+_G.AnimationDelay = 0 -- Global animations delay
+
+_G.bw = false -- Run in black and white mode?
+
+local lowdiskspace = true -- Warn on low disk space?
 
 local _tasks = {}
 
-local ver = "RitoOS Alpha 2.0.1; build 008"
+local ver = "RitoOS Alpha 2.0.1; build 009"
 _G.RitoOS_CC_Version = os.version() -- Computercraft version
+
+function os.pullEvent() local event, p1, p2, p3, p4, p5 = os.pullEventRaw() if event == "terminate" then end return event, p1, p2, p3, p4, p5 end
 
 local function getTable(path)
     if fs.exists(path) then
@@ -135,6 +142,8 @@ local function main()
     _G.RitoOS_Version = ver -- Our version
     RitoOS = true -- We're running!
 
+    term.clear()
+
     -- Load a few APIs
     if os.loadAPI("/System/APIs/System/System") then
         _G.system = System
@@ -142,6 +151,25 @@ local function main()
         System.logInfo("System","Core API loaded.")
     else
         error("Failed to load system API.")
+    end
+
+    System.logInfo("Boot","Check Black and White mode.")
+    if bw then
+        System.logInfo("Boot","Black and White mode enabled!")
+        colors.red = colors.black
+        colors.green = colors.gray
+        colors.brown = colors.black
+        colors.blue = colors.gray
+        colors.purple = colors.gray
+        colors.cyan = colors.gray
+        colors.pink = colors.gray
+        colors.lime = colors.lightGray
+        colors.yellow = colors.white
+        colors.lightBlue = colors.white
+        colors.magenta = colors.white
+        colors.orange = colors.lightGray
+    else
+        System.logInfo("Boot","Black and White mode disabled.")
     end
 
     System.logInfo("System","Checking last shutdown state.")
@@ -170,6 +198,8 @@ local function main()
         UpdateStartupFile:close()
     end
     
+    parallel.waitForAny(function() local event, key = os.pullEvent("key") if key == 42 then _RitoOS_bootIntoRecovery = true System.logInfo("System PWR", "Shift pressed, booting into recovery")  elseif key == 54 then _RitoOS_bootIntoRecovery = true System.logInfo("System PWR", "Shift pressed, booting into recovery")  end end, function() sleep(0) end)
+
     if _RitoOS_bootIntoRecovery == true then
         System.logAlert("System","Entering recovery mode.")
         os.setComputerLabel("[Recovery] - RitoOS")
@@ -182,150 +212,124 @@ local function main()
         os.setComputerLabel("[Updating] - RitoOS")
         dofile("/System/Services/Update/Update.serv")
     end
-    
-    --Setup the main window
-    OldTerm = term.current()
-    local maxX, maxY = term.getSize()
-    Windows_Main = window.create(term.current(),1,1,maxX,maxY,true)
-    term.redirect(Windows_Main)
 
     os.setComputerLabel("[BOOTING] - RitoOS")
 
+    -- Low disk space warning
+    if lowdiskspace then
+        if fs.getFreeSpace('/') <= 50000 then
+            System.logInfo("Boot","Running low on disk space!")
+            term.setBackgroundColor(colors.white)
+            term.clear()
+            printError("Please note:\n       You are running low on disk space; this may cause some programs and system functions to not work properly.\n       Please find some time to delete old files to free up some disk space.\n\n       Please press any key to continue.")
+            local event, key = os.pullEvent("key")
+        end
+    end
+
     System.logInfo("System","Showing boot logo")
 
-    if bootScreen then
+    if bootScreen and _G.allowAnimations then
+        System.logInfo("Boot","Running animation")
         parallel.waitForAll(function() -- Boot screen
-            System.aniT(colors.gray,0)
+            System.aniMidUp(colors.gray,0)
         end, function()
-            System.aniB(colors.gray,0)
+            System.aniMidDown(colors.gray,0)
         end, function()
-            System.aniT(colors.lightGray,0.043)
+            System.aniMidUp(colors.lightGray,0.043)
         end, function()
-            System.aniB(colors.lightGray,0.038)
+            System.aniMidDown(colors.lightGray,0.038)
         end, function()
-            sleep(0.083)
-            local _,Y = term.getSize()
-            local Y = Y/2
-            while Y >= 0 do
-                term.setCursorPos(1,Y)
-                term.setBackgroundColor(colors.white)
-                term.clearLine()
-                term.setTextColor(colors.black)
-                local X3,Y3 = term.getSize()
-                term.setCursorPos(math.floor(X3-string.len("RitoOS"))/2, Y3/2-1)
-                print("RitoOS")
-                term.setCursorPos(math.floor(X3-string.len("Hold R for recovery"))/2, Y3/2+1)
-                term.setTextColor(colors.gray)
-                print("Hold R for recovery")
-                Y = Y-1
-                sleep(0)
-            end
+            System.aniMidUp(colors.white,0.083,colors.black,"RitoOS")
         end, function()
-            System.aniB(colors.white,0.078)
+            System.aniMidDown(colors.white,0.078)
         end)
     else
+        term.setBackgroundColor(colors.gray)
+        term.clear()
+        if _G.allowAnimations then
+            sleep(_G.AnimationDelay)
+        end
+        term.setBackgroundColor(colors.lightGray)
+        term.clear()
+        if _G.allowAnimations then
+            sleep(_G.AnimationDelay)
+        end
         term.setBackgroundColor(colors.white)
         term.clear()
     end
 
-    parallel.waitForAny(function()
-        local X3,Y3 = term.getSize()
-        term.setCursorPos(math.floor(X3-string.len("Hold R for recovery"))/2, Y3/2+1)
-        term.setTextColor(colors.orange)
-        term.setBackgroundColor(colors.white)
-        print("Hold R for recovery")
-        local event, key = os.pullEvent("key")
-        while true do
-            if key == keys.r then
-                local X3,Y3 = term.getSize()
-                term.setCursorPos(math.floor(X3-string.len("Please wait..."))/2, Y3/2-1)
-                term.setTextColor(colors.black)
-                term.setBackgroundColor(colors.white)
-                term.clear()
-                print("Please wait...")
-                Reboot_To_Recovery = true
-                break
-            end
-        end
-    end,function()
-        sleep(0.2)
-        local X3,Y3 = term.getSize()
-        term.setCursorPos(math.floor(X3-string.len("Hold R for recovery"))/2, Y3/2+1)
-        term.setTextColor(colors.gray)
-        term.setBackgroundColor(colors.white)
-        print("Hold R for recovery")
-        end)
-
-    if Reboot_To_Recovery == true then
-        local X3,Y3 = term.getSize()
-        term.setCursorPos(math.floor(X3-string.len("Rebooting..."))/2, Y3/2)
-        term.setTextColor(colors.black)
-        term.setBackgroundColor(colors.white)
-        term.clearLine()
-        print("Rebooting...")
-        RitoOS_bootIntoRecovery = true
-        sleep(0.5)
-        os.reboot(0, true)
-    end
-
+    term.setBackgroundColor(colors.white)
+    term.clear()
+    term.setTextColor(colors.black)
+    local X3,Y3 = term.getSize()
+    term.setCursorPos(math.floor((X3/2)-3), Y3/2)
+    print("RitoOS")
+    sleep(0)
 
     -- Load APIs
     System.logInfo("System","Loading APIs.")
-
-    System.logInfo("System","Loading multitask API.")
-    if os.loadAPI("/System/APIs/Multitask/Multitask") then
-        _G.monitor = Monitor
-        System.logInfo("System","Multitask API loaded.")
-    else
-        if not err then
-            err = "No error code ):"
-        end
-        System.logAlert("System","Error: Multitask API failed to load or crashed. Error: "..err)
-    end
-    
-    System.logInfo("System","Loading Bedrock API.")
-    if os.loadAPI("/System/APIs/Bedrock/Bedrock") then
-        System.logInfo("System","Bedrock API loaded.")
-    else
-        if not err then
-            err = "No error code ):"
-        end
-        System.logAlert("System","Error: Bedrock API failed to load or crashed. Error: "..err)
-    end
 
     System.logInfo("System","Loading monitor API.")
     if os.loadAPI("/System/APIs/Monitor/Monitor") then
         _G.monitor = Monitor
         System.logInfo("System","Monitor API loaded.")
     else
-        if not err then
-            err = "No error code ):"
-        end
+        if not err then err = "No error code ):" end
         System.logAlert("System","Error: Monitor API failed to load or crashed. Error: "..err)
     end
+
+    System.logInfo("System","Loading CodeX API")
+    if os.loadAPI("/System/APIs/CodeX/CodeX") then
+        System.logInfo("System","CodeX API loaded.")
+    else
+        if not err then err = "No error code ):" end
+        System.logAlert("System","Error: CodeX API failed to load or crashed. Error: "..err)
+    end
+
     System.logInfo("System","Loading update API")
     if os.loadAPI("/System/APIs/Update/Update") then
         System.logInfo("System","Update API loaded.")
     else
-        System.logAlert("System","Error: Update API failed to load or crashed.")
+        if not err then err = "No error code ):" end
+        System.logAlert("System","Error: Update API failed to load or crashed. Error: "..err)
     end
 
-    System.logInfo("System","Loading StrUtils API.")
-    if os.loadAPI("/System/APIs/StrUtils/StrUtils") then
-        System.logInfo("System","StrUtils API loaded.")
+    System.logInfo("System","Loading ggui")
+    if os.loadAPI("/System/APIs/ggui/ggui") then
+        System.logInfo("System","ggui API loaded.")
     else
-        System.logAlert("System","StrUtils API failed to load.")
+        if not err then err = "No error code ):" end
+        System.logAlert("System","Error: The ggui API failed to load or crashed. Error: "..err)
+    end
+
+    System.logInfo("System","Loading SHA256 API.")
+    if os.loadAPI("/System/APIs/SHA256/SHA256") then
+        System.logInfo("System","SHA256 API loaded.")
+    else
+        if not err then err = "No error code ):" end
+        System.logAlert("System","Error: The SHA256 API failed to load or crashed. Error: "..err)
     end
 
     local function finishBoot()
         --Set a few more vars
         System.logInfo("System","Setting computer label")
         os.setComputerLabel(RitoOS_Name)
+
+        System.logInfo("System","Setting up some shell aliases.")
+        shell.setAlias("disconnect","/System/Programs/disconnect")
+        shell.setAlias("mon_connect","/System/Programs/mon_connect")
+        shell.setAlias("pwr","/System/Programs/pwr")
+        shell.setAlias("recovery","/System/Programs/recovery")
+        shell.setAlias("recovScript","/System/Programs/recovScript")
+        shell.setAlias("resize","/System/Programs/resize")
+        shell.setAlias("update","/System/Programs/update")
+        shell.setAlias("uptime","/System/Programs/uptime")
+
         System.logInfo("System","Loading CodeX")
         local ok, err = pcall(function() dofile("/System/CodeX.rxf") end)
         if not ok then
             if not err then
-                err = "No error code! Oh noes! The crash point, however, branched off of line 251 in the boot file. (dofile('/System/CodeX.rxf'))."
+                err = "No error code! Oh noes! The crash point, however, branched off of line 329 in the boot file. (dofile('/System/CodeX.rxf'))."
             end
             System.logAlert("System PANIC","Oh noes! We crashed! D:")
             System.logAlert("System PANIC","What caused this? Well, I don't know... but this does relate to the system crashing: ' "..err.." '.")
@@ -344,6 +348,7 @@ local function main()
             end
                 fs.copy("/System/Latest.log","/System/crash.log")
             local x,Y = term.getSize()
+            sleep(1)
             term.setBackgroundColor(colors.black)
             term.clear()
             term.setBackgroundColor(colors.gray)
@@ -394,10 +399,8 @@ local function main()
                         os.shutdown()
                     end
                 elseif s == 19 then
-                    System.logAlert("System PANIC","Starting recovery program.")
-                    shell.run("/System/.Recovery/.Recover")
-                    System.logAlert("System PANIC","Attempted to start recovery, it failed, crashed, or was closed. Shutting down.")
-                    os.shutdown()
+                    System.logAlert("System PANIC","Rebooting into recovery.")
+                    os.reboot(0,false,true)
                 else
                     System.logAlert("System PANIC","Shutting down. D:")
                     os.shutdown()
@@ -430,6 +433,8 @@ local function VersionInfo()
         end
     end
 end
+
+
 
 if not RitoOS then
     if term.isColor == nil then

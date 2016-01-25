@@ -7,19 +7,19 @@ else
 		os.reboot()
 	elseif CommandToUse == "rr" then
 		print("Activating recovery...")
-		shell.run("/System/Programs/recovery")
+		_G.RitoOS_bootIntoRecovery = true
 		print("Rebooting...")
-		os.reboot()
+		os.reboot(0,false,true)
 	elseif CommandToUse == "s" then
 		os.shutdown()
 	elseif CommandToUse == "sr" then
 		print("Activating recovery...")
-		shell.run("/System/Programs/recovery")
+		_G.RitoOS_bootIntoRecovery = true
 		print("Shutting down...")
-		os.shutdown()
+		os.shutdown(0,false,true)
 	elseif CommandToUse == "br" then
 		print("Activating recovery...")
-		shell.run("/System/Programs/recovery")
+		_G.RitoOS_bootIntoRecovery = true
 	else
 		printError("Incorrect use. Use the pwr command like this:\npwr\n   r | Reboots the system\n   s | Shutsdown the system\n   rr | Reboot into recovery\n   sr | The compupter shutsdown and boots into the recovery platform on the next boot.\n   br | The next time the computer boots, go into recovery mode.")
 		printError("You entered: \"pwr ".. CommandToUse .."\"")

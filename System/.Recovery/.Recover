@@ -169,19 +169,20 @@ local function getTable(path)
   return {}
 end
 
-local function getSavedPass(getKey, username) -- I'm take this from CodeX if you don't mind
-  if not username then
-    username = CodeX_Username
-  end
-  local Key = StrUtils.SHA1(getKey)
-  local getKey = "Nope.avi"
-  local Passphrase_File = fs.open("/Users/"..username.."/.Passphrase.CodeX","r")
-  local Passphrase_Key = Passphrase_File.readAll()
-  Passphrase_File.close()
-  local UnsavedPassword = StrUtils.SHA1(Key..""..Passphrase_Key)
-  local Passphrase_Key = "Nope.avi"
-  local Passphrase_File = "Nope.avi"
-  return UnsavedPassword
+-- Encrypt a password
+local function hashPassword(hashThis, userPassphrasefile)
+  local Key = SHA256.sha256(hashThis)
+  local PassphraseFile = fs.open(userPassphrasefile, "r")
+  local PassphraseKey = PassphraseFile.readAll()
+  PassphraseFile.close()
+  return SHA256.sha256(hashThis..""..PassphraseKey)
+end
+-- saved hash
+local function savedPassword(userAuthfile)
+  local savedHashfile = fs.open(userAuthfile, "r")
+  local savedHash = savedHashfile.readAll()
+  savedHashfile.close()
+  return savedHash
 end
 
 local function Login()
@@ -199,21 +200,18 @@ local function Login()
       return false
     end
   end, function()
-    os.loadAPI("/System/APIs/StrUtils/StrUtils")
+    os.loadAPI("/System/APIs/SHA256/SHA256")
     print("Please log in.")
     term.setCursorPos(1,8)
     print("Username-]")
     term.setCursorPos(12,8)
     local username = read()
-    if fs.exists("/Users/"..username.."/."..username..".CodeX") then
+    if fs.exists("/Users/"..username.."/.auth.codeX") or fs.exists("/Users/"..username.."/.passphrase.codeX") then
       System.logInfo("Recovery","Logging in for user: \""..username.."\"")
       print("Password-]")
       term.setCursorPos(12,9)
       local wizardpass = read("*")
-      local morewizards = getSavedPass(wizardpass, username)
-      local userfile =  getTable("/Users/"..username.."/."..username..".CodeX")
-      local lesswizards = string.sub(userfile[1],string.find(userfile[1],"!")+1)
-      if morewizards == lesswizards then
+      if hashPassword(wizardpass, "/Users/"..username.."/.passphrase.codex") == savedPassword("/Users/"..username.."/.auth.codex") then
         print("Loading ...")
         System.logInfo("Recovery","User logged in.")
         loggedIn = true
@@ -223,7 +221,7 @@ local function Login()
         sleep(2)
       end
     else
-      print('Password incorrect ):')
+      print('No auth file found for this user ):')
       System.logWarn("Recovery","Attempt to login failed. BADPASS1")
       sleep(2)
     end -- If exists

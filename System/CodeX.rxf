@@ -2,21 +2,11 @@
 
      _________________________________________________________________________
     |                                                                         |
-    |                      RitoOS - ALPHA BUILD -  ^.^                        |
-    |                                                                         |
-    | - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
-    |                                                                         |
-    |                       CodeX Version Alpha 4.7                           |
+    |                          CodeX Version 5                                |
     |                                                                         |
     |  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  |
-    |                                                                         |
-    |   Thank you for looking at RitoOS, (or downloading it), it means alot.  |
-    |    If you would like to learn more, head on over to the Github page:    |
-    |              https://www.github.com/Watsuprico/RitoOS/                  |
-    |                                                                         |
-    |- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
    _|                                                                         |
-  |             Some extended info on copying and using RitoOS                |______________________________________________________ 
+  |              Some extended info on copying and using CodeX                |______________________________________________________ 
   |                                                                                                                                 |
   | Permission is hereby granted, free of charge, to any person obtaining a copy of this software and                               |
   | associated documentation files (the "Software"), to deal in the Software without restriction,                                   |
@@ -38,458 +28,360 @@
 
 ]]
 
-local codexVer = "4.7" 
+-- CodeX Vars, (don't change)
+local codexVer = "5"
+local loginType = "text"
+attemptnumber = 1
+local StartCCShell = false
 
-loggedIn = nil
+--Theme
+-- local CodeX_BColor = colors.lightBlue -- Background color
+-- local CodeX_TBColor = colors.gray -- Main topbar color
+-- local CodeX_TBTColor = colors.white -- Main topbar text color
+-- local CodeX_TColor = colors.black -- Main text color
+-- local CodeX_IColor = colors.yellow -- Input color
+-- local CodeX_EColor = colors.red -- Error text color
+-- local CodeX_ButtonBackground = colors.gray -- Any button's background
+-- local CodeX_ButtonActiveColor = colors.green -- Button's background (clicked)
+-- local CodeX_ButtonTextColor = colors.orange -- The color of the text on those buttons
+-- local CodeX_ButtonFocused = colors.blue -- The button is focused
 
-local function PrintCentered(sText)
-	msgLen = string.len(sText)
-	screenWidth,_ = term.getSize()
-	_xCoords = tonumber(math.ceil((screenWidth / 2 ) - (msgLen / 2)))
-	_,termY = term.getCursorPos()
-	term.setCursorPos(_xCoords,termY)
-	print(sText)
+local textBoxStyle={
+  mono={
+    fg=colors.black,
+    bg=colors.lightGray,
+    fgFocused=colors.white,
+    bgFocused=colors.gray,
+  },
+  color={
+    fg=CodeX_IColor,
+    bg=CodeX_BColor,
+  },
+}
+local pwStyle={
+  pwChar="*",
+  mono={
+    fg=colors.black,
+    bg=colors.lightGray,
+    fgFocused=colors.white,
+    bgFocused=colors.gray,
+  },
+  color={
+    fg=CodeX_IColor,
+    bg=CodeX_BColor,
+  },
+}
+
+local buttonStyles={
+  mono={
+    bg=colors.gray,
+    fg=colors.white,
+    fgFocused=colors.gray,
+    bgFocused=colors.lightGray,
+  },
+  color={
+    bg=CodeX_ButtonBackground,
+    fg=CodeX_ButtonTextColor,
+    fgFocused=CodeX_ButtonTextColor,
+    bgFocused=CodeX_ButtonFocused,
+  },
+  textAlign="center",
+}
+
+local buttonActiveStyles={
+  textAlign="center",
+  mono={
+    bg=colors.black,
+    fg=colors.lightGray,
+    fgFocused=colors.black,
+    bgFocused=colors.lightGray,
+  },
+  color={
+    bg=CodeX_ButtonBackground,
+    fg=CodeX_ButtonActiveColor,
+    fgFocused=CodeX_ButtonActiveColor,
+    bgFocused=CodeX_ButtonFocused,
+  },
+}
+
+local labelStyle={
+  bg=CodeX_BColor,
+  fg=CodeX_TColor,
+  textAlign="center",
+}
+
+local backgroundStyle={
+  bg=CodeX_BColor,
+}
+local topBarStyle={
+  bg=CodeX_TBColor,
+  fg=CodeX_TBTColor,
+  textAlign="center",
+}
+local topBarErrorStyle={
+  bg=CodeX_TBColor,
+  fg=CodeX_EColor,
+  textAlign="center",
+}
+
+local guiScreen=ggui.newScreen() -- Creates the new screen (must have)
+local guiScreen1=ggui.newScreen()
+local guiScreen0=ggui.newScreen()
+
+-- Functions
+local function printc(sText)
+  msgLen = string.len(sText)
+  screenWidth,_ = term.getSize()
+  _xCoords = tonumber(math.ceil((screenWidth / 2 ) - (msgLen / 2)))
+  _,termY = term.getCursorPos()
+  term.setCursorPos(_xCoords,termY)
+  print(sText)
 end
 
-if not term.isColor() then
-	colors.red = colors.black
-    colors.green = colors.gray
-    colors.brown = colors.black
-    colors.blue = colors.gray
-    colors.purple = colors.gray
-    colors.cyan = colors.gray
-    colors.pink = colors.gray
-    colors.lime = colors.lightGray
-    colors.yellow = colors.white
-    colors.lightBlue = colors.white
-    colors.magenta = colors.white
-    colors.orange = colors.lightGray
+local function drawImage(location)
+  term.setBackgroundColor(colors.black)
+  term.clear()
+  local image = paintutils.loadImage(location)
+  paintutils.drawImage(image,1,1)
+end
+local function grabMouseInput()
+  local event, button, x1, y1 = os.pullEvent("mouse_click")
+  local event, button, x2, y2 = os.pullEvent("mouse_click")
+  local event, button, x3, y3 = os.pullEvent("mouse_click")
+  return x1, y1, x2, y2, x3, y3
 end
 
-local BColor = System.transColor(CodeX_Background_Color)
-local TColor = System.transColor(CodeX_Text_Color)
-local EColor = System.transColor(CodeX_Error_Color)
-local PColor = System.transColor(CodeX_Prompt_Color)
-local IColor = System.transColor(CodeX_Input_Color)
-
-
--- Write
 local function fwrite(path, text)
         local file = assert(io.open(path, "w"))
         file:write(text)
         file:close()
 end
-local function getTable(path)
-	if fs.exists(path) then
-		local file = io.open(path, "r")
-		local lines = {}
-		local i = 1
-		local line = file:read("*l")
-		while line ~= nil do
-			lines[i] = line
-			line = file:read("*l")
-			i = i + 1
-		end
-		file:close()
-		return lines
-	end
-	return {}
+
+-- Set theme
+local function setTheme(s, gui)
+  if not s then s = "CodeX" end
+  local MaxX,MaxY = term.getSize()
+  local background=gui.addGraphic(1,1, MaxX,MaxY)
+  gui.setStyle(background,backgroundStyle)
+
+  local topBar1=gui.addLabel(1,1, MaxX,1, "") -- You can't load graphics without an image.
+  local topBar2=gui.addLabel(1,2, MaxX,1, s) -- You can't load graphics without an image.
+  local topBar4=gui.addLabel(1,4, MaxX,1, "") -- You can't load graphics without an image.
+  gui.setStyle(topBar1, topBarStyle)
+  gui.setStyle(topBar2, topBarStyle)
+  gui.setStyle(topBar4, topBarStyle)
 end
-local function append(path, text)
-	local file = assert(io.open(path, "a"))
-	file:write(text.."\n")
-	file:close()
-end
---End
+--End core functions
 
-
---Local functions
-local function getSavedPass(getKey, username)
-	if not username then
-		username = CodeX_Username
-	end
-	local Key = StrUtils.SHA1(getKey)
-	local getKey = "Nope.avi"
-	local Passphrase_File = fs.open("/Users/"..username.."/.Passphrase.CodeX","r")
-	local Passphrase_Key = Passphrase_File.readAll()
-	Passphrase_File.close()
-	local UnsavedPassword = StrUtils.SHA1(Key..""..Passphrase_Key)
-	local Passphrase_Key = "Nope.avi"
-	local Passphrase_File = "Nope.avi"
-	return UnsavedPassword
-end
---End local functions
-
-
---FOr BSOD
-local function Login() -- Login before messing with the system
-  term.clear()
-  term.setCursorPos(1,2)
-  print("Please log in.")
-  term.setCursorPos(1,4)
-  print("Username -")
-  term.setCursorPos(11,4)
-  local username = read()
-  if fs.exists("/Users/"..username.."/."..username..".CodeX") then
-    System.logInfo("CodeX PANIC","Awaiting for the password to user ' "..username.." ' .")
-    print("Password -")
-    term.setCursorPos(11,5)
-    local wizardpass = read("*")
-    local morewizards = getSavedPass(wizardpass, username)
-    local userfile =  getTable("/Users/"..username.."/."..username..".CodeX")
-    local lesswizards = string.sub(userfile[1],string.find(userfile[1],"!")+1)
-    if morewizards == lesswizards then
-      print("Loading ...")
-      System.logInfo("CodeX PANIC","Password received and correct.")
-      loggedIn = true
-    else
-      print('Incorrect password / username')
-      System.logInfo("CodeX PANIC","incorrect password used for user ' "..username.. " ' .")
-      sleep(2)
-    end
-  else
-    print('No such user.')
-    sleep(2)
+function loggedIn(username, password, StartCCShell, loggedInAlready)
+  if not loggedInAlready then
+    CodeX.login(username, password)
+    CodeX_Username = username
   end
+  local ok, err = pcall(function() if not StartCCShell then dofile("/System/userEnvironment.rxf") else term.setBackgroundColor(colors.black) term.clear() term.setCursorPos(1,1) dofile("/rom/programs/shell") end end)
+  if not ok then
+    if not err then err = "No error code, however, it spawned off of \"user just logged in\" in CodeX." end
+    System.logAlert("CodeX PANIC","userEnvironment crashed.")
+    System.logAlert("CodeX PANIC","What caused this? Well, I don't know... but this does relate to the system crashing: \""..err.."\".")
+    System.logAlert("CodeX PANIC","Please, send that error message to Watsuprico via PM. He'll tell you how to fix it, when it'll be patched, or at least what it means.")
+    System.logAlert("CodeX PANIC","Showing the BSOD message, nothing much I can do.")
+    if RitoOS_Config_service_started then configfileran = "Yes" else configfileran = "Unknown, but probably not." end
+    -- Log the crash.
+    local crash = assert(io.open("/System/Latest.log", "a"))
+    crash:write("\n^ System log file ^\n\nRitoOS crashed.\nHere's some of that juicy debugging info.\n\nCrash info: \nError: "..err.." \n\nGeneral system info: \nCC version: "..RitoOS_CC_Version.."\nRitoOS version: "..RitoOS_Version.."\nConfig file ran: "..configfileran.."\n\n\nEnd of the crash log.\n\n")
+    crash:close()
+    if fs.exists("/System/crash.log") then fs.delete("/System/crash.log") end fs.copy("/System/Latest.log","/System/crash.log") --// Copy the log file
+    local MaxX,MaxY = term.getSize()
+    term.setBackgroundColor(colors.black) term.clear() sleep(0)
+    term.setBackgroundColor(colors.gray) term.clear() sleep(0)
+    term.setBackgroundColor(colors.lightGray) term.clear() sleep(0)
+    term.setBackgroundColor(colors.white) term.clear() sleep(0) term.setTextColor(colors.red)
+    term.setCursorPos((MaxX-10)/2, 2) write("Sorry about that. ):") term.setTextColor(colors.black)
+    if not crashPoint then crashPoint = "CodeX" end
+    term.setCursorPos((MaxX-string.len(crashPoint..' has crashed.'))/2, 5) print(crashPoint.." has crashed.")
+    term.setCursorPos(3, 7) print("Please, report this error to Watsuprico via PM:")
+    term.setTextColor(colors.red) term.setCursorPos(3, 8) print(err) -- Print the error, duh
+    term.setTextColor(colors.gray)
+    term.setCursorPos((MaxX-string.len('Please remember, when sending the bug report"'))/2, 11) print("Please remember, when sending the bug report")
+    term.setCursorPos((MaxX-string.len('include the log file at "/System/crash.log"'))/2, 12) print("include the log file at: \"/System/crash.log\"")
+    print() -- Blank line ;^)
+    if not attemptToSave then print("Press enter to try and save the system.") end -- If we didn't already try to save the system.
+    print("Press R to go into recovery.") print("Press S for CC shell. [Requires logging in]") print("Press any other key to shutdown.")
+    sleep(1)
+    local _,s = os.pullEvent("key")
+    while true do sleep(0)
+      if s == 28 then
+        if not attemptToSave then attemptToSave = true System.logAlert("CodeX PANIC","Attempting to restart CodeX.") local ok, err = pcall(function() dofile("/System/CodeX.rxf") end)
+          if not ok then if not err then err = "No error code, however, spawned off of the \"save me\" in CodeX's WSOD" end error(err) -- CodeX crashed, again.
+          end
+        else System.logAlert("CodeX PANIC","Crashed! Error: \"Enter was pressed on the WSOD, however, we already tried to save the system.\" ") os.shutdown() end
+      elseif s == 19 then System.logAlert("CodeX PANIC","Rebooting into recovery.") os.reboot(0,false,true)
+      elseif s == 31 then System.logAlert("CodeX PANIC","The user wishes to use CC's shell, asking for them to login first.") LoginR()
+        if loggedIn == true then
+          System.logAlert("CodeX PANIC","Starting Computercraft's shell.") term.setBackgroundColor(colors.black) term.clear() term.setCursorPos(1,1) shell.run("/rom/programs/shell")
+          System.logAlert("CodeX PANIC","Attempted to start Computercraft's shell, it failed, crashed, or was closed. Shutting down.") os.shutdown()
+        else System.logAlert("CodeX PANIC","User failed to log in, not starting the CC shell.") end -- End loggedIn
+      else System.logAlert("CodeX PANIC","Shutting down. D:") os.shutdown()
+      end--End Key press
+    end --End while
+  end --End WSOD; (if not ok)
+
+end--End loggedIn()
+
+local function menuShutdown()
+  parallel.waitForAny(function() local event, key = os.pullEvent("key") if key == 42 then _G.RitoOS_bootIntoRecovery = true elseif key == 54 then _G.RitoOS_bootIntoRecovery = true end end, function() sleep(0.5) end) os.shutdown()
 end
---End
-
-
---API like functions
-function CodeX_logout()
-	CodeX_Username = nil
-	CodeX_Logname = nil
-	CodeX_HasUserLogged = nil
-	CodeX_USR_PASSCODE_ = nil
+local function menuRestart()
+  parallel.waitForAny(function() local event, key = os.pullEvent("key") if key == 42 then _G.RitoOS_bootIntoRecovery = true elseif key == 54 then _G.RitoOS_bootIntoRecovery = true end end, function() sleep(0.5) end) os.reboot()
 end
 
 
---End API like functions
+local function login()
+  setTheme("RitoOS login", guiScreen)
+  local L = 16 local X,Y = term.getSize() local X,Y = (X-L),Y-1 -- 1px padding from the screen boarders (both x and y)
+  local loginButton=guiScreen.addButton(X,Y-4,L,1,"Login") guiScreen.setStyle(loginButton,buttonStyles)
+  local buttonShutdown=guiScreen.addButton(X,Y-3,L,1,"Shutdown") guiScreen.setStyle(buttonShutdown, buttonStyles)
+  local buttonRestart=guiScreen.addButton(X,Y-2,L,1,"Restart") guiScreen.setStyle(buttonRestart, buttonStyles)
+  local buttonStartCCShell=guiScreen.addButton(X,Y-1,L,1,"Start CC Shell")
+  if not StartCCShell then guiScreen.setStyle(buttonStartCCShell, buttonStyles) else guiScreen.setText(buttonStartCCShell, "Will run Shell") guiScreen.setStyle(buttonStartCCShell, buttonActiveStyles) end
+  local buttonLoginType=guiScreen.addButton(X,Y,L,1,"Use "..loginType) guiScreen.setStyle(buttonLoginType, buttonStyles)
 
+  local MaxX,MaxY = term.getSize()
+  local topBarLabel=guiScreen.addLabel(1,3,MaxX,1, "") guiScreen.setStyle(topBarLabel,topBarErrorStyle) -- The error line on the top bar
+  --create labels and input fields for username and pw
+  local nameLabel=guiScreen.addLabel(1,7, 9,1, "Username:")
+  local passwordLabel=guiScreen.addLabel(1,8, 9,1, "Password:")
+  local nameInput=guiScreen.addTextField(11,7, MaxX-11,1)--Username input
+  local pwInput=guiScreen.addTextField(11,8, MaxX-11,1)--Password input
+  guiScreen.setStyle(nameLabel,labelStyle) --Set the username label styles
+  guiScreen.setStyle(passwordLabel,labelStyle) -- Set the password label style
+  guiScreen.setStyle(nameInput,textBoxStyle)
+  guiScreen.setStyle(pwInput,pwStyle)
 
---Create user
-local function newUser(code)
+  guiScreen.setFocus(nameInput)
 
-	if code then
-		if __CodeX_CreateUser_Code == code then
-			--NewUser()
-			System.logInfo("CodeX","Creating a new user.")
-			term.setCursorPos(1,1)
-			term.setBackgroundColor(BColor)
-			term.clear()
-			term.setTextColor(TColor)
-			PrintCentered("Please, type a username.")
-			PrintCentered("Example: John")
-			local NewUsername = read()
-			System.logInfo("CodeX","New username: "..NewUsername)
-			local function RegisterPassword()
-				local function fwrite(path, text)
-					local file = assert(io.open(path, "w"))
-					file:write(text)
-					file:close()
-				end
-				term.clear()
-				term.setCursorPos(1,1)
-				PrintCentered("Please type a password for this user.")
-				PrintCentered("(Press {Enter} to leave the password blank.")
-				local _newPassword1 = read("*")
-				PrintCentered("Please re-enter the user password.")
-				local _newPassword2 = read("*")
-				if _newPassword2 == _newPassword1 then
-					PrintCentered("Should this user be an admin?")
-					PrintCentered("Type 'y' for yes, and 'n' for no.")
-					local _newAdmin = read()
-					if _newAdmin == "y" then
-						_newAdmin = true
-					else
-						_newAdmin = false
-					end
-					System.logInfo("CodeX","New user admin? "..tostring(_newAdmin))
-					PrintCentered("Creating user.")
-					if not CodeX_Register_Key_Length then
-						CodeX_Register_Key_Length = 200
-					end
-					-- Create a random key
-					local s = ""
-					for i = 1, CodeX_Register_Key_Length do
-						s = s .. string.char(math.random(32, 126))
-					end
-					fwrite("/Users/"..NewUsername.."/.Passphrase.CodeX", s)
-					local newUserPasswordHashed = getSavedPass(_newPassword1, NewUsername)
-					_newPassword1 = nil
-					_newPassword2 = nil
-					PrintCentered("Hased! Saving.")
-					fwrite("/Users/"..NewUsername.."/."..NewUsername..".CodeX", "!"..newUserPasswordHashed.."\n!"..tostring(_newAdmin).."\n!".."4.5")
-					fwrite("/Users/.CC",codexVer)
-					System.logInfo("CodeX","User created using CodeX version "..codexVer)
-					PrintCentered("Complete!")
-				else
-					PrintCentered("The passwords you entered do not match. )^:")
-					System.logWarn("CodeX","The passwords for the new user didn't match")
-					sleep(2)
-					RegisterPassword()
-				end -- End of the checked entered password
-			end--End of the "RegisterPassword" function
-			RegisterPassword()
-		else
-			term.setTextColor(colors.red)
-			PrintCentered("You don't have premissions to create a user.")
-			System.logAlert("CodeX","There was an attempt to create a new user without proper premissions.")
-			sleep(3)
-		end -- Premission to create a user?
-	end -- Premission to create a user?
-
-end--End newUser()
-
--- Main
-local function main()
-	System.logInfo("CodeX","Loaded.")
-	CodeX_logout()
-	CodeX_Started = true
-	term.setBackgroundColor(BColor)
-	term.clear()
-	term.setTextColor(TColor)
-	term.setCursorPos(1,1)
-	PrintCentered("CodeX")
-	term.setCursorPos(1,4)
-	term.setTextColor(PColor)
-	print("Username: ")
-	term.setCursorPos(11,4)
-	term.setTextColor(IColor)
-	System.logInfo("CodeX","Awaiting for a username.")
-	local Username = read()
-	 -- Check for the user
-	if fs.exists("/Users/"..Username.."/."..Username..".CodeX") then
-		CodeX_Username = Username
-		_G.CodeX_Username = Username
-		term.setTextColor(PColor)
-		term.setCursorPos(1,1)
-		term.clearLine()
-		PrintCentered("Logging into: "..Username)
-		term.setCursorPos(1,5)
-		term.clearLine()
-		print("Password: ")
-		term.setCursorPos(11,5)
-		term.setTextColor(IColor)
-		System.logInfo("CodeX","Awaiting for a password for the user: ' "..Username.." ' .")
-		local MultiKey = read("*")
-		local UnsavedPassword = getSavedPass(MultiKey)
-		local userfile =  getTable("/Users/"..CodeX_Username.."/."..CodeX_Username..".CodeX")
-		local SavedPassword = string.sub(userfile[1],string.find(userfile[1],"!")+1)
-		if UnsavedPassword == SavedPassword then
-			System.logInfo("CodeX","The entered password is correct! Logging in.")
-			CodeX_HasUserLogged = StrUtils.SHA1(CodeX_Username)
-			CodeX_USR_PASSCODE_ = UnsavedPassword
-			CodeX_USR_ADMIN = string.sub(userfile[2],string.find(userfile[2],"!")+1)
-			System.logInfo("CodeX","Loading user APIs.")
-			for _,file in ipairs(fs.list("/APIs/")) do
-            	if file ~= "Readme.txt" then
-				    os.loadAPI("/APIs/"..file)
-	            	System.logInfo("CodeX","Loaded /APIs/"..file)
-	            end
-          	end
-          	System.logInfo("CodeX","Starting CMD.")
-          	local ok, err = pcall(function() dofile("/System/userEnvironment.rxf") end)
-			if not ok then
-				System.logAlert('CodeX','Explorera crashed ):')
-				if not err then
-    				err = "No error code! Oh noes! The crash point, however, branched off of the ' Run Explorer.rxf ' command in CodeX after login."
-    			end
-    			CodeX_logout()
-    			local crashPoint = "CMD"
-    			error(err)
-			end
-        else
-        	System.logWarn("CodeX","Incorrect password used for user: ' "..Username.." ' .")
-        	term.setTextColor(EColor)
-        	term.setCursorPos(1,5)
-        	term.clearLine()
-        	print("Password/Username incorrect!")
-        	sleep(1)
-        	main()
-        end
+  local function onLogin() -- Called when 'Login' is pressed
+    local username=guiScreen.getText(nameInput)
+    local password=guiScreen.getText(pwInput)
+    local login, err = CodeX.testTextHash(username, password)
+    if login then
+      -- Logged in!
+      loggedIn(username, password, StartCCShell)
     else
-    	term.setTextColor(PColor)
-		term.setCursorPos(1,1)
-		term.clearLine()
-		PrintCentered("Logging into: "..Username)
-		term.setCursorPos(1,5)
-		term.clearLine()
-		print("Password: ")
-		term.setCursorPos(11,5)
-		term.setTextColor(IColor)
-		local _ = read("*")
-		term.setTextColor(EColor)
-        term.setCursorPos(1,5)
-        term.clearLine()
-        print("Password/Username incorrect!")
-        sleep(1)
-        main()
-    end
-end
---End Main
+      if err == "Missing auth file!" then local _, err = CodeX.checkAuthFile(username) end
+      guiScreen.setText(topBarLabel, err) -- Why didn't the user log in?
+      guiScreen.setText(pwInput,"") -- Reset the password box
+      guiScreen.setText(nameInput,"") -- Reset the username box
+      guiScreen.setFocus(nameInput) -- Move the cursor on the username box
+    end--End if login
+  end --End onLogin()
 
--- Is there a registered user with this version of CodeX?
+  local function menuStartCCShell()
+    if StartCCShell then StartCCShell = false guiScreen.setText(buttonStartCCShell, "Start CC Shell") guiScreen.setStyle(buttonStartCCShell, buttonStyles)
+    else StartCCShell = true guiScreen.setText(buttonStartCCShell, "Will run Shell") guiScreen.setStyle(buttonStartCCShell, buttonActiveStyles) end
+  end
+  local function menuLoginType()
+    if loginType == "text" then loginType = "picture" guiScreen.setText(buttonLoginType, "Using picture") else loginType = "text" guiScreen.setText(buttonLoginType, "Using text") end
+  end
+
+  parallel.waitForAny(function()
+  guiScreen.addEventHandler({"button_activate", guiScreen.id, loginButton},onLogin) -- When the button is pressed call onLogin()
+  guiScreen.addEventHandler({"button_activate", guiScreen.id, buttonShutdown},menuShutdown)
+  guiScreen.addEventHandler({"button_activate", guiScreen.id, buttonRestart},menuRestart)
+  guiScreen.addEventHandler({"button_activate", guiScreen.id, buttonStartCCShell},menuStartCCShell)
+  guiScreen.addEventHandler({"button_activate", guiScreen.id, buttonLoginType},menuLoginType)
+  ggui.run(guiScreen) -- Run the loop for login. (This shouldn't close)
+  end, function() while true do sleep(3) guiScreen.setText(topBarLabel, "") end end) -- Reset the top label every 3 seconds.
+  error("CodeX-Login-End") -- But if the loop does end, crash the system ;^)
+end -- End login function
+
+
+local function newuser()
+  setTheme("RitoOS account creation", guiScreen0)
+  local L = 16 local X,Y = term.getSize() local X,Y = (X-L),Y+1 local MaxX,MaxY = term.getSize()
+  local nextButton=guiScreen0.addButton(X,Y-4,L,1,"Next") guiScreen0.setStyle(nextButton,buttonStyles)
+  local buttonShutdown=guiScreen0.addButton(X,Y-3,L,1,"Shutdown") guiScreen0.setStyle(buttonShutdown, buttonStyles)
+  local buttonRestart=guiScreen0.addButton(X,Y-2,L,1,"Restart") guiScreen0.setStyle(buttonRestart, buttonStyles)
+
+  local topBarLabel=guiScreen0.addLabel(1,3,MaxX,1, "Please enter a username for this new account") guiScreen0.setStyle(topBarLabel,topBarStyle) -- The error line on the top bar
+  local nameLabel=guiScreen0.addLabel(1,7, 9,1, "Username:")
+  local nameInput=guiScreen0.addTextField(11,7, MaxX-11,1)--Username input
+  guiScreen0.setStyle(nameLabel,labelStyle) --Set the username label styles
+  guiScreen0.setStyle(nameInput,textBoxStyle)
+  guiScreen0.setFocus(nameInput)
+
+  local function onNext1()
+    if guiScreen0.getText(nameInput) ~= "" or guiScreen0.getText(nameInput) ~= nil then
+      os.queueEvent("exitgguiloop")
+    else
+      guiScreen0.setText(topBarLabel, "Please enter a name.") guiScreen0.setStyle(topBarLabel,topBarErrorStyle)
+      guiScreen0.setText(nameInput,"")
+      guiScreen0.setFocus(nameInput)
+    end
+  end
+
+  guiScreen0.addEventHandler({"button_activate", guiScreen0.id, nextButton},onNext1)
+  guiScreen0.addEventHandler({"button_activate", guiScreen0.id, buttonShutdown},menuShutdown)
+  guiScreen0.addEventHandler({"button_activate", guiScreen0.id, buttonRestart},menuRestart)
+  ggui.run(guiScreen0)
+  local username=guiScreen0.getText(nameInput)
+  setTheme("RitoOS account creation", guiScreen1)
+  local L = 16 local X,Y = term.getSize() local X,Y = (X-L),Y-1 local MaxX,MaxY = term.getSize()
+  local nextButton=guiScreen1.addButton(X,Y,L,1,"Next") guiScreen1.setStyle(nextButton,buttonStyles)
+  local topBarLabel=guiScreen1.addLabel(1,3,MaxX,1, "Please enter a password for this new account") guiScreen1.setStyle(topBarLabel,topBarStyle) -- The error line on the top bars
+  local passwordLabel=guiScreen1.addLabel(1,8,9,1, "Password:")
+  local passwordLabel2=guiScreen1.addLabel(1,9,17,1, "Retyped Password:")
+  local pwInput=guiScreen1.addTextField(11,8, MaxX-11,1)--Password input
+  local pwInput2=guiScreen1.addTextField(19,9, MaxX-19,1)--Password input (retyped)
+  guiScreen1.setStyle(pwInput,pwStyle)--Password (retyped)
+  guiScreen1.setStyle(pwInput2,pwStyle)--Password (retyped)
+  guiScreen1.setStyle(passwordLabel,labelStyle) -- Set the password label style
+  guiScreen1.setStyle(passwordLabel2,labelStyle) -- Set the password label style (retyped)
+  guiScreen1.setFocus(pwInput)
+
+  local function onNext2()
+    if guiScreen1.getText(pwInput) ~= guiScreen1.getText(pwInput2) then
+      -- Passwords didn't match.
+      guiScreen1.setText(topBarLabel, "The two entered passwords do not match") guiScreen1.setStyle(topBarLabel,topBarErrorStyle)
+      guiScreen1.setText(pwInput,"")
+      guiScreen1.setText(pwInput2,"")
+      guiScreen1.setFocus(pwInput)
+    else
+      --They match!
+      guiScreen1.setText(topBarLabel, "Creating the account") guiScreen1.setStyle(topBarLabel,topBarStyle)
+      System.logInfo("CodeX","Creating "..username)
+      if not CodeX_Register_Key_Length then
+        CodeX_Register_Key_Length = 200
+      end
+      -- Create a random key
+      local s = ""
+      for i = 1, CodeX_Register_Key_Length do
+        s = s .. string.char(math.random(32, 126))
+      end
+      fwrite("/Users/"..username.."/.passphrase.codex", s)
+      fwrite("/Users/"..username.."/.auth.codex", CodeX.hashPassword(guiScreen1.getText(pwInput), "/Users/"..username.."/.passphrase.codex"))
+      System.logInfo("CodeX",username.." created")
+      guiScreen1.setText(topBarLabel, "Account created. (Press any key)")
+      guiScreen1.setText(pwInput,"")
+      guiScreen1.setText(pwInput2,"")
+      os.queueEvent("exitgguiloop")
+    end
+  end
+
+  guiScreen1.addEventHandler({"button_activate", guiScreen1.id, nextButton},onNext2)
+  ggui.run(guiScreen1)
+  login()
+  --Complete  
+end -- End new user
+
+
+
+if CodeX.checkLoggedIn() then
+  loggedIn(nil,nil,false,true)
+end
+
 if fs.isDir("/Users/") then
-	if fs.exists("/Users/.CC") then
-		local ccfile = fs.open("/Users/.CC", "r")
-		local _ccfile = ccfile.readAll()
-		ccfile.close()
-		if _ccfile == codexVer then
-			--Yes
-		else
-			--no
-			__CodeX_CreateUser_Code = "83&#*"
-			newUser("83&#*")
-		end
-	else
-		__CodeX_CreateUser_Code = "83&#*"
-		newUser("83&#*")
-	end
+  login()
 else
-	fs.makeDir("/Users/")
-	__CodeX_CreateUser_Code = "83&#*"
-	newUser("83&#*")
-end
---End check version
-
-
-
---Auth check, user already logged in?
-if CodeX_Username ~= nil then
-	System.logInfo("CodeX","User reported as 'logged in'. Checking their login info.")
-	if CodeX_HasUserLogged ~= nil then
-		if CodeX_HasUserLogged == StrUtils.SHA1(CodeX_Username) then
-			local userfile =  getTable("/Users/"..CodeX_Username.."/."..CodeX_Username..".codex")
-	    	local Pass = string.sub(userfile[1],string.find(userfile[1],"!")+1)
-			if CodeX_USR_PASSCODE_ == Pass then
-				System.logInfo("CodeX","The password was correct.")
-				System.logInfo("CodeX","Starting CMD")
-				local ok, err = pcall(function() dofile("/System/CMD.rxf") end)
-				if not ok then
-					if not err then
-			    		err = "No error code! Oh noes! The crash point, however, branched off of the ' Run Explorera.rxf ' command in CodeX and the user was reported to be logged in."
-			    	end
-		    		CodeX_logout()
-		    		local crashPoint = "CMD"
-			    	error(err)
-				end
-			else
-				System.logWarn("CodeX","The password failed to be verifed for user: ' "..CodeX_Username.." ' .")
-			end
-		else
-			System.logInfo("CodeX","User logged in, however, is reporting the incorrect login infomation.")
-		end
-	else
-		System.logAlert("CodeX","Username set, but that's it. Asking user to relogin.")
-	end
-end
-
-local ok, err = pcall(main)
-if not ok then
-	if not err then
-    	err = "No error code! Oh noes! The crash point, however, branched off of the ' Main call ' in CodeX."
-    end
-    		System.logAlert("CodeX PANIC","Explorera crashed.")
-            System.logAlert("CodeX PANIC","What caused this? Well, I don't know... but this does relate to the system crashing: ' "..err.." '.")
-            System.logAlert("CodeX PANIC","Please, send that error message to Watsuprico via PM. He'll tell you how to fix it, when it'll be patched, or at least what it means.")
-            System.logAlert("CodeX PANIC","Showing the BSOD message, nothing much I can do.")
-            if RitoOS_Config_service_started then
-                configfileran = "Yes"
-            else
-                configfileran = "Unknown, but probably not."
-            end
-            local crash = assert(io.open("/System/Latest.log", "a"))
-            crash:write("\n^ System log file ^\n\nRitoOS crashed.\nHere's some of that juicy debugging info.\n\nCrash info: \nError: "..err.." \n\nGeneral system info: \nCC version: "..RitoOS_CC_Version.."\nRitoOS version: "..RitoOS_Version.."\nConfig file ran: "..configfileran.."\n\n\nEnd of the crash log.\n\n")
-            crash:close()
-            if fs.exists("/System/crash.log") then
-                fs.delete("/System/crash.log")
-            end
-                fs.copy("/System/Latest.log","/System/crash.log")
-            local x,Y = term.getSize()
-            term.setBackgroundColor(colors.black)
-            term.clear()
-            sleep(0)
-            term.setBackgroundColor(colors.gray)
-            term.clear()
-            sleep(0)
-            term.setBackgroundColor(colors.lightGray)
-            term.setTextColor(colors.red)
-            term.clear()
-            sleep(0)
-            term.setBackgroundColor(colors.white)
-            term.clear()
-            sleep(0)
-            term.setCursorPos(math.floor(x-string.len('Sorry about that :('))/2, 2)
-            write("Sorry about that. ): ")
-            term.setTextColor(colors.black)
-            if not crashPoint then
-            	crashPoint = "CodeX"
-            end
-            term.setCursorPos(math.floor(x-string.len(crashPoint..' has crashed.'))/2, 5)
-            print(crashPoint.." has crashed.")
-            term.setCursorPos(3, 7)
-            print("Please, report this error to Watsuprico via PM:")
-            term.setTextColor(colors.red)
-            term.setCursorPos(3, 8)
-            print(err)
-            print()
-            print()
-            term.setTextColor(colors.gray)
-            term.setCursorPos(math.floor(x-string.len('Please remember, when sending the bug report"'))/2, 11)
-            print("Please remember, when sending the bug report")
-            term.setCursorPos(math.floor(x-string.len('.include the log file at "/System/Latest.log"'))/2, 12)
-            print("include the log file at: '/System/Latest.log'")
-            print()
-            if not attemptToSave then
-            	print("Press enter to try and save the system.")
-            end
-            print("Press R to go into recovery.")
-            print("Press S for CC shell. [Requires a user account]")
-            print("Press any other key to shutdown.")
-            sleep(1)
-            local e,s = os.pullEvent("key")
-            while true do
-                sleep(0)
-                if s == 28 then
-                    if not attemptToSave then
-                        attemptToSave = true
-                        System.logAlert("CodeX PANIC","Attempting to restart CodeX.")
-                        local ok, err = pcall(function() dofile("/System/CodeX.rxf") end)
-						if not ok then
-							if not err then
-					    		err = "No error code! Oh noes! The crash point, however, branched off of the ' Run CodeX.rxf ' command in CodeX PANIC."
-					    	end
-					    	CodeX_logout()
-					    	error(err)
-						end
-                    else
-                        System.logAlert("CodeX PANIC","Crashed! Error: ' Attempted to restart CodeX, it failed. Shutting down. ' ")
-                        os.shutdown()
-                    end
-                elseif s == 19 then
-                    System.logAlert("CodeX PANIC","Starting recovery program.")
-                    shell.run("/System/.Recovery/.Recover")
-                    System.logAlert("CodeX PANIC","Attempted to start recovery, it failed, crashed, or was closed. Shutting down.")
-                    os.shutdown()
-                elseif s == 31 then
-                	System.logAlert("CodeX PANIC","The user wishes to use CC's shell, asking for them to login first.")
-                	Login()
-                	if loggedIn == true then
-                    	System.logAlert("CodeX PANIC","Starting Computercraft's shell.")
-                    	term.setBackgroundColor(colors.black)
-                    	term.clear()
-                    	term.setCursorPos(1,1)
-                    	shell.run("/rom/programs/shell")
-                    	System.logAlert("CodeX PANIC","Attempted to start Computercraft's shell, it failed, crashed, or was closed. Shutting down.")
-                    	os.shutdown()
-                    else
-                    	System.logAlert("CodeX PANIC","User did not log in, not starting the CC shell.")
-                    	os.shutdown()
-                    end
-                else
-                    System.logAlert("CodeX PANIC","Shutting down. D:")
-                    os.shutdown()
-                end
-            end
+  newuser()
 end

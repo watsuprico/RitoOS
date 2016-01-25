@@ -3,7 +3,7 @@ if #tArgs < 1 then
 	local updateRecovery = assert(io.open("/Startup", "w"))
 	updateRecovery:write("_RitoOS_bootIntoRecovery = true\n"..System.startupFile())
 	updateRecovery:close()
-	RitoOS_bootIntoRecovery = true
+	_G.RitoOS_bootIntoRecovery = true
 else
 	local CommandToUse = shell.resolve( tArgs[1] )
 	if CommandToUse == "runScript" then

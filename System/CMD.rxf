@@ -41,17 +41,11 @@ local function getTable(path)
     return {}
 end
 
-local function getSavedPass(getKey, username)
-    if not username then
-        username = CodeX_Username
-    end
-    local Passphrase_File = fs.open("/Users/"..username.."/.Passphrase.CodeX","r")
-    local Passphrase_Key = Passphrase_File.readAll()
-    Passphrase_File.close()
-    local UnsavedPassword = StrUtils.SHA1(Key..""..Passphrase_Key)
-    local Passphrase_Key = "Nope.avi"
-    local Passphrase_File = "Nope.avi"
-    return UnsavedPassword
+if not RitoOS_PersonalizationBackgroundColor or not RitoOS_PersonalizationTextColor2 or not RitoOS_PersonalizationBackgroundColor2 or not RitoOS_PersonalizationTextColor then
+    _G.RitoOS_PersonalizationBackgroundColor = colors.lightBlue
+    _G.RitoOS_PersonalizationBackgroundColor2 = colors.gray
+    _G.RitoOS_PersonalizationTextColor = colors.black
+    _G.RitoOS_PersonalizationTextColor2 = colors.white
 end
 
 --Check to see if the user is logged in.
@@ -61,7 +55,7 @@ if loggedIn == true then
     CMDLOGGED = true
     CMDPARENT = "Recovery"
 else
-    if CodeX_HasUserLogged == StrUtils.SHA1(CodeX_Username) then
+    if CodeX.checkLoggedIn() then
         CMDLOGGED = true
         CMDPARENT = "CodeX"
     else
@@ -84,25 +78,6 @@ local function append(text, path)
     file:close()
 end
 
-Explorera_User_Prompt_Color = 512
-Explorera_User_Background_Color = 32768
-Explorera_User_Text_Color = 2048
-
-local function config()
-    if CodeX_Username then
-        if fs.exists("/Users/"..CodeX_Username.."/.Configs/Explorera.conf") == true then
-            local userfile =  getTable("/Users/"..CodeX_Username.."/.Configs/Explorera.conf")
-            Explorera_User_Background_Color = System.transColor(tonumber(string.sub(userfile[1],string.find(userfile[1],":")+2)))
-            Explorera_User_Prompt_Color = System.transColor(tonumber(string.sub(userfile[2],string.find(userfile[2],":")+2)))
-            Explorera_User_Text_Color = System.transColor(tonumber(string.sub(userfile[3],string.find(userfile[3],":")+2)))
-        end
-    else
-            local RitoOS_Config = getTable("/System/Configs/.Rito.conf")
-            Explorera_User_Prompt_Color = System.transColor(tonumber(string.sub(RitoOS_Config[36],string.find(RitoOS_Config[36],":")+2)))
-            Explorera_User_Background_Color = System.transColor(tonumber(string.sub(RitoOS_Config[37],string.find(RitoOS_Config[37],":")+2)))
-            Explorera_User_Text_Color = System.transColor(tonumber(string.sub(RitoOS_Config[38],string.find(RitoOS_Config[38],":")+2)))
-    end
-end
 -- Simple Write Script
 local function fwrite(path, text)
         local file = assert(io.open(path, "w"))
@@ -110,12 +85,6 @@ local function fwrite(path, text)
         file:close()
 end
 -- End
-
-if not term.isColor() then
-    Explorera_User_Text_Color = colors.white
-    Explorera_User_Background_Color = colors.black
-    Explorera_User_Prompt_Color = colors.lightGray
-end 
 
 --Center Text
 local function PrintCentered(sText)
@@ -152,22 +121,24 @@ local function run( _sCommand, ... )
     local sPath = shell.resolveProgram( _sCommand )
     local Xcord, Ycord = term.getCursorPos()
     term.setCursorPos(1, 1)
-    term.setTextColour(Explorera_User_Prompt_Color)
+    term.setTextColour(RitoOS_PersonalizationTextColor2)
+    term.setBackgroundColor(RitoOS_PersonalizationBackgroundColor2)
     term.clearLine()
     PrintCentered("Rito OS CMD V"..os.version())
-    term.clearLine()
-    PrintCentered("For help, type 'commands'")
     if ... ~= nil then
         term.clearLine()
         PrintCentered(_sCommand, ...)
         System.logInfo("CMD - User","[ Run command ] ".._sCommand .. " " .. ...)
+        term.clearLine()
     else
         term.clearLine()
         PrintCentered(_sCommand)
         System.logInfo("CMD - User","[ Run command ] ".._sCommand)
+        term.clearLine()
     end
+    term.setBackgroundColor(RitoOS_PersonalizationBackgroundColor)
     term.setCursorPos(Xcord, Ycord)
-    term.setTextColour(Explorera_User_Text_Color)
+    term.setTextColour(RitoOS_PersonalizationTextColor)
     local sPath = shell.resolveProgram( _sCommand )
     if _sCommand == "restart" then
         print("Restarting the prompt...")
@@ -181,7 +152,7 @@ local function run( _sCommand, ... )
     elseif _sCommand == "exit" then
         error("Exit Command Ran")
     elseif _sCommand == "logout" then
-        CodeX_logout()
+        CodeX.logout()
     elseif _sCommand == "commands" then
         print("Rito commands:")
         print("reboot  - Reboots the computer")
@@ -455,13 +426,19 @@ end
 
 
 local function command()
-term.setBackgroundColor(Explorera_User_Background_Color)
-term.setTextColour(Explorera_User_Prompt_Color)
+term.setBackgroundColor(RitoOS_PersonalizationBackgroundColor)
+term.setTextColour(RitoOS_PersonalizationTextColor2)
 term.clear()
 term.setCursorPos(1,1)
+term.setBackgroundColor(RitoOS_PersonalizationBackgroundColor2)
+term.clearLine()
 PrintCentered("Rito OS CMD V"..os.version())
+term.clearLine()
 PrintCentered("For help, type 'commands'")
+term.clearLine()
 PrintCentered("You are in your home folder, do 'cd /'")
+term.setBackgroundColor(RitoOS_PersonalizationBackgroundColor)
+print()
 if CodeX_Username then
 shell.setDir("/Users/"..CodeX_Username.."")
 else
@@ -470,8 +447,8 @@ end
 local tCommandHistory = {}
 while not bExit do
     _on_promt_ = true
-    term.setBackgroundColor(Explorera_User_Background_Color)
-    term.setTextColour(Explorera_User_Prompt_Color)
+    term.setBackgroundColor(RitoOS_PersonalizationBackgroundColor)
+    term.setTextColour(RitoOS_PersonalizationTextColor)
     local Xcord, Ycord = term.getCursorPos()
     if Ycord == 1 then
     Ycord = 4
@@ -480,10 +457,9 @@ while not bExit do
     term.setCursorPos(Xcord, Ycord)
     end
     write( "{-" .. shell.dir() .. "-} " )
-    term.setTextColour(Explorera_User_Text_Color)
     local sLine = read( nil, tCommandHistory, shell.complete )
     table.insert( tCommandHistory, sLine )
     shell.run( sLine )
 end
 end --command
-parallel.waitForAll(config,command)
+command()
