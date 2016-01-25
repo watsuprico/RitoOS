@@ -1,536 +1,387 @@
-local function PrintCentered(sText)
-msgLen = string.len(sText)
-screenWidth,_ = term.getSize()
-_xCoords = tonumber(math.ceil((screenWidth / 2) - (msgLen / 2)))
-_,termY = term.getCursorPos()
-term.setCursorPos(_xCoords,termY)
-print(sText)
+--[[ 
+
+     _________________________________________________________________________
+    |                                                                         |
+    |                          CodeX Version 5                                |
+    |                                                                         |
+    |  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  |
+   _|                                                                         |
+  |              Some extended info on copying and using CodeX                |______________________________________________________ 
+  |                                                                                                                                 |
+  | Permission is hereby granted, free of charge, to any person obtaining a copy of this software and                               |
+  | associated documentation files (the "Software"), to deal in the Software without restriction,                                   |
+  | including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,                           |
+  | copies of the Software, and to permit persons to whom the Software is furnished to do so,                                       |
+  | subject to the following conditions:                                                                                            |
+  |                                                                                                                                 |
+  | -The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. |
+  | -Visible credit is given to the original author.                                                                                |
+  | -The software is distributed in a non-profit way.                                                                               |
+  |                                                                                                                                 |
+  | THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE            |
+  | WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR           |
+  | COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,     |
+  | ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                           |
+  |                                                                                                                                 |
+  |_________________________________________________________________________________________________________________________________|
+
+
+]]
+
+-- CodeX Vars, (don't change)
+local codexVer = "5"
+local loginType = "text"
+attemptnumber = 1
+local StartCCShell = false
+
+--Theme
+-- local CodeX_BColor = colors.lightBlue -- Background color
+-- local CodeX_TBColor = colors.gray -- Main topbar color
+-- local CodeX_TBTColor = colors.white -- Main topbar text color
+-- local CodeX_TColor = colors.black -- Main text color
+-- local CodeX_IColor = colors.yellow -- Input color
+-- local CodeX_EColor = colors.red -- Error text color
+-- local CodeX_ButtonBackground = colors.gray -- Any button's background
+-- local CodeX_ButtonActiveColor = colors.green -- Button's background (clicked)
+-- local CodeX_ButtonTextColor = colors.orange -- The color of the text on those buttons
+-- local CodeX_ButtonFocused = colors.blue -- The button is focused
+
+local textBoxStyle={
+  mono={
+    fg=colors.black,
+    bg=colors.lightGray,
+    fgFocused=colors.white,
+    bgFocused=colors.gray,
+  },
+  color={
+    fg=CodeX_IColor,
+    bg=CodeX_BColor,
+  },
+}
+local pwStyle={
+  pwChar="*",
+  mono={
+    fg=colors.black,
+    bg=colors.lightGray,
+    fgFocused=colors.white,
+    bgFocused=colors.gray,
+  },
+  color={
+    fg=CodeX_IColor,
+    bg=CodeX_BColor,
+  },
+}
+
+local buttonStyles={
+  mono={
+    bg=colors.gray,
+    fg=colors.white,
+    fgFocused=colors.gray,
+    bgFocused=colors.lightGray,
+  },
+  color={
+    bg=CodeX_ButtonBackground,
+    fg=CodeX_ButtonTextColor,
+    fgFocused=CodeX_ButtonTextColor,
+    bgFocused=CodeX_ButtonFocused,
+  },
+  textAlign="center",
+}
+
+local buttonActiveStyles={
+  textAlign="center",
+  mono={
+    bg=colors.black,
+    fg=colors.lightGray,
+    fgFocused=colors.black,
+    bgFocused=colors.lightGray,
+  },
+  color={
+    bg=CodeX_ButtonBackground,
+    fg=CodeX_ButtonActiveColor,
+    fgFocused=CodeX_ButtonActiveColor,
+    bgFocused=CodeX_ButtonFocused,
+  },
+}
+
+local labelStyle={
+  bg=CodeX_BColor,
+  fg=CodeX_TColor,
+  textAlign="center",
+}
+
+local backgroundStyle={
+  bg=CodeX_BColor,
+}
+local topBarStyle={
+  bg=CodeX_TBColor,
+  fg=CodeX_TBTColor,
+  textAlign="center",
+}
+local topBarErrorStyle={
+  bg=CodeX_TBColor,
+  fg=CodeX_EColor,
+  textAlign="center",
+}
+
+local guiScreen=ggui.newScreen() -- Creates the new screen (must have)
+local guiScreen1=ggui.newScreen()
+local guiScreen0=ggui.newScreen()
+
+-- Functions
+local function printc(sText)
+  msgLen = string.len(sText)
+  screenWidth,_ = term.getSize()
+  _xCoords = tonumber(math.ceil((screenWidth / 2 ) - (msgLen / 2)))
+  _,termY = term.getCursorPos()
+  term.setCursorPos(_xCoords,termY)
+  print(sText)
 end
-function os.pullEvent( sFilter )
-    local eventData = { os.pullEventRaw( sFilter ) }
-    if eventData[1] == "terminate" then
-        os.reboot()
-    end
-    return unpack( eventData )
+
+local function drawImage(location)
+  term.setBackgroundColor(colors.black)
+  term.clear()
+  local image = paintutils.loadImage(location)
+  paintutils.drawImage(image,1,1)
 end
-function sr(id, e)
-	if e == nil then
-		e = "-|none|-"
-	end
-	if shell.getRunningProgram() == "System/CodeX.rxf" then
-        r = "CodeX"
-    else
-        r = shell.getRunningProgram()
-    end
-	printError("| - RitoOS has stopped responding - |")
-	printError("| - Code: RXF-0-"..r.."-"..id.." - |")
-	printError("| - Possible cause: "..e.." - |")
-	printError("| - Please, press any key to reboot - |")
-	sleep(1)
-	os.pullEvent("key")
-	os.reboot()
+local function grabMouseInput()
+  local event, button, x1, y1 = os.pullEvent("mouse_click")
+  local event, button, x2, y2 = os.pullEvent("mouse_click")
+  local event, button, x3, y3 = os.pullEvent("mouse_click")
+  return x1, y1, x2, y2, x3, y3
 end
+
 local function fwrite(path, text)
         local file = assert(io.open(path, "w"))
         file:write(text)
         file:close()
 end
-local function writeFromTable(path, t)
-	local text = ""
-	for _, line in pairs(t) do
-		text = text..lin.."\n"
-	end
-	fwrite(path, text)
+
+-- Set theme
+local function setTheme(s, gui)
+  if not s then s = "CodeX" end
+  local MaxX,MaxY = term.getSize()
+  local background=gui.addGraphic(1,1, MaxX,MaxY)
+  gui.setStyle(background,backgroundStyle)
+
+  local topBar1=gui.addLabel(1,1, MaxX,1, "") -- You can't load graphics without an image.
+  local topBar2=gui.addLabel(1,2, MaxX,1, s) -- You can't load graphics without an image.
+  local topBar4=gui.addLabel(1,4, MaxX,1, "") -- You can't load graphics without an image.
+  gui.setStyle(topBar1, topBarStyle)
+  gui.setStyle(topBar2, topBarStyle)
+  gui.setStyle(topBar4, topBarStyle)
 end
-local function getTable(path)
-	if fs.exists(path) then
-		local file = io.open(path, "r")
-		local lines = {}
-		local i = 1
-		local line = file:read("*l")
-		while line ~= nil do
-			lines[i] = line
-			line = file:read("*l")
-			i = i + 1
-		end
-		file:close()
-		return lines
-	end
-	return {}
+--End core functions
+
+function loggedIn(username, password, StartCCShell, loggedInAlready)
+  if not loggedInAlready then
+    CodeX.login(username, password)
+    CodeX_Username = username
+  end
+  local ok, err = pcall(function() if not StartCCShell then dofile("/System/userEnvironment.rxf") else term.setBackgroundColor(colors.black) term.clear() term.setCursorPos(1,1) dofile("/rom/programs/shell") end end)
+  if not ok then
+    if not err then err = "No error code, however, it spawned off of \"user just logged in\" in CodeX." end
+    System.logAlert("CodeX PANIC","userEnvironment crashed.")
+    System.logAlert("CodeX PANIC","What caused this? Well, I don't know... but this does relate to the system crashing: \""..err.."\".")
+    System.logAlert("CodeX PANIC","Please, send that error message to Watsuprico via PM. He'll tell you how to fix it, when it'll be patched, or at least what it means.")
+    System.logAlert("CodeX PANIC","Showing the BSOD message, nothing much I can do.")
+    if RitoOS_Config_service_started then configfileran = "Yes" else configfileran = "Unknown, but probably not." end
+    -- Log the crash.
+    local crash = assert(io.open("/System/Latest.log", "a"))
+    crash:write("\n^ System log file ^\n\nRitoOS crashed.\nHere's some of that juicy debugging info.\n\nCrash info: \nError: "..err.." \n\nGeneral system info: \nCC version: "..RitoOS_CC_Version.."\nRitoOS version: "..RitoOS_Version.."\nConfig file ran: "..configfileran.."\n\n\nEnd of the crash log.\n\n")
+    crash:close()
+    if fs.exists("/System/crash.log") then fs.delete("/System/crash.log") end fs.copy("/System/Latest.log","/System/crash.log") --// Copy the log file
+    local MaxX,MaxY = term.getSize()
+    term.setBackgroundColor(colors.black) term.clear() sleep(0)
+    term.setBackgroundColor(colors.gray) term.clear() sleep(0)
+    term.setBackgroundColor(colors.lightGray) term.clear() sleep(0)
+    term.setBackgroundColor(colors.white) term.clear() sleep(0) term.setTextColor(colors.red)
+    term.setCursorPos((MaxX-10)/2, 2) write("Sorry about that. ):") term.setTextColor(colors.black)
+    if not crashPoint then crashPoint = "CodeX" end
+    term.setCursorPos((MaxX-string.len(crashPoint..' has crashed.'))/2, 5) print(crashPoint.." has crashed.")
+    term.setCursorPos(3, 7) print("Please, report this error to Watsuprico via PM:")
+    term.setTextColor(colors.red) term.setCursorPos(3, 8) print(err) -- Print the error, duh
+    term.setTextColor(colors.gray)
+    term.setCursorPos((MaxX-string.len('Please remember, when sending the bug report"'))/2, 11) print("Please remember, when sending the bug report")
+    term.setCursorPos((MaxX-string.len('include the log file at "/System/crash.log"'))/2, 12) print("include the log file at: \"/System/crash.log\"")
+    print() -- Blank line ;^)
+    if not attemptToSave then print("Press enter to try and save the system.") end -- If we didn't already try to save the system.
+    print("Press R to go into recovery.") print("Press S for CC shell. [Requires logging in]") print("Press any other key to shutdown.")
+    sleep(1)
+    local _,s = os.pullEvent("key")
+    while true do sleep(0)
+      if s == 28 then
+        if not attemptToSave then attemptToSave = true System.logAlert("CodeX PANIC","Attempting to restart CodeX.") local ok, err = pcall(function() dofile("/System/CodeX.rxf") end)
+          if not ok then if not err then err = "No error code, however, spawned off of the \"save me\" in CodeX's WSOD" end error(err) -- CodeX crashed, again.
+          end
+        else System.logAlert("CodeX PANIC","Crashed! Error: \"Enter was pressed on the WSOD, however, we already tried to save the system.\" ") os.shutdown() end
+      elseif s == 19 then System.logAlert("CodeX PANIC","Rebooting into recovery.") os.reboot(0,false,true)
+      elseif s == 31 then System.logAlert("CodeX PANIC","The user wishes to use CC's shell, asking for them to login first.") LoginR()
+        if loggedIn == true then
+          System.logAlert("CodeX PANIC","Starting Computercraft's shell.") term.setBackgroundColor(colors.black) term.clear() term.setCursorPos(1,1) shell.run("/rom/programs/shell")
+          System.logAlert("CodeX PANIC","Attempted to start Computercraft's shell, it failed, crashed, or was closed. Shutting down.") os.shutdown()
+        else System.logAlert("CodeX PANIC","User failed to log in, not starting the CC shell.") end -- End loggedIn
+      else System.logAlert("CodeX PANIC","Shutting down. D:") os.shutdown()
+      end--End Key press
+    end --End while
+  end --End WSOD; (if not ok)
+
+end--End loggedIn()
+
+local function menuShutdown()
+  parallel.waitForAny(function() local event, key = os.pullEvent("key") if key == 42 then _G.RitoOS_bootIntoRecovery = true elseif key == 54 then _G.RitoOS_bootIntoRecovery = true end end, function() sleep(0.5) end) os.shutdown()
 end
-local function replaceLine(path, n, text)
-	local lines = getTable(path)
-	lines[n] = text
-	writeFromTable(path, lines)
-end
-local function append(path, text)
-	local file = assert(io.open(path, "a"))
-	file:write(text.."\n")
-	file:close()
+local function menuRestart()
+  parallel.waitForAny(function() local event, key = os.pullEvent("key") if key == 42 then _G.RitoOS_bootIntoRecovery = true elseif key == 54 then _G.RitoOS_bootIntoRecovery = true end end, function() sleep(0.5) end) os.reboot()
 end
 
-local function stc(c) --Help save space...
-	term.setTextColor(c)
-end
-local function c()
-	term.clear()
-end
-local function sbc(c)
-	term.setBackgroundColor(c)
-end
-local function scp(x,y)
-	term.setCursorPos(x,y)
+
+local function login()
+  setTheme("RitoOS login", guiScreen)
+  local L = 16 local X,Y = term.getSize() local X,Y = (X-L),Y-1 -- 1px padding from the screen boarders (both x and y)
+  local loginButton=guiScreen.addButton(X,Y-4,L,1,"Login") guiScreen.setStyle(loginButton,buttonStyles)
+  local buttonShutdown=guiScreen.addButton(X,Y-3,L,1,"Shutdown") guiScreen.setStyle(buttonShutdown, buttonStyles)
+  local buttonRestart=guiScreen.addButton(X,Y-2,L,1,"Restart") guiScreen.setStyle(buttonRestart, buttonStyles)
+  local buttonStartCCShell=guiScreen.addButton(X,Y-1,L,1,"Start CC Shell")
+  if not StartCCShell then guiScreen.setStyle(buttonStartCCShell, buttonStyles) else guiScreen.setText(buttonStartCCShell, "Will run Shell") guiScreen.setStyle(buttonStartCCShell, buttonActiveStyles) end
+  local buttonLoginType=guiScreen.addButton(X,Y,L,1,"Use "..loginType) guiScreen.setStyle(buttonLoginType, buttonStyles)
+
+  local MaxX,MaxY = term.getSize()
+  local topBarLabel=guiScreen.addLabel(1,3,MaxX,1, "") guiScreen.setStyle(topBarLabel,topBarErrorStyle) -- The error line on the top bar
+  --create labels and input fields for username and pw
+  local nameLabel=guiScreen.addLabel(1,7, 9,1, "Username:")
+  local passwordLabel=guiScreen.addLabel(1,8, 9,1, "Password:")
+  local nameInput=guiScreen.addTextField(11,7, MaxX-11,1)--Username input
+  local pwInput=guiScreen.addTextField(11,8, MaxX-11,1)--Password input
+  guiScreen.setStyle(nameLabel,labelStyle) --Set the username label styles
+  guiScreen.setStyle(passwordLabel,labelStyle) -- Set the password label style
+  guiScreen.setStyle(nameInput,textBoxStyle)
+  guiScreen.setStyle(pwInput,pwStyle)
+
+  guiScreen.setFocus(nameInput)
+
+  local function onLogin() -- Called when 'Login' is pressed
+    local username=guiScreen.getText(nameInput)
+    local password=guiScreen.getText(pwInput)
+    local login, err = CodeX.testTextHash(username, password)
+    if login then
+      -- Logged in!
+      loggedIn(username, password, StartCCShell)
+    else
+      if err == "Missing auth file!" then local _, err = CodeX.checkAuthFile(username) end
+      guiScreen.setText(topBarLabel, err) -- Why didn't the user log in?
+      guiScreen.setText(pwInput,"") -- Reset the password box
+      guiScreen.setText(nameInput,"") -- Reset the username box
+      guiScreen.setFocus(nameInput) -- Move the cursor on the username box
+    end--End if login
+  end --End onLogin()
+
+  local function menuStartCCShell()
+    if StartCCShell then StartCCShell = false guiScreen.setText(buttonStartCCShell, "Start CC Shell") guiScreen.setStyle(buttonStartCCShell, buttonStyles)
+    else StartCCShell = true guiScreen.setText(buttonStartCCShell, "Will run Shell") guiScreen.setStyle(buttonStartCCShell, buttonActiveStyles) end
+  end
+  local function menuLoginType()
+    if loginType == "text" then loginType = "picture" guiScreen.setText(buttonLoginType, "Using picture") else loginType = "text" guiScreen.setText(buttonLoginType, "Using text") end
+  end
+
+  parallel.waitForAny(function()
+  guiScreen.addEventHandler({"button_activate", guiScreen.id, loginButton},onLogin) -- When the button is pressed call onLogin()
+  guiScreen.addEventHandler({"button_activate", guiScreen.id, buttonShutdown},menuShutdown)
+  guiScreen.addEventHandler({"button_activate", guiScreen.id, buttonRestart},menuRestart)
+  guiScreen.addEventHandler({"button_activate", guiScreen.id, buttonStartCCShell},menuStartCCShell)
+  guiScreen.addEventHandler({"button_activate", guiScreen.id, buttonLoginType},menuLoginType)
+  ggui.run(guiScreen) -- Run the loop for login. (This shouldn't close)
+  end, function() while true do sleep(3) guiScreen.setText(topBarLabel, "") end end) -- Reset the top label every 3 seconds.
+  error("CodeX-Login-End") -- But if the loop does end, crash the system ;^)
+end -- End login function
+
+
+local function newuser()
+  setTheme("RitoOS account creation", guiScreen0)
+  local L = 16 local X,Y = term.getSize() local X,Y = (X-L),Y+1 local MaxX,MaxY = term.getSize()
+  local nextButton=guiScreen0.addButton(X,Y-4,L,1,"Next") guiScreen0.setStyle(nextButton,buttonStyles)
+  local buttonShutdown=guiScreen0.addButton(X,Y-3,L,1,"Shutdown") guiScreen0.setStyle(buttonShutdown, buttonStyles)
+  local buttonRestart=guiScreen0.addButton(X,Y-2,L,1,"Restart") guiScreen0.setStyle(buttonRestart, buttonStyles)
+
+  local topBarLabel=guiScreen0.addLabel(1,3,MaxX,1, "Please enter a username for this new account") guiScreen0.setStyle(topBarLabel,topBarStyle) -- The error line on the top bar
+  local nameLabel=guiScreen0.addLabel(1,7, 9,1, "Username:")
+  local nameInput=guiScreen0.addTextField(11,7, MaxX-11,1)--Username input
+  guiScreen0.setStyle(nameLabel,labelStyle) --Set the username label styles
+  guiScreen0.setStyle(nameInput,textBoxStyle)
+  guiScreen0.setFocus(nameInput)
+
+  local function onNext1()
+    if guiScreen0.getText(nameInput) ~= "" or guiScreen0.getText(nameInput) ~= nil then
+      os.queueEvent("exitgguiloop")
+    else
+      guiScreen0.setText(topBarLabel, "Please enter a name.") guiScreen0.setStyle(topBarLabel,topBarErrorStyle)
+      guiScreen0.setText(nameInput,"")
+      guiScreen0.setFocus(nameInput)
+    end
+  end
+
+  guiScreen0.addEventHandler({"button_activate", guiScreen0.id, nextButton},onNext1)
+  guiScreen0.addEventHandler({"button_activate", guiScreen0.id, buttonShutdown},menuShutdown)
+  guiScreen0.addEventHandler({"button_activate", guiScreen0.id, buttonRestart},menuRestart)
+  ggui.run(guiScreen0)
+  local username=guiScreen0.getText(nameInput)
+  setTheme("RitoOS account creation", guiScreen1)
+  local L = 16 local X,Y = term.getSize() local X,Y = (X-L),Y-1 local MaxX,MaxY = term.getSize()
+  local nextButton=guiScreen1.addButton(X,Y,L,1,"Next") guiScreen1.setStyle(nextButton,buttonStyles)
+  local topBarLabel=guiScreen1.addLabel(1,3,MaxX,1, "Please enter a password for this new account") guiScreen1.setStyle(topBarLabel,topBarStyle) -- The error line on the top bars
+  local passwordLabel=guiScreen1.addLabel(1,8,9,1, "Password:")
+  local passwordLabel2=guiScreen1.addLabel(1,9,17,1, "Retyped Password:")
+  local pwInput=guiScreen1.addTextField(11,8, MaxX-11,1)--Password input
+  local pwInput2=guiScreen1.addTextField(19,9, MaxX-19,1)--Password input (retyped)
+  guiScreen1.setStyle(pwInput,pwStyle)--Password (retyped)
+  guiScreen1.setStyle(pwInput2,pwStyle)--Password (retyped)
+  guiScreen1.setStyle(passwordLabel,labelStyle) -- Set the password label style
+  guiScreen1.setStyle(passwordLabel2,labelStyle) -- Set the password label style (retyped)
+  guiScreen1.setFocus(pwInput)
+
+  local function onNext2()
+    if guiScreen1.getText(pwInput) ~= guiScreen1.getText(pwInput2) then
+      -- Passwords didn't match.
+      guiScreen1.setText(topBarLabel, "The two entered passwords do not match") guiScreen1.setStyle(topBarLabel,topBarErrorStyle)
+      guiScreen1.setText(pwInput,"")
+      guiScreen1.setText(pwInput2,"")
+      guiScreen1.setFocus(pwInput)
+    else
+      --They match!
+      guiScreen1.setText(topBarLabel, "Creating the account") guiScreen1.setStyle(topBarLabel,topBarStyle)
+      System.logInfo("CodeX","Creating "..username)
+      if not CodeX_Register_Key_Length then
+        CodeX_Register_Key_Length = 200
+      end
+      -- Create a random key
+      local s = ""
+      for i = 1, CodeX_Register_Key_Length do
+        s = s .. string.char(math.random(32, 126))
+      end
+      fwrite("/Users/"..username.."/.passphrase.codex", s)
+      fwrite("/Users/"..username.."/.auth.codex", CodeX.hashPassword(guiScreen1.getText(pwInput), "/Users/"..username.."/.passphrase.codex"))
+      System.logInfo("CodeX",username.." created")
+      guiScreen1.setText(topBarLabel, "Account created. (Press any key)")
+      guiScreen1.setText(pwInput,"")
+      guiScreen1.setText(pwInput2,"")
+      os.queueEvent("exitgguiloop")
+    end
+  end
+
+  guiScreen1.addEventHandler({"button_activate", guiScreen1.id, nextButton},onNext2)
+  ggui.run(guiScreen1)
+  login()
+  --Complete  
+end -- End new user
+
+
+
+if CodeX.checkLoggedIn() then
+  loggedIn(nil,nil,false,true)
 end
 
-local function ecrashed()
-sleep(1)
-if __CodeX_Crash_Number_ == nil then
-	__CodeX_Crash_Number_ = 0
-end
-if __CodeX_Crash_Number_ >= 3 then
-	print("Explorera crashed more than 3 times,\nthus CMD will be started")
-	sleep(1)
-	shell.run("/System/CMD.rxf")
-end
-__CodeX_Crash_Number_ = __CodeX_Crash_Number_ + 1
-shell.run("/System/CodeX.rxf")
-ecrashed()
-sr("000")
-end -- End ecrashed
-
-function __CodeX_logout()
-	__CodeX_Username = nil
-	__CodeX_Logname = nil
-	__CodeX_HasUserLogged = nil
-	__CodeX_USR_PASSCODE_ = nil
-end
-
-function __CodeX_Delete_User()
-	stc(__CodeX_Prompt_Color)
-	c()
-	scp(1,1)
-	term.clearLine()
-	PrintCentered("Deleting user: "..__CodeX_Username)
-	PrintCentered("Please confirm your password.")
-	scp(1,5)
-	term.clearLine()
-	print("Password: ")
-	scp(11,5)
-	stc(__CodeX_Input_Color)
-	local MultiKey = read("*")
-	local Key = StrUtils.SHA1(MultiKey) -- Look mom! I can encrypt!
-	local Password = StrUtils.SHA1("."..Key.." ")
-	local Passcode = StrUtils.SHA1(" "..Password..".") -- Many ways...
-    local _checkCode_ = fs.open("/Users/"..__CodeX_Logname.."/.Passphrase.codex", "r")
-    local Key_ = _checkCode_.readAll()
-    _checkCode_.close()
-	local CheckCode = StrUtils.SHA1(Passcode..""..Key_)
-	local MultiKey = "Om nom nom."
-	local Key = "Om nom nom."
-	local Password = "Om nom nom."
-	local Passcode = "Om nom nom."
-	local s = "Om nom nom."
-	local Passphrase = "Om nom nom."
-	local userfile =  getTable("/Users/"..__CodeX_Logname.."/."..__CodeX_Logname..".codex")
-	local pass = string.sub(userfile[1],string.find(userfile[1],"!")+1)
-	if pass == CheckCode then
-		PrintCentered("/- Deleting account -/")
-		fs.delete("/Users/"..__CodeX_Username)
-		PrintCentered("/- Logging out -/")
-		__CodeX_logout()
-	else
-		stc(__CodeX_Error_Color)
-		PrintCentered("/- Password incorrect! -/")
-		PrintCentered("/- Canceling -/")
-		sleep(3)
-		c()
-	end
-end
-function __CodeX_Change_Password()
-	stc(__CodeX_Prompt_Color)
-	c()
-	scp(1,1)
-	term.clearLine()
-	PrintCentered("Changing password for: "..__CodeX_Username)
-	PrintCentered("Please confirm your password.")
-	scp(1,5)
-	term.clearLine()
-	print("Password: ")
-	scp(11,5)
-	stc(__CodeX_Input_Color)
-	local MultiKey = read("*")
-	local Key = StrUtils.SHA1(MultiKey) -- Look mom! I can encrypt!
-	local Password = StrUtils.SHA1("."..Key.." ")
-	local Passcode = StrUtils.SHA1(" "..Password..".") -- Many ways...
-    local _checkCode_ = fs.open("/Users/"..__CodeX_Logname.."/.Passphrase.codex", "r")
-    local Key_ = _checkCode_.readAll()
-    _checkCode_.close()
-	local CheckCode = StrUtils.SHA1(Passcode..""..Key_)
-	local MultiKey = "Om nom nom."
-	local Key = "Om nom nom."
-	local Password = "Om nom nom."
-	local Passcode = "Om nom nom."
-	local s = "Om nom nom."
-	local Passphrase = "Om nom nom."
-	local userfile =  getTable("/Users/"..__CodeX_Logname.."/."..__CodeX_Logname..".codex")
-	local pass = string.sub(userfile[1],string.find(userfile[1],"!")+1)
-	if pass == CheckCode then
-		c()
-		scp(1,1)
-		stc(__CodeX_Prompt_Color)
-		PrintCentered("Please, enter a new password.")
-		stc(__CodeX_Input_Color)
-		local CheckPassword = read("*")
-		stc(__CodeX_Prompt_Color)
-		PrintCentered("Please, re-enter that password.")
-		stc(__CodeX_Input_Color)
-		local CheckPassword2 = read("*")
-		if CheckPassword == CheckPassword2 then
-			if __CodeX_Register_Key_Length == nil then
-            	__CodeX_Register_Key_Length = 3750
-        	end
-        	local s = "" -- Start string
-        	for i = 1, __CodeX_Register_Key_Length do
-            	    s = s .. string.char(math.random(32, 126)) -- Generate random number from 32 to 126, turn it into character and add to string
-        	end
-        	local file = assert(io.open("/Users/"..__CodeX_Username.."/.Passphrase.codex", "w"))
-        	file:write(s)
-        	file:close()
-            MultiKey = CheckPassword
-			Key = StrUtils.SHA1(MultiKey) -- Look mom! I can encrypt!
-			Password = StrUtils.SHA1("."..Key.." ")
-			Passcode = StrUtils.SHA1(" "..Password..".") -- Many ways...
-        	_checkCode_ = fs.open("/Users/"..__CodeX_Username.."/.Passphrase.codex", "r")
-            Key_ = _checkCode_.readAll()
-            _checkCode_.close()
-			CheckCode = StrUtils.SHA1(Passcode..""..Key_)
-			--Verifi
-			MultiKey1 = CheckPassword
-			Key1 = StrUtils.SHA1(MultiKey1) -- Look mom! I can encrypt!
-			Password1 = StrUtils.SHA1("."..Key1.." ")
-			Passcode1 = StrUtils.SHA1(" "..Password1..".") -- Many ways...
-        	_checkCode_1 = fs.open("/Users/"..__CodeX_Username.."/.Passphrase.codex", "r")
-            Key_1 = _checkCode_1.readAll()
-            _checkCode_1.close()
-			CheckCode1 = StrUtils.SHA1(Passcode1..""..Key_1)
-			if CheckCode == CheckCode1 then
-            	fwrite("/Users/"..__CodeX_Username.."/."..__CodeX_Username..".codex", "!"..CheckCode)
-            	fwrite("/Users/.CodeXUserCreated","")
-            	PrintCentered("Complete!")
-            	MultiKey = "Oh nom nom."
-            	Key = "Oh nom nom."
-            	Password = "Oh nom nom."
-            	Passcode = "Oh nom nom."
-            	_checkCode_ = "Oh nom nom."
-            	Key_ = "Oh nom nom."
-            	CheckCode = "Oh nom nom."
-            	Key1 = "Oh nom nom."
-            	Password1 = "Oh nom nom."
-            	Passcode1 = "Oh nom nom."
-            	_checkCode_1 = "Oh nom nom."
-            	Key_1 = "Oh nom nom."
-            	CheckCode1 = "Oh nom nom."
-            else
-            	stc(__CodeX_Error_Color)
-            	PrintCentered("Uhoh! Something went wrong! Didn't update!")
-            end
-        else
-        	stc(__CodeX_Error_Color)
-        	PrintCentered("Two passwords didn't match! Didn't save.")
-        end
-	else
-		stc(__CodeX_Error_Color)
-		scp(1,5)
-		term.clearLine()
-		print("Password incorrect!")
-		sleep(3)
-		c()
-	end
-end
-
-function __CodeX_Create_Newuser()
-	if __CodeX_USR_ADMIN == "true" then
-		scp(1,1)
-    	sbc(colors.white)
-	    c()
-    	stc(colors.black)
-    	PrintCentered("Please confirm your password.")
-		scp(1,5)
-		term.clearLine()
-		print("Password: ")
-		scp(11,5)
-		local MultiKey = read("*")
-		local Key = StrUtils.SHA1(MultiKey) -- Look mom! I can encrypt!
-		local Password = StrUtils.SHA1("."..Key.." ")
-		local Passcode = StrUtils.SHA1(" "..Password..".") -- Many ways...
-	    local _checkCode_ = fs.open("/Users/"..__CodeX_Logname.."/.Passphrase.codex", "r")
-    	local Key_ = _checkCode_.readAll()
-	    _checkCode_.close()
-		local CheckCode = StrUtils.SHA1(Passcode..""..Key_)
-		local MultiKey = "Om nom nom."
-		local Key = "Om nom nom."
-		local Password = "Om nom nom."
-		local Passcode = "Om nom nom."
-		local s = "Om nom nom."
-		local Passphrase = "Om nom nom."
-		local userfile =  getTable("/Users/"..__CodeX_Logname.."/."..__CodeX_Logname..".codex")
-		local pass = string.sub(userfile[1],string.find(userfile[1],"!")+1)
-		if pass == CheckCode then
-			c()
-		    PrintCentered("Please, type the new user's username.")
-	    	PrintCentered("E.X. "..__CodeX_Username)
-		    local Logname = read()
-    		print()
-		    local function RegisterPassword()
-    		    local function fwrite(path, text)
-        		    local file = assert(io.open(path, "w"))
-	        	    file:write(text)
-            		file:close()
-	        	end
-    		    c()
-	    	    scp(1,1)
-        		PrintCentered("Please, type the new user's password.")
-	    	    local _Passcode = read("*")
-		        PrintCentered("Please, re-type that password.")
-        		local _CheckCode = read("#")
-        		if _CheckCode == _Passcode then
-        			PrintCentered("Should this user be a admin?")
-        			PrintCentered("Type 'true' for yes, and 'false' for no.")
-        			local newuseradmin = read()
-        			if newuseradmin == true then
-        				newuseradmin = "true"
-        			else
-        				newuseradmin = "false"
-        			end
-		            PrintCentered("Creating user")
-        	    	if __CodeX_Register_Key_Length == nil then
-        		    	__CodeX_Register_Key_Length = 200
-    	    		end
-		        	local s = "" -- Start string
-    	    		for i = 1, __CodeX_Register_Key_Length do
-        		    	    s = s .. string.char(math.random(32, 126)) -- Generate random number from 32 to 126, turn it into character and add to string
-    	    		end
-	        		fwrite("/Users/"..Logname.."/.Passphrase.codex",s)
-	            	local MultiKey = _Passcode
-					local Key = StrUtils.SHA1(MultiKey) -- Look mom! I can encrypt!
-					local Password = StrUtils.SHA1("."..Key.." ")
-					local Passcode = StrUtils.SHA1(" "..Password..".") -- Many ways...
-        			local _checkCode_ = fs.open("/Users/"..Logname.."/.Passphrase.codex", "r")
-	        	    local Key_ = _checkCode_.readAll()
-    		        _checkCode_.close()
-					local CheckCode = StrUtils.SHA1(Passcode..""..Key_)
-					--Verifi
-					local MultiKey1 = _CheckCode
-					local Key1 = StrUtils.SHA1(MultiKey1) -- Look mom! I can encrypt!
-					local Password1 = StrUtils.SHA1("."..Key1.." ")
-					local Passcode1 = StrUtils.SHA1(" "..Password1..".") -- Many ways...
-        			local _checkCode_1 = fs.open("/Users/"..Logname.."/.Passphrase.codex", "r")
-    	        	local Key_1 = _checkCode_1.readAll()
-	    	        _checkCode_1.close()
-					local CheckCode1 = StrUtils.SHA1(Passcode1..""..Key_1)
-					if CheckCode == CheckCode1 then
-						PrintCentered("Keys match, saving.")
-    	        		fwrite("/Users/"..Logname.."/."..Logname..".codex", "!"..CheckCode.."\n!"..newuseradmin)
-	            		fwrite("/Users/.C","")
-            			PrintCentered("Complete!")
-        	    		sleep(1)
-    	    		else
-	    	    		printError("Could not verifi! User not created!")
-	        			sleep(5)
-        			end
-        		else
-    	    	    PrintCentered("Passwords do not match!")
-	    	        sleep(2)
-    	        	RegisterPassword()
-	        	end --End check password
-	    	end -- Close Pass function.
-    		RegisterPassword()
-    		sleep(3)
-		else
-		stc(__CodeX_Error_Color)
-		scp(1,5)
-		term.clearLine()
-		print("Password incorrect!")
-		sleep(3)
-		end
-	end
-end
-
---Auth check, user already logged in?
-if __CodeX_Logname ~= nil then
-	if __CodeX_HasUserLogged ~= nil then
-		if __CodeX_HasUserLogged == StrUtils.SHA1(__CodeX_Logname) then
-			print("Verifing password.")
-			local userfile =  getTable("/Users/"..__CodeX_Logname.."/."..__CodeX_Logname..".codex")
-	    	local Pass = string.sub(userfile[1],string.find(userfile[1],"!")+1)
-			if __CodeX_USR_PASSCODE_ == Pass then
-				print("User logged in.")
-				shell.run("/System/Explorera.rxf")
-				ecrashed()
-			else
-				print("Password not correct.")
-			end
-		else
-			print("Values set, but incorrectly.")
-		end
-	else
-		print("Names set, that's it, could not verifi")
-	end
+if fs.isDir("/Users/") then
+  login()
 else
+  newuser()
 end
-if fs.exists("/Users/.C") == false then
-    os.loadAPI("/System/APIs/StrUtils/StrUtils")
-    scp(1,1)
-    sbc(colors.white)
-    c()
-    stc(colors.black)
-    PrintCentered("Please type a login name.")
-    PrintCentered("(This is the username of the user,")
-    PrintCentered(" and is how you login)")
-    PrintCentered("E.X. Watsuprico")
-    local Logname = read()
-    print()
-    local function RegisterPassword()
-        local function fwrite(path, text)
-            local file = assert(io.open(path, "w"))
-            file:write(text)
-            file:close()
-        end
-        c()
-        scp(1,1)
-        PrintCentered("Now, type your password.")
-        local _Passcode = read("*")
-        PrintCentered("Please, re-type that password.")
-        local _CheckCode = read("#")
-        if _CheckCode == _Passcode then
-            PrintCentered("Passwords match!")
-            PrintCentered("Saving your profile . . .")
-            if __CodeX_Register_Key_Length == nil then
-            	__CodeX_Register_Key_Length = 200
-        	end
-        	local s = "" -- Start string
-        	for i = 1, __CodeX_Register_Key_Length do
-            	    s = s .. string.char(math.random(32, 126)) -- Generate random number from 32 to 126, turn it into character and add to string
-        	end
-        	fwrite("/Users/"..Logname.."/.Passphrase.codex",s)
-            local MultiKey = _Passcode
-			local Key = StrUtils.SHA1(MultiKey) -- Look mom! I can encrypt!
-			local Password = StrUtils.SHA1("."..Key.." ")
-			local Passcode = StrUtils.SHA1(" "..Password..".") -- Many ways...
-        	local _checkCode_ = fs.open("/Users/"..Logname.."/.Passphrase.codex", "r")
-            local Key_ = _checkCode_.readAll()
-            _checkCode_.close()
-			local CheckCode = StrUtils.SHA1(Passcode..""..Key_)
-			--Verifi
-			local MultiKey1 = _CheckCode
-			local Key1 = StrUtils.SHA1(MultiKey1) -- Look mom! I can encrypt!
-			local Password1 = StrUtils.SHA1("."..Key1.." ")
-			local Passcode1 = StrUtils.SHA1(" "..Password1..".") -- Many ways...
-        	local _checkCode_1 = fs.open("/Users/"..Logname.."/.Passphrase.codex", "r")
-            local Key_1 = _checkCode_1.readAll()
-            _checkCode_1.close()
-			local CheckCode1 = StrUtils.SHA1(Passcode1..""..Key_1)
-			if CheckCode == CheckCode1 then
-            	fwrite("/Users/"..Logname.."/."..Logname..".codex", "!"..CheckCode.."\n!true")
-            	fwrite("/Users/.C","")
-            	PrintCentered("Complete!")
-            	sleep(1)
-        	else
-        		printError("Could not verifi! User not created!")
-        		sleep(5)
-        	end
-        else
-            PrintCentered("Passwords do not match!")
-            sleep(2)
-            RegisterPassword()
-        end --End check password
-
-    end -- Close Pass function.
-    RegisterPassword()
-    print("Rebooting...")
-    os.reboot()
-else
-local function start()
-	__CodeX_Started = true
-	sbc(__CodeX_Background_Color)
-	c()
-	stc(__CodeX_Text_Color)
-	scp(1,1)
-	PrintCentered("CodeX 4.0")
-	print()
-	scp(1,4)
-	stc(__CodeX_Prompt_Color)
-	print("Username: ")
-	scp(11,4)
-	stc(__CodeX_Input_Color)
-	local username = read()
-	if fs.exists("/Users/"..username.."/."..username..".codex") == true then
-		__CodeX_Logname = username
-		__CodeX_Username = username
-		stc(__CodeX_Prompt_Color)
-		scp(1,1)
-		term.clearLine()
-		PrintCentered("Logging into: "..__CodeX_Username)
-		scp(1,5)
-		term.clearLine()
-		print("Password: ")
-		scp(11,5)
-		stc(__CodeX_Input_Color)
-		local MultiKey = read("*")
-		local Key = StrUtils.SHA1(MultiKey) -- Look mom! I can encrypt!
-		local Password = StrUtils.SHA1("."..Key.." ")
-		local Passcode = StrUtils.SHA1(" "..Password..".") -- Many ways...
-	    local _checkCode_ = fs.open("/Users/"..__CodeX_Logname.."/.Passphrase.codex", "r")
-    	local Key_ = _checkCode_.readAll()
-	    _checkCode_.close()
-		local CheckCode = StrUtils.SHA1(Passcode..""..Key_)
-		local MultiKey = "Om nom nom."
-		local Key = "Om nom nom."
-		local Password = "Om nom nom."
-		local Passcode = "Om nom nom."
-		local s = "Om nom nom."
-		local Passphrase = "Om nom nom."
-		local userfile =  getTable("/Users/"..__CodeX_Logname.."/."..__CodeX_Logname..".codex")
-		local pass = string.sub(userfile[1],string.find(userfile[1],"!")+1)
-		if pass == CheckCode then
-			print("Password correct! Loading . . .")
-			__CodeX_HasUserLogged = StrUtils.SHA1(__CodeX_Logname)
-			__CodeX_USR_PASSCODE_ = CheckCode
-			__CodeX_USR_ADMIN = string.sub(userfile[2],string.find(userfile[2],"!")+1)
-    		HasUserLogged = "tajbn38wsna;3on4r00djsd0hj3n"
-		    c()
-		    print("Loading APIs in /APIs/")
-		    for _,file in ipairs(fs.list("/APIs/")) do
-            	if file ~= "read.txt" then
-				    os.loadAPI("/APIs/"..file)
-	            	print("Loaded /APIs/"..file)
-	            end
-          	end
-          	local X,Y = term.getSize()
-          	_RitoOS_Explorera_Window = window.create(_CodeX_Main_Window,1,1,X,Y,true)
-    		term.redirect(_RitoOS_Explorera_Window)
-    		shell.run("/System/Explorera.rxf")
-    		ecrashed()
-	    	sr("001")
-		else
-			stc(__CodeX_Error_Color)
-			scp(1,5)
-			term.clearLine()
-			print("Password incorrect!")
-			sleep(1)
-			start()
-		end
-		sr("002")
-	else
-		stc(__CodeX_Error_Color)
-		print("Unknown user.")
-		sleep(0.7)
-		start()
-	end
-passwordentry()
-sr("003")
-end --End start
-sleep(0.1)
-start()
-sr("004")
-end -- End function

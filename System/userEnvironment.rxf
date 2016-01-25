@@ -1,0 +1,25 @@
+local function getTable(path)
+    if fs.exists(path) then
+        local file = io.open(path, "r")
+        local lines = {}
+        local i = 1
+        local line = file:read("*l")
+        while line ~= nil do
+            lines[i] = line
+            line = file:read("*l")
+            i = i + 1
+        end
+        file:close()
+        return lines
+    end
+    return {}
+end
+
+System.logInfo("User Environment","Loading ...")
+
+parallel.waitForAll(function() System.aniMidUp(RitoOS_PersonalizationBackgroundColor2) end, function() System.aniMidDown(RitoOS_PersonalizationBackgroundColor2) end,
+function() System.aniMidUp(RitoOS_PersonalizationBackgroundColor,0.055,RitoOS_PersonalizationTextColor,"Welcome") end, function() System.aniMidDown(RitoOS_PersonalizationBackgroundColor,0.05) end)
+
+sleep(0.3)
+
+dofile("/System/Explorera.rxf")

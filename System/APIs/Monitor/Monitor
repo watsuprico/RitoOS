@@ -1,0 +1,89 @@
+function shutdown()
+    _G.MonitorService_goingDown = true
+end
+
+function connected()
+    -- Clear main screen
+    local __Prev_term = term.current()
+    term.redirect(term.native())
+    term.setBackgroundColor(colors.white)
+    term.setTextColor(colors.black)
+    term.clear()
+    term.setCursorPos(1,1)
+    print("You've connected to a monitor!")
+    print()
+    print("Please note:")
+    print("     If you are going to resize the monitor, either shutdown this computer, or type 'resize' into the command prompt to scale items on the monitor")
+    print()
+    print("     If you wish to disconnect the monitor, type 'disconnect' into the command prompt, or simple remove it")
+    term.redirect(__Prev_term)
+end
+
+function resize()
+	System.logInfo("Monitor API","Resize command received.")
+    if RitoOS_Main_Monitor then
+        local _Prev_term = term.current()
+        term.redirect(__RitoOS_Main_Monitor)
+        
+        local X,Y = __RitoOS_Main_Monitor.getSize()
+        _RitoOS_Main_Window.reposition(1,1,X,Y)
+        _RitoOS_Main_Window.redraw()
+
+        System.logInfo("Monitor API","Resized.")
+        term.redirect(_Prev_term)
+    else
+        System.logAlert("Monitor API","No monitor found to resize.")
+    end
+end
+
+function connect(m)
+    if not Monitor_Service_Connected then
+        if m then -- Check if there's a actual monitor
+            RitoOS_Main_Monitor = m
+            System.logInfo("Monitor API","Attempting connection to a monitor")
+            System.logInfo("Monitor API","Attempting redirection")
+            Monitor_ServiceMain_Term = term.current()
+            term.redirect(m)
+            System.logInfo("Monitor API","Redirected")
+            System.logInfo("Monitor API","Setting monitor scale")
+            m.setTextScale(RitoOS_Monitor_Service_Monitor_Scale)
+            System.logInfo("Monitor API","Attempting reconfiguration of the main window")
+            local X,Y = RitoOS_Main_Monitor.getSize()
+            RitoOS_Main_Window = window.create(RitoOS_Main_Monitor,1,1,X,Y,true)
+            System.logInfo("Monitor API","Reconfigured. Attempting redraw")
+            RitoOS_Main_Window.redraw()
+            System.logInfo("Info","[ Monitor Service ] Redrawed")
+            System.logInfo("Monitor API","Completed monitor connection")
+            RitoOS_Monitor_Service_Connected_To_Monitor = true
+            Monitor.connected()
+            return true
+        else
+            return false --There's no monitor
+        end
+    end
+end
+
+function disconnect()
+    if Monitor_Service_Connected then
+        System.logInfo("Monitor API","Disconnect command received, attempting disconnection.")
+        System.logInfo("Monitor API","- Attempting reconfiguration of the main window")
+        local X,Y = __Monitor_Service__Main_Term.getSize()
+        _RitoOS_Main_Window = window.create(term.native(),1,1,X,Y,true)
+        System.logInfo("Monitor API","- Reconfigured. Attempting redraw")
+        _RitoOS_Main_Window.redraw()
+        System.logInfo("Monitor API","- Completed monitor disconnection")
+        Monitor_Service_Connected = false
+        local __Prev_term = term.current()
+        term.redirect(__RitoOS_Main_Monitor)
+        term.setBackgroundColor(colors.white)
+        term.setTextColor(colors.black)
+        term.clear()
+        PrintCentered("You've disconnected from this monitor")
+        print()
+        PrintCentered("Please note:")
+        PrintCentered("     You may have to reboot to reconnect to this monitor")
+        term.redirect(__Prev_term)
+    else
+        System.logAlert("Monitor API","No monitor connected to disconnect.")
+    end
+end

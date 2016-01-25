@@ -1,0 +1,146 @@
+-- RitoOS OS Global Function Overwrite
+
+local function printCenter(t) local X,Y = term.getSize() term.setCursorPos((X-string.len(t))/2, Y/2) term.clearLine() print(t) end
+
+local function closeServices()
+	printCenter("Notifying services of shutdown")
+	_G.RitoOS_goingDown = true
+	if Monitor_Service_started then
+		System.logInfo("System","Notifying Monitor service of termination.")
+		printCenter("Notifying Monitor service of termination.")
+		Monitor.shutdown()
+	end
+	printCenter("DSystem.aniBottomMid!")
+end
+
+
+local function anima()
+    term.setBackgroundColor(colors.gray) term.clear()
+    if _G.allowAnimations then sleep(_G.AnimationDelay) end
+    term.setBackgroundColor(colors.lightGray) term.clear()
+    if _G.allowAnimations then sleep(_G.AnimationDelay) end
+    term.setBackgroundColor(colors.white) term.clear()
+end
+
+local function anima2()
+    term.setBackgroundColor(colors.lightGray) term.clear()
+    if _G.allowAnimations then sleep(_G.AnimationDelay) end
+    term.setBackgroundColor(colors.gray) term.clear()
+    if _G.allowAnimations then sleep(_G.AnimationDelay) end
+end
+
+function os.splashScreenOut()
+	parallel.waitForAll(function()
+        System.aniMidUp(colors.lightGray,0)
+    end, function()
+        System.aniMidDown(colors.lightGray,0)
+    end, function()
+        System.aniMidUp(colors.gray,0.055)
+    end, function()
+        System.aniMidDown(colors.gray,0.05)
+    end, function()
+        System.aniMidUp(colors.black,0.125)
+    end, function()
+        System.aniMidDown(colors.black,0.12)
+    end)
+end
+
+function os.splashScreenIn()
+    if RitoOS_PersonalizationBackgroundColor ~= nil and RitoOS_PersonalizationBackgroundColor ~= nil then
+        parallel.waitForAll( function() System.aniBottomMid(RitoOS_PersonalizationBackgroundColor2,0) end, function() System.aniTopMid(RitoOS_PersonalizationBackgroundColor,0) end)
+    end
+	parallel.waitForAll(function()
+        System.aniBottomMid(colors.gray,0)
+    end, function()
+        System.aniTopMid(colors.gray,0)
+    end, function()
+        System.aniBottomMid(colors.lightGray,0.055)
+    end, function()
+        System.aniTopMid(colors.lightGray,0.05)
+    end, function()
+        System.aniBottomMid(colors.white,0.125)
+    end, function()
+        System.aniTopMid(colors.white,0.12)
+    end)
+end
+
+function os.runRecovScript() runRecoveryScript = true RitoOS_bootIntoRecovery = true end
+
+
+local nativeShutdown = os.shutdown
+function os.shutdown(s, Recovery, goToRecovery)
+    System.logAlert("System PWR","Shutting down NOW!")
+    term.setCursorBlink(false)
+    if not RitoOS_Name then
+        RitoOS_Name = "RitoOS"
+    end
+	if s==0 then s = shutdownWaitTime end
+    local s = s or 0
+
+    if not Recovery and shutdownAnimation and _G.allowAnimations then os.splashScreenIn() else anima() end
+    parallel.waitForAny(function() local event, key = os.pullEvent("key") if key == 42 then _G.RitoOS_bootIntoRecovery = true System.logInfo("System PWR", "Shift pressed, booting into recovery")  elseif key == 54 then _G.RitoOS_bootIntoRecovery = true System.logInfo("System PWR", "Shift pressed, booting into recovery")  end end, function() sleep(s) end)
+	term.setTextColor(colors.black)
+
+	printCenter("Shutting down.") sleep(s)
+    if Monitor_Service_Connected then Monitor.disconnect() printCenter("Disconnecting monitor.") sleep(s) end
+    printCenter("Stopping services") sleep(s) closeServices() sleep(s)
+
+	printCenter("Saving startup.")
+    local startup = assert(io.open("/Startup", "w"))
+    if runRecoveryScript then startup:write("RitoOS_shutdownGood = true\nrunRitoOS_RecovScript = true\n_RitoOS_bootIntoRecovery = true\n"..System.startupFile()) startup:close()
+    elseif _G.RitoOS_bootIntoRecovery then startup:write("RitoOS_shutdownGood = true\n_RitoOS_bootIntoRecovery = true\n"..System.startupFile()) startup:close()
+    elseif Update_Service_completeOnBoot == true then startup:write("Update_Service_completeOnBoot = true\n"..System.startupFile()) startup:close()
+    else startup:write("RitoOS_shutdownGood = true\n"..System.startupFile()) startup:close()
+    end
+    sleep(s)
+
+    printCenter("Shutting down.")
+    sleep(s)
+    System.logAlert("System PWR","Going down! (Shutting down now)")
+
+	term.setTextColor(colors.black)    printCenter("RitoOS") sleep(0.3)
+	if not Recovery and shutdownAnimation and _G.allowAnimations then os.splashScreenOut() else anima2() end
+    os.setComputerLabel("[OFF] - "..RitoOS_Name)
+    nativeShutdown()
+    while true do
+        coroutine.yield()
+    end
+end
+
+
+local nativeReboot = os.reboot
+function os.reboot(s, Recovery, goToRecovery)
+    System.logAlert("System PWR","Rebooting NOW!")
+
+    term.setCursorBlink(false)
+
+    if not RitoOS_Name then RitoOS_Name = "RitoOS" end
+    os.setComputerLabel("Rebooting - "..RitoOS_Name)
+    if s==0 then s = shutdownWaitTime end
+    local s = s or 0
+
+	if not Recovery and shutdownAnimation and _G.allowAnimations then os.splashScreenIn() else anima() end
+    parallel.waitForAny(function() local event, key = os.pullEvent("key") if key == 42 then _G.RitoOS_bootIntoRecovery = true System.logInfo("System PWR", "Shift pressed, booting into recovery")  elseif key == 54 then _G.RitoOS_bootIntoRecovery = true System.logInfo("System PWR", "Shift pressed, booting into recovery")  end end, function() sleep(s) end)
+	term.setTextColor(colors.black)
+	printCenter("Rebooting") sleep(s)
+	if Monitor_Service_Connected then Monitor.disconnect() printCenter("Disconnecting monitor.") sleep(s) end
+	printCenter("Stopping services") sleep(s) closeServices() sleep(s)
+
+    printCenter("Saving startup.")
+    local startup = assert(io.open("/Startup", "w"))
+    if runRecoveryScript then startup:write("RitoOS_shutdownGood = true\nrunRitoOS_RecovScript = true\n_RitoOS_bootIntoRecovery = true\n"..System.startupFile()) startup:close()
+    elseif _G.RitoOS_bootIntoRecovery then startup:write("RitoOS_shutdownGood = true\n_RitoOS_bootIntoRecovery = true\n"..System.startupFile()) startup:close()
+    elseif Update_Service_completeOnBoot == true then startup:write("Update_Service_completeOnBoot = true\n"..System.startupFile()) startup:close()
+    else startup:write("RitoOS_shutdownGood = true\n"..System.startupFile()) startup:close()
+    end
+    sleep(s) printCenter("Rebooting.") sleep(s)
+
+    System.logAlert("System PWR","Going down! (Rebooting now)")
+	term.setTextColor(colors.black)	printCenter("RitoOS") sleep(0.3)
+	if not Recovery and shutdownAnimation and _G.allowAnimations then os.splashScreenOut() else anima2() end
+    os.setComputerLabel("[OFF] - "..RitoOS_Name)
+    nativeReboot()
+    while true do
+        coroutine.yield()
+    end
+end

@@ -1,2 +1,69 @@
-LastShutdownSuccessful = '238N@Ne8jd#*nc'
-shell.run('/System/.Boot/Boot')
+RitoOS_shutdownGood = true
+if not term.isColor() then
+    colors.red = colors.black
+    colors.green = colors.gray
+    colors.brown = colors.black
+    colors.blue = colors.gray
+    colors.purple = colors.gray
+    colors.cyan = colors.gray
+    colors.pink = colors.gray
+    colors.lime = colors.lightGray
+    colors.yellow = colors.white
+    colors.lightBlue = colors.white
+    colors.magenta = colors.white
+    colors.orange = colors.lightGray
+end
+local ok, err = pcall(function() dofile("/System/.Boot/Boot.lua") end)
+if not ok then
+        function os.pullEvent( _sFilter )
+            local event, p1, p2, p3, p4, p5 = os.pullEventRaw( _sFilter )
+            if event == "terminate" then
+                sleep(1)
+            end
+            return event, p1, p2, p3, p4, p5
+        end
+    if err == nil then
+        err = "No error code, however, this was reported from the startup file. (/Startup)."
+    end
+    local crash = assert(io.open("/crash.log", "w"))
+    crash:write("RitoOS crashed! D: . Error: "..err.." . Os.version: "..os.version().." . Os.time(): "..os.time())
+    crash:close()
+    local x,Y = term.getSize()
+    term.setBackgroundColor(white)
+    term.clear()
+    sleep(0)
+    term.setCursorPos(math.floor(x-string.len("Sorry about that :("))/2, 2)
+    term.setTextColor(red)
+    write("Sorry about that. ): ")
+    term.setTextColor(black)
+    term.setCursorPos(math.floor(x-string.len("RicoOS has crashed."))/2, 5)
+    print("RitoOS has crashed.")
+    term.setCursorPos(3, 7)
+    print("Please, report this error to Watsuprico via PM:")
+    term.setTextColor(red)
+    term.setCursorPos(3, 8)
+    print(err)
+    print()
+    print()
+    term.setTextColor(gray)
+    term.setCursorPos(math.floor(x-string.len("Please remember, when sending the bug report"))/2, 11)
+    print("Please remember, when sending the bug report")
+    term.setCursorPos(math.floor(x-string.len(".include the log file at /crash.log"))/2, 12)
+    print("include the log file at: /crash.log")
+    print()
+    print("Press R to enter recovery.")
+    print("Press any other key to shutdown.")
+    sleep(1)
+    local e,s = os.pullEvent("key")
+    while true do
+        sleep(0)
+        if s == 19 then
+            shell.run("/System/.Recovery/.Recover")
+            printError("RitoOS shutting down.")
+            sleep(2)
+            os.shutdown(0,true)
+        else
+            os.shutdown(0,true)
+        end
+    end
+end

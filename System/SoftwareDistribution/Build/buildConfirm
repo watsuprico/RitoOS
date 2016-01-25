@@ -1,0 +1,54 @@
+local buildDirs = {"/System/",
+"/System/.Boot",
+"/System/.Recovery",
+"/System/APIs/",
+"/System/Configs/",
+"/System/Logs/",
+"/System/Programs/",
+"/System/Services/",
+"/APIs/",
+"/Programs/",
+"/Users/"}
+
+local downloadFiles = {"/System/.Boot/Boot.lua",
+"/System/.Recovery/.Recover",
+"/System/.version",
+"/System/APIs/Monitor/Monitor",
+"/System/APIs/StrUtils/StrUtils",
+"/System/APIs/System/System",
+"/System/APIs/Update/Update",
+"/System/Configs/.Rito.conf",
+"/System/Programs/disconnect",
+"/System/Programs/mon_connect",
+"/System/Programs/resize",
+"/System/Programs/uptime",
+"/System/Programs/Update",
+"/System/Services/Config/Config.serv",
+"/System/Services/Monitor/Monitor.serv",
+"/System/Services/OS/OS.serv",
+"/System/Services/RitLock/RitLock.serv",
+"/System/Services/Update/Update.serv",
+"/System/CMD.rxf",
+"/System/CodeX.rxf",
+"/System/Explorera.rxf",
+"/System/User.rxf",
+"/APIs/Readme.txt",
+"/Startup"}
+
+for i=1,#buildDirs do
+	if not fs.isDir(buildDirs[i]) then
+		return false
+	end
+end
+
+for i=1,#downloadFiles do
+	local f = fs.open("/System/SoftwareDistribution/Downloads"..downloadFiles[i], "r")
+	local h = fs.open(downloadFiles[i], "r")
+	local hfile = h.readAll()
+	local ffile = f.readAll()
+	if hfile ~= ffile then
+		return false
+	end
+end
+
+return true

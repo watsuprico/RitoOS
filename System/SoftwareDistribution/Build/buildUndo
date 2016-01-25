@@ -1,0 +1,10 @@
+System.logInfo("Update - buildUndo","Rolling back last update.")
+
+for _,file in ipairs(fs.list("/System/SoftwareDistribution/Backup/")) do
+	if not fs.isReadOnly(file) then if file ~= "System" then
+		System.logInfo("Update - build","Backing up /"..file)
+		fs.copy("/System/SoftwareDistribution/Backup/"..file, "/"..file)
+	end end
+end
+
+System.logInfo("Update - buildUndo","Updates rolled back.")

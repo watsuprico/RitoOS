@@ -1,232 +1,506 @@
--- RITO OS RECOVERY V0.1
---[[
+--[[ 
+
+     _________________________________________________________________________
+    |                                                                         |
+    |                              RitoOS - ^.^                               |
+    |                                                                         |
+    | - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+    |                                                                         |
+    |                         Recovery Version 3.0                            |
+    |                                                                         |
+    |  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  |
+    |                                                                         |
+    |   Thank you for looking at RitoOS, (or downloading it), it means alot.  |
+    |    If you would like to learn more, head on over to the Github page:    |
+    |              https://www.github.com/Watsuprico/RitoOS/                  |
+    |                                                                         |
+    |- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+   _|                                                                         |
+  |             Some extended info on copying and using RitoOS                |______________________________________________________ 
+  |                                                                                                                                 |
+  | Permission is hereby granted, free of charge, to any person obtaining a copy of this software and                               |
+  | associated documentation files (the "Software"), to deal in the Software without restriction,                                   |
+  | including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,                           |
+  | copies of the Software, and to permit persons to whom the Software is furnished to do so,                                       |
+  | subject to the following conditions:                                                                                            |
+  |                                                                                                                                 |
+  | -The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. |
+  | -Visible credit is given to the original author.                                                                                |
+  | -The software is distributed in a non-profit way.                                                                               |
+  |                                                                                                                                 |
+  | THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE            |
+  | WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR           |
+  | COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,     |
+  | ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                           |
+  |                                                                                                                                 |
+  |_________________________________________________________________________________________________________________________________|
 
 
-                        _________
-                       |_|_|_|_|_|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-                         |__|__|
-      ___________________|__|__|___
-     /                             \
-    /     Rito OS, Created By:      \
-   /          @Watsuprico            \
-  /                                   \
- /   Bedrock API/Framwork Created By:  \
-/                                       \
-|_______________________________________|
-|                                       |
-|   _______                   _______   |
-|  |   |   |                 |   |   |  |
-|  |---|---|                 |---|---|  |
-|  |___|___|                 |___|___|  |
-|                                       |
-|                                       |
-|                                       |
-|               _________               |
-|              |         |              |
-|              |  Rito   |              |
-|              |         |              |
-|              |       σ |              |
-|              |         |              |
-|______________|_________|______________|
-]]--
--- Functions
-local function trunc(s, i)
-    local mult = 10^(i or 0)
-    return math.floor(s * mult + 0.5) / mult
-end
-local function ALERT(m)
-    term.setTextColor(ALERTCOLOR)
-    print("[ "..trunc(os.time() * 50).." - ALERT] "..m)
-    print()
-    term.setTextColor(colors.black)
-end
-local function WARN(m)
-    term.setTextColor(WARNCOLOR)
-    print("[ "..trunc(os.time() * 50).." - WARN] "..m)
-    print()
-    term.setTextColor(colors.black)
-end
-local function INFO(m)
-    term.setTextColor(INFOCOLOR)
-    print("[ "..trunc(os.time() * 50).." - Info] "..m)
-    print()
-    term.setTextColor(colors.black)
-end
-local function NOTE(m)
-    term.setTextColor(NOTECOLOR)
-    print("[ "..trunc(os.time() * 50).." - Notify] "..m)
-    term.setTextColor(colors.black)
-end
-local function PrintCentered(m)
-local _mL = string.len(m)
-local _scw,_ = term.getSize()
-local _xC = tonumber(math.ceil((_scw / 2) - (_mL / 2)))
-local _,tY = term.getCursorPos()
-term.setCursorPos(_xC,tY)
-print(m)
-end
-local function c()
-  term.clear()
-end
-local function stc(c)
-  term.setTextColor(c)
-end
-local function sbc(c)
-  term.setBackgroundColor(c)
-end
-local function scp(x,y)
-  term.setCursorPos(x,y)
-end
--- End functions
-function start()
-sleep(1)
-c()
-stc(colors.white)
-sbc(colors.blue)
-c()
-scp(1,1)
-sbc(colors.cyan)
-term.clearLine()
-PrintCentered("Rito OS Recovery")
-sbc(colors.blue)
-print("Please select an option ")
+]]
 
-
-local menu_options = { --This is our menu table. It contains basic data about the menu
-  [1] = {text="Exit", color=colors.red},
-  [2] = {text="Shutdown", color=colors.orange},
-  [3] = {text="Update", color=colors.green},
-  [4] = {text="Roll Back", color=colors.brown},
-  [5] = {text="Wipe computer", color=colors.red}
-}
-local termX, termY = term.getSize() --The x/y size of the terminal
-local function menuDraw(selected) --Our main draw function
-  local yPos = termY/2 - #menu_options/2 --The initial y position
-  for index, data in pairs(menu_options) do
-    menu_options[index].bounds = { --Create a new table in each option with the boundary data
-      x1 = termX/2 - (#data.text+4)/2;
-      x2 = termX/2 + (#data.text+4)/2;
-      y = yPos;
-    }
-    term.setTextColor(data.color)
-    term.setCursorPos(data.bounds.x1, data.bounds.y)
- 
-    local text =
-      index==selected and "- "..data.text.."" or
-      "| "..data.text.."" --Essentially an if statement, but in a contracted form
-    term.write(text)
-    yPos = yPos+1 --Increment the initial y pos so we can move on the next line
-  end
-end
- 
-local function checkClick(x,y) --Check the mouse click to see if there's a menu option
-  for index, data in pairs(menu_options) do
-    if x>= data.bounds.x1 and x<= data.bounds.x2 and y==data.bounds.y then
-      return index --Returns the index of the clicked option
+if not RitoOS then
+  os.loadAPI("/System/APIs/System/System")
+  if os.uptime() == nil then
+    function os.uptime()
+      return "Uptime service not running"
     end
   end
-  return false --If it went through the entire for loop without success, return false
 end
- 
-local selector = 1 --Our selector
-while true do --The main loop. I would generally put this inside of a function for a program.
-  menuDraw(selector) --Draw the menu first
-  local e = {os.pullEvent()} --Pull an event and put the returned values into a table
-  if e[1] == "key" then --If it's a key...
-    if e[2] == keys.down then -- ... and it's the down arrow
-      selector = selector < #menu_options and selector+1 or 1 --Increment the selector if the selector < #menu_options. Otherwise reset it to 1
-    elseif e[2] == keys.up then
-      selector = selector > 1 and selector-1 or #menu_options --Decrement the selector if the selector > 1. Otherwise, reset it to #menu_options
-    elseif e[2] == keys.enter then
-      if selector == 1 then --Exit
-        __RitoOS__Enter_Recovery = nil
-        os.reboot()
-      elseif selector == 2 then --Shutdown
-        __RitoOS__Enter_Recovery = nil
-        os.shutdown()
-      elseif selector == 3 then --Update
-        term.setBackgroundColor(colors.white)
-        term.setTextColor(colors.red)
-        term.clear()
-        term.setCursorPos(1,1)
-        PrintCentered("/- Updating -/")
 
-        PrintCentered("/- Complete -/")
+if SystemBootIntoRecovery ~= true then
+  error("You have to boot into the recovery platform to use it.\n Use the command: ' pwr /br ' , or even ' pwr /rr '")
+end
+
+
+--Colors
+local function updateColors(bw)
+  if bw == true then
+    System.logWarn("Recovery Color Manager","Running in black and white mode.")
+    orange = colors.lightGray
+    magenta = colors.white
+    lightBlue = colors.white
+    yellow = colors.white
+    lightGreen = colors.lightGray
+    pink = colors.lightGray
+    gray = colors.gray
+    lightGray = colors.lightGray
+    cyan = colors.gray
+    purple = colors.gray
+    blue = colors.gray
+    brown = colors.black
+    green = colors.gray
+    red = colors.black
+    white = colors.white
+    black = colors.black
+  else
+    System.logInfo("Recovery","Running in colored mode.")
+    white = colors.white
+    orange = colors.orange
+    magenta = colors.magenta
+    lightBlue = colors.lightBlue
+    yellow = colors.yellow
+    lightGreen = colors.lime
+    pink = colors.pink
+    gray = colors.gray
+    lightGray = colors.lightGray
+    cyan = colors.cyan
+    purple = colors.purple
+    blue = colors.blue
+    brown = colors.brown
+    green = colors.green
+    red = colors.red
+    black = colors.black
+  end
+end
+
+
+function printCentered(msg)
+    local w, h = term.getSize()
+    local x, y = term.getCursorPos()
+    term.setCursorPos(math.floor(w-string.len(msg)+2)/2,y)
+    print(msg)
+end
+
+local function recovMessage()
+  term.setCursorPos(1,1)
+  term.setBackgroundColor(lightBlue)
+  term.clear()
+  term.setBackgroundColor(gray)
+  term.clearLine()
+  print()
+  term.clearLine()
+  term.setTextColor(white)
+  printCentered("RitoOS Recovery")
+  term.clearLine()
+  print()
+  term.setBackgroundColor(lightBlue)
+  term.setTextColor(white)
+  print()
+  print()
+  -- Goes down 5 lines
+end
+
+function error(err)
+  recovMessage()
+  printCentered("An error has occured!")
+  printCentered("Please wait while recovery restarts...")
+  print()
+  printCentered("Press C to cancel.")
+  parallel.waitForAny(function()
+    local event, key = os.pullEvent("key")
+    if key == keys.c then
+      ccexit = true
+      return false
+    end
+  end, function()
+    sleep(2)
+  end)
+
+  if ccexit then
+    shell.run("/System/.Recovery/.Recover")
+    print("Rebooting...")
+    sleep(1)
+  end
+
+  RitoOS_bootIntoRecovery = true
+  os.reboot(0.1, true)
+end
+
+if term.isColor() == false then
+  updateColors(true)
+else
+  updateColors(false)
+end
+
+local function getTable(path)
+  if fs.exists(path) then
+    local file = io.open(path, "r")
+    local lines = {}
+    local i = 1
+    local line = file:read("*l")
+    while line ~= nil do
+      lines[i] = line
+      line = file:read("*l")
+      i = i + 1
+    end
+    file:close()
+    return lines
+  end
+  return {}
+end
+
+-- Encrypt a password
+local function hashPassword(hashThis, userPassphrasefile)
+  local Key = SHA256.sha256(hashThis)
+  local PassphraseFile = fs.open(userPassphrasefile, "r")
+  local PassphraseKey = PassphraseFile.readAll()
+  PassphraseFile.close()
+  return SHA256.sha256(hashThis..""..PassphraseKey)
+end
+-- saved hash
+local function savedPassword(userAuthfile)
+  local savedHashfile = fs.open(userAuthfile, "r")
+  local savedHash = savedHashfile.readAll()
+  savedHashfile.close()
+  return savedHash
+end
+
+local function Login()
+  loggedIn = false
+  term.setTextColor(black)
+  parallel.waitForAny(function()
+    while true do
+      local event, key = os.pullEvent("key")
+      if key == 1 then
+        local bexit = true
+        break
+      end
+    end -- End while loop
+    if bexit then
+      return false
+    end
+  end, function()
+    os.loadAPI("/System/APIs/SHA256/SHA256")
+    print("Please log in.")
+    term.setCursorPos(1,8)
+    print("Username-]")
+    term.setCursorPos(12,8)
+    local username = read()
+    if fs.exists("/Users/"..username.."/.auth.codeX") or fs.exists("/Users/"..username.."/.passphrase.codeX") then
+      System.logInfo("Recovery","Logging in for user: \""..username.."\"")
+      print("Password-]")
+      term.setCursorPos(12,9)
+      local wizardpass = read("*")
+      if hashPassword(wizardpass, "/Users/"..username.."/.passphrase.codex") == savedPassword("/Users/"..username.."/.auth.codex") then
+        print("Loading ...")
+        System.logInfo("Recovery","User logged in.")
+        loggedIn = true
+      else
+        print('Password incorrect ):')
+        System.logWarn("Recovery","Attempt to login failed. BADPASS2")
         sleep(2)
-        start()
-      elseif selector == 4 then --Rollback
-        term.setBackgroundColor(colors.white)
-        term.setTextColor(colors.red)
-        term.clear()
-        term.setCursorPos(1,1)
-          if fs.isDir("/Old/") == true then
-            if fs.isDir("/Old/System/") == true then
-              fs.copy("/Old/System/","/System/")
-            else
-              printError("/- ! /System/ could not be rolledback ! -/")
-            end
-            if fs.isDir("/Old/APIs/") == true then
-              fs.copy("/Old/APIs/","/APIs/")
-            else
-              printError("/- ! /APIs/ could not be rolledback ! -/")
-            end
-            if fs.isDir("/Old/Configs/") == true then
-              fs.copy("/Old/Configs/","/Configs/")
-            else
-              printError("/- ! /Configs/ could not be rolledback ! -/")
-            end
-            if fs.isDir("/Old/Programs/") == true then
-              fs.copy("/Old/Programs/","/Programs/")
-            else
-              printError("/- ! /Programs/ could not be rolledback ! -/")
-            end
-          else
-            print("/- ! /Old/ could not be found ! -/")
-            print("/- ! No files to rollback too, sorry ! -/")
-          end
-          sleep(2)
-          start()
-      elseif selector == 5 then
-        term.setBackgroundColor(colors.white)
-        term.setTextColor(colors.red)
-        term.clear()
-        term.setCursorPos(1,1)
-        l = 10
-        local c = "" -- Start string
-        for i = 1, l do
-          c = c .. string.char(math.random(33, 126))
-        end
-        print()
-        stc(colors.red)
-        print("- This will delete ALL data on this computer -")
-        print("- Please type the 10 character code below to comfirm -")
-        print(c)
-        print()
-        local cc = read()
-        if cc == c then
-          print("/- Good bye -/")
-          for _,file in ipairs(fs.list("/")) do
-            if not fs.isReadOnly(file) then
-              fs.delete(file)
-              print("Deleting "..file)
-            end
-          end
-        else
-        print("- Code did not match -")
-        print("- Returning -")
-        sleep(2)
-        start()
-        end
+      end
+    else
+      print('No auth file found for this user ):')
+      System.logWarn("Recovery","Attempt to login failed. BADPASS1")
+      sleep(2)
+    end -- If exists
+  end) -- Parallel
+
+  return loggedIn
+end
+
+local function format()
+  l = 10
+  local a = ""
+  for i = 1, l do
+    a = a .. string.char(math.random(33,126))
+  end
+  print()
+  term.setTextColor(red)
+  printCentered("This will delete everything on your disk!")
+  printCentered("Please type the "..tostring(l).." character code below.")
+  print(a)
+  print()
+  local cc = io.read()
+  if cc == a then
+    System.logAlert("Recovery","Formatting the system...")
+    print("\\\\ ..Formatting.. //")
+    for _,file in ipairs(fs.list("/")) do
+      if not fs.isReadOnly(file) and file ~= "/System/Latest.log" then
+        fs.delete(file)
+        print("Deleting: \""..file.."\"")
       end
     end
+    print("Complete!")
+    sleep(2)
+
+    local nativeShutdown = os.shutdown
+    function os.shutdown()
+      nativeShutdown()
+      while true do
+          coroutine.yield()
+      end
+    end
+    local nativeReboot = os.reboot
+    function os.reboot()
+      nativeReboot()
+      while true do
+        coroutine.yield()
+      end
+    end
+  else
+    System.logInfo("Recovery","Failed to confirm format code.")
+    print("Your enter code does not match the original code.")
+    sleep(2)
   end
 end
+
+local function moveCheck(mNum,minNum)
+  exit = false
+  ps = false
+  parallel.waitForAny(function()
+      local event, scrollDirection, x, y = os.pullEvent("mouse_scroll")
+      if scrollDirection == -1 then
+        if cs > minNum then
+          cs = cs - 1
+        else
+          cs = mNum
+        end
+      elseif scrollDirection == 1 then
+        if cs > mNum - 1 then
+          cs = minNum
+        else
+          cs = cs + 1
+        end
+      end
+
+      end, function()
+      local event, key = os.pullEvent("key")
+      if key == keys.up then
+        if cs > minNum then
+          cs = cs - 1
+        else
+          cs = mNum
+        end
+      elseif key == keys.down then
+        if cs > mNum - 1 then
+          cs = minNum
+        else
+          cs = cs + 1
+        end
+      elseif key == keys.enter then
+        ps = true
+      elseif key == 1 then
+        exit = true
+      end
+    end)
+  return ps, cs, exit
 end
 
-start()
+local function clearChoice(y)
+  term.setCursorPos(1,y)
+  term.setBackgroundColor(blue)
+  term.setTextColor(black)
+  term.clearLine()
+end
+
+local function Troubleshoot()
+  recovMessage()
+  term.setCursorPos(1,6)
+  if not Log then
+    local Log = Login()
+    if not Log then
+      return false
+    end
+  end
+
+  recovMessage()
+  term.setCursorPos(1,6)
+  ps = false
+  cs = 0
+  while true do
+
+    term.setBackgroundColor(lightBlue)
+    term.setTextColor(black)
+    term.setCursorPos(1,6)
+    term.clearLine()
+    printCentered("[   Command  Prompt   ]")--6
+    term.clearLine()
+    printCentered("[ Update  The  System ]")--7
+    term.clearLine()
+    printCentered("[   System  Restore   ]")--8
+    term.clearLine()
+    printCentered("[  Automatic  Repair  ]")--9
+    term.clearLine()
+    printCentered("[ Format System Drive ]")--10
+
+    if cs == 0 then
+    elseif cs == 1 then
+      clearChoice(6)
+      printCentered(">   Command  Prompt   <")--6
+    elseif cs == 2 then
+      clearChoice(7)
+      printCentered("> Update  The  System <")--7
+    elseif cs == 3 then
+      clearChoice(8)
+      printCentered(">   System  Restore   <")--8
+    elseif cs == 4 then
+      clearChoice(9)
+      printCentered(">  Automatic  Repair  <")--9
+    elseif cs == 5 then
+      clearChoice(10)
+      printCentered("> Format System Drive <")--10
+    end
+    local ps, cs, back = moveCheck(5,1,cs)
+    if back then
+      break
+    end
+    if ps then
+      if cs == 1 then
+        System.logInfo("Recovery","Opening a command prompt.")
+        dofile("/System/CMD.rxf")
+        recovMessage()
+        sleep(1)
+      elseif cs == 2 then
+        System.logInfo("Recovery","Running system updater.")
+        dofile("/System/Programs/update")
+        recovMessage()
+        sleep(1)
+      elseif cs == 3 then
+        System.logInfo("Recovery","Running system restore tool.")
+        dofile("/System/.Recovery/.Restore")
+        recovMessage()
+        sleep(1)
+      elseif cs == 4 then
+        System.logInfo("Recovery","Running repair tool.")
+        dofile("/System/.Recovery/.Repair")
+        recovMessage()
+        sleep(1)
+      elseif cs == 5 then
+        System.logWarn("Recovery","Formatting system drive.")
+        recovMessage()
+        format()
+        recovMessage()
+        sleep(1)
+      end
+    end
+  end -- End while
+end
+
+local function Recovery()
+  if runRitoOS_RecovScript then
+    System.logInfo("Recovery","Running System recovery script.")
+    local recovFile = fs.open("/System/.Recovery/recoveryScript.arg", "r")
+    System.logInfo("RitoOS Recovery Script","Recov script: "..recovFile:readAll())
+    recovFile:close()
+    term.setBackgroundColor(white)
+    term.setTextColor(white)
+    term.clear()
+    term.setBackgroundColor(black)
+    term.setCursorPos(1,1)
+    term.clearLine()
+    printCentered("RitoOS Recovery Script")
+    term.setCursorPos(1,3)
+    term.setBackgroundColor(white)
+    term.setTextColor(black)
+    parallel.waitForAll(function() dofile("/System/.Recovery/recoveryScript.arg") end, function() sleep(0.2) if fs.exists("/System/.Recovery/recpveryScript.arg") then fs.delete('/System/.Recovery/recoveryScript.arg') end end)
+    sleep(2)
+    term.setBackgroundColor(black)
+    term.setTextColor(white)
+    term.clear()
+    term.setCursorPos(1,1)
+    print("Rebooting...")
+    sleep(1)
+    os.reboot(0,true)
+  end
+
+  recovMessage()
+  term.setCursorPos(1,6)
+  ps = false
+  cs = 0
+  while true do
+
+    term.setBackgroundColor(lightBlue)
+    term.setTextColor(black)
+    term.setCursorPos(1,6)
+    term.clearLine()
+    printCentered("[ Boot  RitoOS ]")--6
+    term.clearLine()
+    printCentered("[ Troubleshoot ]")--7
+    term.clearLine()
+    printCentered("[   Shutdown   ]")--8
+
+    if cs == 0 then
+    elseif cs == 1 then
+      term.setCursorPos(1,6)
+      term.setBackgroundColor(blue)
+      term.setTextColor(black)
+      term.clearLine()
+      printCentered("> Boot  RitoOS <")
+    elseif cs == 2 then
+      term.setCursorPos(1,7)
+      term.setBackgroundColor(blue)
+      term.setTextColor(black)
+      term.clearLine()
+      printCentered("> Troubleshoot <")--7
+    elseif cs == 3 then
+      term.setCursorPos(1,8)
+      term.setBackgroundColor(blue)
+      term.setTextColor(black)
+      term.clearLine()
+      printCentered(">   Shutdown   <")--8
+    end
+    local ps, cs, back = moveCheck(3,1)
+
+    if back then
+      break
+    end
+
+    if ps then
+      if cs == 1 then
+        System.logInfo("Recovery","Booting into RitoOS")
+        if fs.exists("/System/.Boot/BN") then
+          fs.delete("/System/.Boot/BN")
+        end
+        RitoOS_bootIntoRecovery = false
+        os.reboot(0.1, true)
+      elseif cs == 2 then
+        Troubleshoot()
+        Recovery()
+      elseif cs == 3 then
+        System.logInfo("Recovery","System shutting down.")
+        RitoOS_bootIntoRecovery = true
+        os.shutdown(0.1, true)
+      end
+    end
+  end -- End while
+
+  System.logInfo("Recovery","System shutting down.")
+  RitoOS_bootIntoRecovery = true
+  os.shutdown(0.1, true)
+
+end
+
+System.logInfo("Recovery","Loaded.")
+Recovery()

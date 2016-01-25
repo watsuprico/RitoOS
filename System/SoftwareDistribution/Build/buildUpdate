@@ -1,0 +1,68 @@
+local buildDirs = {"/System/",
+"/System/.Boot",
+"/System/.Recovery",
+"/System/APIs/",
+"/System/Configs/",
+"/System/Logs/",
+"/System/Programs/",
+"/System/Services/",
+"/APIs/",
+"/Programs/",
+"/Users/"}
+
+local downloadFiles = {"/System/.Boot/Boot.lua",
+"/System/.Recovery/.Recover",
+"/System/.version",
+"/System/APIs/Monitor/Monitor",
+"/System/APIs/StrUtils/StrUtils",
+"/System/APIs/System/System",
+"/System/APIs/Update/Update",
+"/System/Configs/.Rito.conf",
+"/System/Programs/disconnect",
+"/System/Programs/mon_connect",
+"/System/Programs/resize",
+"/System/Programs/uptime",
+"/System/Programs/Update",
+"/System/Services/Config/Config.serv",
+"/System/Services/Monitor/Monitor.serv",
+"/System/Services/OS/OS.serv",
+"/System/Services/RitLock/RitLock.serv",
+"/System/Services/Update/Update.serv",
+"/System/CMD.rxf",
+"/System/CodeX.rxf",
+"/System/Explorera.rxf",
+"/System/User.rxf",
+"/APIs/Readme.txt",
+"/Startup"}
+
+if not fs.isDir("/System/SoftwareDistribution/Backup/System") then
+	fs.makeDir("/System/SoftwareDistribution/Backup/System")
+else
+	fs.delete("/System/SoftwareDistribution/Backup")
+	fs.makeDir("/System/SoftwareDistribution/Backup/System")
+end
+
+for _,file in ipairs(fs.list("/System/")) do
+	if not fs.isReadOnly(file) then if file ~= "SoftwareDistribution" then
+		System.logInfo("Update - build","Backing up /System/"..file)
+		fs.copy("/System/"..file, "/System/SoftwareDistribution/Backup/System/"..file)
+	end end
+end
+
+for _,file in ipairs(fs.list("/")) do
+	if not fs.isReadOnly(file) then if file ~= "System" then
+		System.logInfo("Update - build","Backing up /"..file)
+		fs.copy("/"..file, "/System/SoftwareDistribution/Backup/"..file)
+	end end
+end
+
+System.logInfo("Update - build","Building update.")
+
+for i=1,#downloadFiles do
+	if fs.exists(downloadFiles[i]) then
+		fs.delete(downloadFiles[i])
+	end
+	if fs.exists('/System/SoftwareDistribution/Downloads'..downloadFiles[i]) then
+		fs.copy('/System/SoftwareDistribution/Downloads'..downloadFiles[i], downloadFiles[i])
+	end
+end

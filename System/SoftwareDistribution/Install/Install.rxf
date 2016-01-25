@@ -1,0 +1,222 @@
+--[[
+
+CREATED FOR RitoOS ALPHA 2.0.1; BUILD 0006
+
+Manual install:
+Github{ https://github.com/watsuprico/RitoOS/ }
+Update Site{ http://updates.watsuprico.com/RitoOS/ }
+
+Dirs, files, and help {
+
+[-APIs
+ |-ReadMe.txt                   | Info about the APIs dir
+
+[-Programs
+
+[-System
+| [-.Boot
+| | |-Boot.lua                  | The main boot file
+| 
+| [-.Recovery
+| | |-.Recover                  | System recovery program
+| 
+| [-APIs
+| | [-LockDown
+| |  |-LockDown                 | File Encryption API
+| | [-Monitor
+| |  |-Monitor                  | Monitor API
+| | [-StrUtils
+| |  |-StrUtils                 | Encryption API
+| | [-System
+| |  |-System                   | Core API
+| | [-Update
+| |  |-Update                   | Update API
+|
+| [-Configs
+| | |-.Rito.conf                | Main config file
+| | |-.Update.conf              | Update config file
+| 
+| [-Logs
+| | |-RitoOS.log                | All logged data
+|
+| [-Programs
+| | |-disconnect                | Disconnect from any connect monitor via monitor API
+| | |-mon_connect               | Search and connect to any attached monitors via monitor API
+| | |-resize                    | Resize the current window to fit the connected monitor via monitor API
+| | |-Update                    | Update RitoOS
+| | |-uptime                    | Check RitoOS's uptime
+|
+| [-Services
+| | [-Config
+| |  |-Config.serv              | Config service - Set and change vars
+| |
+| | [-Monitor
+| |  |-Monitor.serv             | Monitor service - Check monitor stats, disconnect from force disconnected monitors, and connect to any attached monitor
+| |
+| | [-OS
+| |  |-OS.serv                  | OS service - Rewrite core os. functions. (os.reboot)
+| |
+| | [-RitLock
+| |  |-RitLock.serv             | RitLock service - Protect system files
+| |
+| | [-Update
+| |  |-Update.serv              | Update service - Check for and install updates
+|
+| [-SoftwareDistribution
+| | [-Build
+| |  |-buildConfirm             | Use base32 hashes to verify update files
+| |  |-buildDownload            | Force download updates from the update server or github
+| |  |-buildUndo                | Rollback any update
+| |  |-buildUpdate              | Install new updates
+| |
+| | |-newVersionFile            | New update version info
+|
+| |-.version                    | RitoOS version info
+| |-CMD.rxf                     | CMD program, (shell like app.)
+| |-CodeX.rxf                   | Authentication program
+| |-Explorera.rxf               | Windows Explorer like shell/gui
+| |-User.rxf                    | A control panel for your user account
+
+[-Users
+
+|-Startup                       | Low level BSOD and RtioOS boot executable
+
+}
+
+]]--
+
+--Install vars
+diskMode = false
+devMode = false
+downloadUrl = "updates.watsuprico.com/RitoOS/Updates" -- From what site are we downloading RitoOS? 
+installType = "Alpha/Latest" -- *IF* you use github as the downloadUrl, then this option *ONLY* supports 'master' 'BetaUpdates' and 'Alpha-Builds' . *HOWEVER* anyother site supports *ONLY* 'stable' 'beta' and 'alpha'.
+
+-- Check one thing, are we in a advance compute;r?
+if not term.isColour() then
+    term.setBackgroundColor(colors.black)
+    term.clear()
+    term.setTextColor(colors.white)
+    printError("I'm sorry.. You need an 'advance computer' to install and run RitoOS... and this isn't an 'advance computer'.")
+end
+
+-- Functions
+local function PrintCentered(m)
+local _mL = string.len(m)
+local _scw,_ = term.getSize()
+local _xC = tonumber(math.ceil((_scw / 2) - (_mL / 2)))
+local _,tY = term.getCursorPos()
+term.setCursorPos(_xC,tY)
+print(m)
+end
+
+local function log(...)
+    file = assert(io.open("/RitoOS-Install.log", "a"))
+    file:write(os.time() .. " | ".. ...)
+    file:close()
+    if devMode then
+        print(...)
+    end
+end
+
+local function downloadPaste(code,path)
+    log("Request to download pastebin code: ".. code .. " . Saving code to: "..path)
+    if http then
+        local h=http.get('http://pastebin.com/raw.php?i='..code)
+        if h then
+            local f=fs.open(path,'w')
+            f.write(h.readAll())
+            f.close()
+            h.close()
+            log("Pastebin code downloaded!")
+            return true
+        else
+            log("Failed to download pastebin code. Unknown error (Is your internet working?)")
+            printError(":- Could not download "..code..", is your internet working? -:")
+        end
+    else
+        log("FATAL ERROR!! HTTP not enabled ! How did you run this pastebin installer?")
+        error(":- Http not enabled! Please enable http -:")
+        sleep(1)
+        return false
+    end
+end
+
+local function grabFile(url, saveAs)
+    log("Request to download file: ".. url .. " . Saving code to: "..saveAs)
+    if http then
+        local h=http.get(url)
+        if h then
+            local f=fs.open(path,'w')
+            f.write(h.readAll())
+            f.close()
+            h.close()
+            log("File downloaded!")
+            return true
+        else
+            log("Failed to download the file. Unknown error (Is your internet working?)")
+            printError(":- Could not download "..code..", is your internet working? -:")
+        end
+    else
+        log("FATAL ERROR!! HTTP not enabled ! How did you run this pastebin installer?")
+        error(":- Http not enabled! Please enable http -:")
+        sleep(1)
+        return false
+    end
+end
+-- End functions
+
+term.setBackgroundColor(colors.black)
+term.clear()
+term.setBackgroundColor(colors.gray)
+term.clear()
+term.setBackgroundColor(colors.lightGray)
+term.clear()
+term.setBackgroundColor(colors.white)
+term.clear()
+term.setTextColor(colors.black)
+term.setCursorPos(1,1)
+term.setBackgroundColor(colors.lgihtGray)
+term.clearLine()
+PrintCentered(":- RitoOS -:")
+print()
+log("Preparing install")
+PrintCentered(". . .  Preparing to install  . . .")
+log("Creating temp dir")
+PrintCentered(".- Creating Temp dir -.")
+
+
+if not fs.isDir("/.Temp/") then
+    log("Temp dir created")
+    fs.makeDir("/.Temp/")
+end
+
+log("Downloading support files")
+PrintCentered("..- Downloading support files -..")
+log("Downloading unpacker")
+PrintCentered("..- Downloading unpacker -..")
+downloadPaste("cUYTGbpb","/.Temp/Packer")
+
+log("Downloading PAK files")
+log("Downloading System.PAK")
+PrintCentered("..- Downloading System.PAK file -..")
+grabFile(downloadUrl.."/"..installType.."/System.PAK","/.Temp/SYS.PAK")
+log("Downloading APIs.PAK")
+PrintCentered("..- Downloading APIs.PAK file -..")
+grabFile(downloadUrl.."/"..installType.."/APIs.PAK","/.Temp/API.PAK")
+log("Downloading System.PAK")
+PrintCentered("..- Downloading Programs.PAK file -..")
+grabFile(downloadUrl.."/"..installType.."/Programs.PAK","/.Temp/PGRM.PAK")
+
+log("Unpacking the PAK files")
+log("Unpacking SYS.PAK")
+PrintCentered(".-.- Unpacking SYS.PAK -.-.")
+dofile("/.Temp/Packer","fileget","/.Temp/SYS.PAK","/System/")
+log("Unpacking API.PAK")
+PrintCentered(".-.- Unpacking API.PAK -.-.")
+dofile("/.Temp/Packer","fileget","/.Temp/API.PAK","/APIs/")
+log("Unpacking PGRM.PAK")
+PrintCentered(".-.- Unpacking PGRM.PAK -.-.")
+dofile("/.Temp/Packer","fileget","/.Temp/PGRM.PAK","/Programs/")
+
+PrintCentered(": Install complete :")
+PrintCentered(": Please reboot to enter RitoOS :")
