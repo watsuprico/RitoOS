@@ -1,0 +1,9 @@
+--[[
+
+	RitoOS Application Guard
+
+
+	Verify application signatures and preform other security checks before loading an application from a file (using loadfile).
+
+
+]]

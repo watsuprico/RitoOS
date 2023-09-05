@@ -1,2 +1,10 @@
+# Files
+*.ignore
+Tools/MEMDUMP
+
+
+# Unique system files
 System/Logs/*
+System/Vault/*
+Users/*
 Misc

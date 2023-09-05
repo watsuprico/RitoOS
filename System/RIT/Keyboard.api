@@ -1,0 +1,375 @@
+--[[
+
+    RitoOS Keyboard API
+
+]]
+
+local args = {...}
+local Internal = args[1]
+
+if (Internal == nil or type(Internal) ~= "table") then
+    error("Missing Internal object!")
+end
+local oc = Internal.Platform == "oc" and true or false
+
+
+
+
+local KeyboardAPI = {}
+
+
+KeyboardAPI.Keys = System.Table.Seal(Internal.Native.keys) -- lock'd
+
+
+function KeyboardAPI.GetKeyCode(keyName)
+    System.CheckArgument(1, keyName, "string")
+    keyName = Internal.Native.string.lower(keyName)
+
+    for name, code in pairs(Internal.Native.keys) do
+        if (Internal.Native.string.lower(name or "") == keyName) then
+            return code
+        end
+    end
+
+    return nil
+end
+
+function KeyboardAPI.GetKeyName(keyCode)
+    System.CheckArgument(1, keyCode, "number")
+    local name = Internal.Native.string.lower(KeyboardAPI.Keys[keyCode] or "")
+    return name ~= "" and name or nil
+end
+
+
+--[[
+    
+    Reads text input
+
+    maskCharacter: when text is entered, this character is printed rather than the actual character
+    options: {
+        options.History?: previous inputs
+        PredictionFunction?: function called to obtain a list of potential completion options
+        Default?: default entered text
+        PlaceHolder?: text shown when nothing is entered
+    }
+]]
+function KeyboardAPI.Read(maskCharacter, options)
+    System.CheckArgument(1, maskCharacter, "string", "nil")
+    System.CheckArgument(2, options, "table", "nil")
+
+    local options = options ~= nil and options or {}
+
+    term.setCursorBlink(true)
+
+    local currentTextInput = ""
+    if type(options.Default) == "string" then
+        currentTextInput = options.Default
+    end
+
+
+    local currentPosX, currentScrollAmount = #currentTextInput, 0
+    if maskCharacter then -- to do: mask string
+        maskCharacter = string.sub(maskCharacter, 1, 1)
+    end
+
+    local currentHistoryPos
+
+    local textPredictions
+    local currentTextPredictionIndex
+    local PredictionFunction = type(options.PredictionFunction) == "function"
+    local function computePredictions()
+        if (PredictionFunction) and currentPosX == #currentTextInput then
+            textPredictions = options.PredictionFunction(currentTextInput)
+            if textPredictions and #textPredictions > 0 then
+                currentTextPredictionIndex = 1
+            else
+                currentTextPredictionIndex = nil
+            end
+        else
+            textPredictions = nil
+            currentTextPredictionIndex = nil
+        end
+    end
+    local function unpredict()
+        textPredictions = nil
+        currentTextPredictionIndex = nil
+    end
+
+    local screenMaxWidth = term.getSize() -- replace with GPU call?
+    local currentCursorPosX = term.getCursorPos()
+
+    local placeHolderShown = false
+    local function redraw(clearEnteredText)
+        local virtualCursorPosX = currentPosX - currentScrollAmount
+        if currentCursorPosX + virtualCursorPosX >= screenMaxWidth then
+            -- We've moved beyond the right-hand side, ensure we're on the edge.
+            currentScrollAmount = currentCursorPosX + currentPosX - screenMaxWidth
+        elseif virtualCursorPosX < 0 then
+            -- We've moved beyond the left-hand side, ensure we're on the edge.
+            currentScrollAmount = currentPosX
+        end
+
+        local _, currentCursorPosY = term.getCursorPos()
+        term.setCursorPos(currentCursorPosX, currentCursorPosY)
+        local textToDisplay = clearEnteredText and " " or maskCharacter
+        if textToDisplay then
+            term.write(string.rep(textToDisplay, math.max(#currentTextInput - currentScrollAmount, 0)))
+        else
+            if (currentTextInput == "" and type(options.PlaceHolder) == "string") then
+                placeHolderShown = true
+                term.write(string.sub(options.PlaceHolder, 0, screenMaxWidth-currentCursorPosX - 1))
+            else
+                term.write(string.sub(currentTextInput, currentScrollAmount + 1))
+                if (currentTextInput ~= "" and placeHolderShown) then
+                    placeHolderShown = false
+                    term.write(string.rep(" ", math.max(#options.PlaceHolder-1, 0)))
+                    term.setCursorPos(currentCursorPosX+#currentTextInput, currentCursorPosY)
+                end
+            end
+        end
+
+        if currentTextPredictionIndex then
+            local prediction = textPredictions[currentTextPredictionIndex]
+            local oldText, oldBg
+            if not clearEnteredText then
+                oldText = term.getTextColor()
+                oldBg = term.getBackgroundColor()
+                term.setTextColor(colors.white)
+                term.setBackgroundColor(colors.gray)
+            end
+            if textToDisplay then
+                term.write(string.rep(textToDisplay, #prediction))
+            elseif not placeHolderShown then
+                term.write(prediction)
+            end
+            if not clearEnteredText then
+                term.setTextColor(oldText)
+                term.setBackgroundColor(oldBg)
+            end
+        end
+
+        term.setCursorPos(currentCursorPosX + currentPosX - currentScrollAmount, currentCursorPosY)
+    end
+
+    local function clear()
+        redraw(true)
+    end
+
+    computePredictions()
+    redraw()
+
+    local function acceptCompletion()
+        if currentTextPredictionIndex then
+            -- Clear
+            clear()
+
+            -- Find the common prefix of all the other suggestions which start with the same letter as the current one
+            local prediction = textPredictions[currentTextPredictionIndex]
+            currentTextInput = currentTextInput .. prediction
+            currentPosX = #currentTextInput
+
+            -- Redraw
+            computePredictions()
+            redraw()
+        end
+    end
+    while true do
+        local event = {System.EventEmitter.Pull()}
+        if event[1] == "keyboard_character" then
+            -- Typed key
+            clear()
+            currentTextInput = string.sub(currentTextInput, 1, currentPosX) .. event[2] .. string.sub(currentTextInput, currentPosX + 1)
+            currentPosX = currentPosX + 1
+            computePredictions()
+            redraw()
+
+        elseif event[1] == "paste" then
+            -- Pasted text
+            clear()
+            currentTextInput = string.sub(currentTextInput, 1, currentPosX) .. event[2] .. string.sub(currentTextInput, currentPosX + 1)
+            currentPosX = currentPosX + #event[2]
+            computePredictions()
+            redraw()
+
+        elseif event[1] == "keydown" or event[1] == "keyhold" then
+            -- print(event[2], "==", KeyboardAPI.GetKeyCode("enter"))
+            if event[2] == KeyboardAPI.GetKeyCode("enter") or event[2] == KeyboardAPI.GetKeyCode("numPadEnter") then
+                -- Enter/Numpad Enter
+                if currentTextPredictionIndex then
+                    clear()
+                    unpredict()
+                    redraw()
+                end
+                break
+
+            elseif event[2] == KeyboardAPI.GetKeyCode("left") then
+                -- Left
+                if currentPosX > 0 then
+                    clear()
+                    if event[3].Ctrl == true then
+                        -- move left by one word :p
+                        local leftHandText = string.sub(currentTextInput, 1, currentPosX)
+                        local lastWordBeforeSpaceIndex = string.find(leftHandText, "%s[^%s]-$") or 0
+                        currentPosX = currentPosX - (currentPosX-lastWordBeforeSpaceIndex)-1
+                        if (currentPosX < 0) then
+                            currentPosX = 0
+                        end
+                    else
+                        currentPosX = currentPosX - 1
+                    end
+                    computePredictions()
+                    redraw()
+                end
+
+            elseif event[2] == KeyboardAPI.GetKeyCode("right") then
+                -- Right
+                if currentPosX < #currentTextInput then
+                    -- Move right
+                    clear()
+                    if event[3].Ctrl == true then
+                        -- move right by one word :p
+                        local rightHandText = string.sub(currentTextInput, currentPosX + 1)
+                        local firstWordAfterSpaceIndex = string.find(rightHandText, "[^%s]%s") or #rightHandText-1
+                        currentPosX = currentPosX + firstWordAfterSpaceIndex + 1
+                        if (currentPosX > #currentTextInput) then
+                            currentPosX = #currentTextInput
+                        end
+                    else
+                        currentPosX = currentPosX + 1
+                    end
+                    computePredictions()
+                    redraw()
+                elseif (not placeHolderShown) or (#currentTextInput > 1) then
+                    -- Accept autocomplete
+                    acceptCompletion()
+                end
+
+            elseif event[2] == KeyboardAPI.GetKeyCode("up") or event[2] == KeyboardAPI.GetKeyCode("down") then
+                -- Up or down
+                if currentTextPredictionIndex then
+                    -- Cycle completions
+                    clear()
+                    if event[2] == KeyboardAPI.GetKeyCode("up") then
+                        currentTextPredictionIndex = currentTextPredictionIndex - 1
+                        if currentTextPredictionIndex < 1 then
+                            currentTextPredictionIndex = #textPredictions
+                        end
+                    elseif event[2] == KeyboardAPI.GetKeyCode("down") then
+                        currentTextPredictionIndex = currentTextPredictionIndex + 1
+                        if currentTextPredictionIndex > #textPredictions then
+                            currentTextPredictionIndex = 1
+                        end
+                    end
+                    redraw()
+
+                elseif type(options.History) == "table" then
+                    -- Cycle history
+                    clear()
+                    if event[2] == KeyboardAPI.GetKeyCode("up") then
+                        -- Up
+                        if currentHistoryPos == nil then
+                            if #options.History > 0 then
+                                currentHistoryPos = #options.History
+                            end
+                        elseif currentHistoryPos > 1 then
+                            currentHistoryPos = currentHistoryPos - 1
+                        end
+                    else
+                        -- Down
+                        if currentHistoryPos == #options.History then
+                            currentHistoryPos = nil
+                        elseif currentHistoryPos ~= nil then
+                            currentHistoryPos = currentHistoryPos + 1
+                        end
+                    end
+                    if currentHistoryPos then
+                        currentTextInput = options.History[currentHistoryPos]
+                        currentPosX, currentScrollAmount = #currentTextInput, 0
+                    else
+                        currentTextInput = ""
+                        currentPosX, currentScrollAmount = 0, 0
+                    end
+                    unpredict()
+                    redraw()
+
+                end
+
+            elseif event[2] == KeyboardAPI.GetKeyCode("backspace") then
+                -- Backspace
+                if currentPosX > 0 then
+                    clear()
+                    if event[3].Ctrl == true then
+                        -- delete whole word
+                        local leftHandText = string.sub(currentTextInput, 1, currentPosX)
+                        local lastWordBeforeSpaceIndex = string.find(leftHandText, "%s[^%s]-$") or 0
+                        local moveAmount = (currentPosX-lastWordBeforeSpaceIndex)+1
+                        if (currentPosX - moveAmount) < 0 then
+                            moveAmount = currentPosX
+                        end
+                        currentTextInput = string.sub(currentTextInput, 0, currentPosX - moveAmount) .. string.sub(currentTextInput, currentPosX + 1)
+                        currentPosX = currentPosX - moveAmount
+                    else
+                        currentTextInput = string.sub(currentTextInput, 1, currentPosX - 1) .. string.sub(currentTextInput, currentPosX + 1)
+                        currentPosX = currentPosX - 1
+                    end
+                    if currentScrollAmount > 0 then currentScrollAmount = currentScrollAmount - 1 end
+                    computePredictions()
+                    redraw()
+                end
+
+            elseif event[2] == KeyboardAPI.GetKeyCode("home") then
+                -- Home
+                if currentPosX > 0 then
+                    clear()
+                    currentPosX = 0
+                    computePredictions()
+                    redraw()
+                end
+
+            elseif event[2] == KeyboardAPI.GetKeyCode("delete") then
+                -- Delete
+                if currentPosX < #currentTextInput then
+                    clear()
+                    if (event[3].Ctrl == true) then
+                        -- remove whole word
+                        local rightHandText = string.sub(currentTextInput, currentPosX + 1)
+                        local firstWordAfterSpaceIndex = string.find(rightHandText, "[^%s]%s") or #rightHandText-1
+                        currentTextInput = string.sub(currentTextInput, 1, currentPosX) .. string.sub(currentTextInput, currentPosX + firstWordAfterSpaceIndex + 2)
+                    else
+                        currentTextInput = string.sub(currentTextInput, 1, currentPosX) .. string.sub(currentTextInput, currentPosX + 2)
+                    end
+                    computePredictions()
+                    redraw()
+                end
+
+            elseif event[2] == KeyboardAPI.GetKeyCode("end") then
+                -- End
+                if currentPosX < #currentTextInput then
+                    clear()
+                    currentPosX = #currentTextInput
+                    computePredictions()
+                    redraw()
+                end
+
+            elseif event[2] == KeyboardAPI.GetKeyCode("tab") then
+                -- Tab (accept autocomplete)
+                acceptCompletion()
+
+            end
+
+        elseif event[1] == "term_resize" then
+            -- Terminal resized
+            screenMaxWidth = term.getSize()
+            redraw()
+        end
+    end
+
+    local _, currentCursorPosY = term.getCursorPos()
+    term.setCursorBlink(false)
+    term.setCursorPos(screenMaxWidth + 1, currentCursorPosY)
+    print()
+
+    return currentTextInput
+end
+
+return KeyboardAPI

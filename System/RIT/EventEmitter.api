@@ -1,0 +1,288 @@
+--[[
+	
+	RitoOS Events Handler API
+
+]]
+local MAX_EVENTS = 1000
+local MAX_LISTENERS = 50
+
+
+
+
+local args = {...}
+local Internal = args[1]
+
+if (Internal == nil or type(Internal) ~= "table") then
+	error("Missing Internal object!")
+end
+local oc = Internal.Platform == "oc" and true or false
+
+
+
+local EventQueue = {} -- event queue
+local Listeners = {} -- event listeners
+
+local EventEmitter = {}
+
+EventEmitter.Id = System.GetAPI("uuid").Create()
+EventEmitter.DoNotPush = false
+local Log = System.GetLog("EventEmitter|"..EventEmitter.Id, Internal.RuntimeKey)
+
+
+EventEmitter.Errors = {
+	["TooManyEvents"] = "Too many events",
+	["TooManyListeners"] = "Too many listeners for this event"
+}
+
+
+-- Listener
+local EventListener = {}
+EventListener.__index = EventListener
+
+function EventListener.New(event, callback, oneTimeListener)
+	Internal.System.CheckArgument(1, event, "string")
+	Internal.System.CheckArgument(2, callback, "function")
+	if (oneTimeListener == nil) then oneTimeListener = false end
+	Internal.System.CheckArgument(3, oneTimeListener, "boolean")
+
+	event = string.lower(event)
+
+	local self = {}
+	setmetatable(self, EventListener)
+	self.EventEmitter = EventEmitter
+	self.Event = event
+	self.Callback = callback
+	self.OneTimeListener = oneTimeListener
+
+	return self
+end
+
+function EventListener:Activate(...)
+	if (self.OneTimeListener) then
+		self.EventEmitter.RemoveEventListener(self.Event, self.Callback)
+	end
+
+	self.Callback(...)
+end
+
+
+
+--[[
+	Creates and adds an EventListener for an event. When the event is fired, the callback is called with the event arguments passed.
+
+	event: string - event to listen for
+	callback: function - function called on event
+	[oneTimeListener: boolean=false] - remove listener after event is received (use the EventEmitter.Pull instead, similar idea but easier to manage)
+	[prependListener: boolean=false] - puts the EventListener at the topic of the listener stack, so the callback is the first one hit now. Requires reorganizing the stack, do not use.
+]]
+function EventEmitter.AddEventListener(event, callback, oneTimeListener, prependListener)
+	Internal.System.CheckArgument(1, event, "string")
+	Internal.System.CheckArgument(2, callback, "function")
+	if (type(oneTimeListener) ~= "boolean") then
+		oneTimeListener = false
+	end
+	if (type(prependListener) ~= "boolean") then
+		prependListener = false
+	end
+
+	event = string.lower(event)
+
+	if (Listeners == nil) then
+		Listeners = {}
+	end
+	if (#Listeners >= MAX_EVENTS) then
+		return nil, EventEmitter.Errors.TooManyEvents
+	end
+
+	if (Listeners[event] == nil) then
+		Listeners[event] = {}
+	end
+	if (#Listeners[event] >= MAX_LISTENERS) then
+		return nil, EventEmitter.Errors.TooManyListeners
+	end
+
+	local eventListener = EventListener.New(event, callback, oneTimeListener)
+
+	if prependListener then
+		local listeners = {}
+		Internal.System.Table.insert(listeners, eventListener)
+		for i,litener in ipairs(Listeners[event]) do
+			Internal.System.Table.insert(Listeners[event], listener)
+		end
+	else
+		Internal.System.Table.insert(Listeners[event], eventListener)
+	end
+
+	return true
+end
+
+--[[
+	
+	Removes an event listener, or, if no callback specified, all events for that listener
+
+	Returns the number of EventListeners removed
+]]
+function EventEmitter.RemoveEventListener(event, callback)
+	Internal.System.CheckArgument(1, event, "string")
+	Internal.System.CheckArgument(2, callback, "function", "nil")
+
+	event = string.lower(event)
+
+	local indicesToRemove = {}
+	for i, k in ipairs(Listeners[event]) do
+		if Listeners[event] ~= nil and (callback == nil or k.Callback == callback) then
+			Internal.System.Table.insert(indicesToRemove, i)
+		end
+	end
+	for i = #indicesToRemove, 1, -1 do
+		Internal.System.Table.remove(Listeners[event], indicesToRemove[i])
+	end
+
+	if (#Listeners[event] == 0) then
+		Listeners[event] = nil
+	else
+		Listeners[event] = listeners
+	end
+	return #indicesToRemove
+end
+
+
+--[[
+	Pushes a event to all listeners
+
+	This will block your code while all callbacks are called.
+]]
+function EventEmitter.Emit(event, ...)
+	Internal.System.CheckArgument(1, event, "string")
+
+	if (event == EventEmitter.Id) then
+		return
+	end
+
+	local eventArgs = {...}
+
+	event = string.lower(event)
+
+	local currentEventQueue = Internal.System.Table.Copy(EventQueue)
+	EventQueue = {}
+	-- print("CURRENT_QUEUE: ", table.unpack(currentEventQueue or {}))
+
+	if not EventEmitter.DoNotPush then
+		-- print(EventEmitter.Id .. "|>EMIT: ", event)
+		if Internal.Platform == "oc" then
+			Internal.Native.computer.pushSignal(EventEmitter.Id, event, Internal.System.Table.unpack(eventArgs))
+		else
+			Internal.Native.os.queueEvent(EventEmitter.Id, event, Internal.System.Table.unpack(eventArgs))
+		end
+	end
+
+	if (Listeners[event] ~= nil) then
+
+	local i = 0
+		for i, k in ipairs(Listeners[event]) do
+			if Listeners[event] ~= nil then
+				local ok, err = pcall(function()
+					k:Activate(Internal.System.Table.unpack(eventArgs))
+				end)
+				if not ok then
+					Log.Warn("Failed to activate listener " .. tostring(k) .. " for event " .. event .. " because of error: " .. tostring(err))
+				end
+			end
+			i = i + 1
+			if (i%5) then
+				EventEmitter.Pull(nil, 0)
+			end
+		end
+	end
+
+	for i, event in ipairs(currentEventQueue or {}) do
+		-- print("PUSH_QUEUED: ", table.unpack(event))
+		EventEmitter.Emit(Internal.System.Table.unpack(event))
+	end
+end
+
+--[[
+	Pushes an event, the event listeners will then be notified when the Scheduler processes the the queue.
+
+	Use this to push an event but not block your code.
+]]
+function EventEmitter.Queue(...)
+	EventQueue = EventQueue ~= nil and EventQueue or {}
+	Internal.System.Table.insert(EventQueue, {...})
+	-- print("NEW_QUEUE: ", table.unpack(EventQueue or {}))
+end
+
+
+--[[
+	Synchronously waits for an event to be called.
+]]
+function EventEmitter.Pull(event, timeout)
+	if (timeout == nil and type(event) == number) then
+		timeout, event = event, nil
+	end
+
+	Internal.System.CheckArgument(1, event, "string", "nil")
+	Internal.System.CheckArgument(2, timeout, "number", "nil")
+
+	if (timeout ~= nil and timeout <= 0) then
+		timeout = 0.001
+	end
+
+	-- waits until the Emit pushes an event
+	local startTime = Internal.Native.os.clock()
+
+	if (Internal.Platform == "cc" and type(timeout) == "number") then
+		Internal.Native.os.startTimer(timeout)
+	end
+
+	local lastEvent = {}
+	while true do
+		if (Internal.Platform == "oc") and type(timeout) == "number" then
+			lastEvent = Internal.System.Table.pack(Internal.Native.computer.pullSignal(timeout))
+		else
+			lastEvent = Internal.System.Table.pack(coroutine.yield())
+		end
+
+		local matchedEvent = lastEvent[2] == event
+		if (event == nil) then
+			matchedEvent = true
+		end
+
+		if (lastEvent ~= nil and lastEvent[1] == EventEmitter.Id and matchedEvent) then
+			-- print(EventEmitter.Id .. "|>PULL: ", Internal.System.Table.unpack(lastEvent))
+			-- writeOutput(lastEvent)
+			-- writeOutput()
+			Internal.System.Table.remove(lastEvent, 1)
+			return Internal.System.Table.unpack(lastEvent)
+		end
+
+		if (timeout ~= nil and (Internal.Native.os.clock() - startTime) >= timeout) then
+			return nil
+		end
+	end
+end
+
+--[[
+	Synchronously waits for an event to be called.
+	Can be any hardware event
+]]
+function EventEmitter.PullRaw(event, timeout)
+	if (timeout == nil and type(event) == number) then
+		timeout, event = event, nil
+	end
+	Internal.System.CheckArgument(1, event, "string", "nil")
+	Internal.System.CheckArgument(2, timeout, "number", "nil")
+
+	if (type(Internal.SysEvents) == "table") then
+		return Internal.SysEvents.Pull(event, timeout)
+	end -- erhmmm, okay?
+end
+
+
+
+
+function EventEmitter.GetListeners()
+	return Listeners
+end
+
+return EventEmitter

@@ -1,0 +1,47 @@
+local args = {...}
+
+local InternalSystem=args[1]
+
+-- HOLTIN (PERMISSIONS) API
+-- RITOOS 2
+
+--[[
+
+	What we're here to achive:
+		Manage a database that determines if a caller (program) has permission to access a function.
+		So essentially a permission manager.
+		(If the system asks us if "ProgramA" has access to broadcast a message to the system realm, we return "yay" or "nay")
+
+	Access is given to users/groups/programs
+		Users are identified by their CodeX userID
+		Groups are identified by their CodeX groupID
+
+		Programs are a bit tricky and IDed by some SHA256 hash
+
+
+	What we control (static):
+		APIs (CodeX, TaskManager, etc)
+		System calls (shutdown, GetConfig, etc)
+		Peripheral (Monitor, Printer)
+		File System (System files, User files, etc)
+		Broadcaster (Broadcasting permissions)
+
+	What we control (run time)
+		Window objects (User windows, System windows, etc)
+
+
+
+	APIs can "register" hooks, or calls, they wish to control access to.
+	We then manage the users/groups/programs that have access to them.
+	Control can be given to users/groups (accounts) or programs (applications)
+
+
+	All this information is stored in the HSD (Holtin Static Database) using the System's RCF scheme
+
+	{FS}
+
+
+]]--
+
+local Database = InternalSystem.renderRCF("/System/Holtin.HSD")
+local RunTime = {}

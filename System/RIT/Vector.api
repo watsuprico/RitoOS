@@ -1,0 +1,249 @@
+--[[
+	
+	RIT Vector API
+		@since 1.0
+		@brief Basic vector type to represent a vector and provide basic vector operations.
+
+]]
+
+local VectorObj = {};
+local VectorAPI = {
+	x = 0,
+	y = 0,
+	z = 0,
+};
+
+-- Returns the passed number or 0 if not a number or nil.
+local function getNumber(num)
+	return tonumber(num) or 0;
+end
+
+
+-- Adds two vector objects together
+function VectorObj.Add(self, vector)
+	if self == nil then
+		error("You must use `:` not `.`.");
+	end
+	System.CheckArgument(1, vector, "table");
+
+	return VectorAPI.New(
+		getNumber(self.X)+getNumber(vector.X),
+		getNumber(self.Y)+getNumber(vector.Y),
+		getNumber(self.Z)+getNumber(vector.Z)
+	);
+end
+
+function VectorObj.Subtract(self, vector)
+	if self == nil then
+		error("You must use `:` not `.`.");
+	end
+	System.CheckArgument(1, vector, "table");
+
+	return VectorAPI.New(
+		getNumber(self.X)-getNumber(vector.X),
+		getNumber(self.Y)-getNumber(vector.Y),
+		getNumber(self.Z)-getNumber(vector.Z)
+	);
+end
+
+function VectorObj.Multiply(self, magnitude)
+	if self == nil then
+		error("You must use `:` not `.`.")
+	end
+	System.CheckArgument(1, magnitude, "number");
+	return VectorAPI.New(
+		getNumber(self.X)*magnitude,
+		getNumber(self.Y)*magnitude,
+		getNumber(self.Z)*magnitude
+	);
+end
+
+function VectorObj.Divide(self, magnitude)
+	if self == nil then
+		error("You must use `:` not `.`.")
+	end
+	System.CheckArgument(1, magnitude, "number");
+	return VectorAPI.New(
+		getNumber(self.X)/magnitude,
+		getNumber(self.Y)/magnitude,
+		getNumber(self.Z)/magnitude
+	);
+end
+
+function VectorObj.Negate(self)
+	if self == nil then
+		error("You must use `:` not `.`.");
+	end
+
+	return VectorAPI.New(
+		-getNumber(self.X),
+		-getNumber(self.Y),
+		-getNumber(self.Z)
+	);
+end
+
+
+-- Dot product of two vectors
+function VectorObj.Dot(self, vector)
+	if self == nil then
+		error("You must use `:` not `.`.");
+	end
+	System.CheckArgument(1, vector, "table");
+	return getNumber(self.X) * getNumber(vector.X) + getNumber(self.Y) * getNumber(vector.Y) + getNumber(self.Z) * getNumber(vector.Z)
+end
+
+-- Cross product of two vectors
+function VectorObj.Cross(self, vector)
+	if self == nil then
+		error("You must use `:` not `.`.");
+	end
+	System.CheckArgument(1, vector, "table");
+
+	local x = getNumber(self.X);
+	local y = getNumber(self.Y);
+	local z = getNumber(self.Z);
+	local vX = getNumber(vector.X);
+	local vY = getNumber(vector.Y);
+	local vZ = getNumber(vector.Z);
+
+	return VectorAPI.New(
+		y*vZ - z*vY,
+		z*vX - x*vZ,
+		x*vY - y*vX
+	);
+end
+
+-- Length of the function (sqrt(x^2 + y^2 + z^2)).
+function VectorObj.Length(self)
+	if self == nil then
+		error("You must use `:` not `.`.");
+	end
+	local x = getNumber(self.X);
+	local y = getNumber(self.Y);
+	local z = getNumber(self.Z);
+
+	return math.sqrt((x*x) + (y*y) + (z*z));
+end
+
+-- Divide the vector by its length, resulting in the same director with length of 1.
+function VectorObj.Normalize(self)
+	if self == nil then
+		error("You must use `:` not `.`.");
+	end
+	return self:Multiply(1/self:Length());
+end
+
+
+-- Projects a vector onto a different vector.
+function VectorObj.Project(self, ontoVector)
+	if self == nil then
+		error("You must use `:` not `.`.");
+	end
+	System.CheckArgument(1, vector, "table");
+
+	local dotProduct = self:Dot(ontoVector)
+	local ontoVectorLength = ontoVector:Length()
+
+	if ontoVectorLength == 0 then
+		error("Cannot project onto a zero-length vector.")
+	end
+
+	local scale = dotProduct / (ontoVectorLength*ontoVectorLength)
+	return ontoVector * scale
+end
+
+
+-- Check if two vectors are orthogonal (perpendicular)
+function VectorObj.IsOrthogonalTo(self, vector)
+    if self == nil then
+		error("You must use `:` not `.`.");
+	end
+	System.CheckArgument(1, vector, "table");
+
+    local dotProduct = self:Dot(vector)
+    return math.abs(dotProduct) < 1e-6
+end
+
+-- Check if a set of vectors is orthonormal
+function VectorObj.AreOrthonormalTo(self, ...)
+	if self == nil then
+		error("You must use `:` not `.`.");
+	end
+	local vectors = {...}
+	table.insert(vectors, self)
+
+    for i = 1, #vectors do
+        if vectors[i]:Length() ~= 1 then
+            return false -- Not all vectors have unit length
+        end
+        for j = i + 1, #vectors do
+            if not vectors[i]:IsOrthogonalTo(vectors[j]) then
+                return false -- Not all vectors are orthogonal
+            end
+        end
+    end
+
+    return true -- All vectors are orthonormal
+end
+
+
+
+-- Creates a vector with each dimension rounded to the nearest value.
+-- Tolerance represents what we should round to, defaulting at 1. So, a tolerance of 0.25 will round to the nearest 0.25.
+function VectorObj.Round(self, tolerance)
+	if self == nil then
+		error("You must use `:` not `.`.");
+	end
+	tolerance = tonumber(tolerance or 1) or 1;
+	return VectorAPI.New(
+		(math.floor((getNumber(self.X) + tolerance * 0.5) / tolerance) * tolerance),
+		(math.floor((getNumber(self.Y) + tolerance * 0.5) / tolerance) * tolerance),
+		(math.floor((getNumber(self.Z) + tolerance * 0.5) / tolerance) * tolerance)
+	);
+end
+
+
+-- Whether two vector's values are the same
+function VectorObj.Equals(self, vector)
+	if self == nil then
+		error("You must use `:` not `.`.");
+	end
+	System.CheckArgument(1, vector, "table");
+
+	return getNumber(self.X) == getNumber(vector.X) and  getNumber(self.Y) == getNumber(vector.Y) and getNumber(self.Z) == getNumber(vector.Z);
+end
+
+-- Returns the string representation of this vector, such as "1,2,3".
+function VectorObj.ToString(self)
+	if self == nil then
+		error("You must use `:` not `.`.");
+	end
+	return self.X ..",".. self.Y ..",".. self.Z;
+end
+
+
+
+
+
+
+local VectorObjMetatable = {
+	__index = VectorObj,
+	__add = VectorObj.Add,
+	__sub = VectorObj.Subtract,
+	__mul = VectorObj.Multiply,
+	__div = VectorObj.Divide,
+	__unm = VectorObj.Negate,
+	__tostring = VectorObj.ToString,
+	__eq = VectorObj.Equals,
+};
+
+function VectorAPI.New(x, y, z)
+	return setmetatable({
+		X = tonumber(x) or 0,
+		Y = tonumber(y) or 0,
+		Z = tonumber(z) or 0
+	}, VectorObjMetatable);
+end
+VectorAPI.new = VectorAPI.New;
+
+return VectorAPI;

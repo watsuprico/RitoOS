@@ -1,0 +1,248 @@
+--[[
+	IHP: Hashed password stored in memory (hash step 1)
+	FHP: Hashed password stored to file (final hash)
+
+	/$ProfilePath/User.CUD -> CodeX User Database
+
+	/System/Accounts.RCF -> CodeX Account File (RCF format)
+
+	CodeX User Database:
+		Stored using a the RCF scheme
+			Password data stored as a string in this format: !METHOD:Iterations!METHOD2:Iterations2\FHP#0salt
+			Password 'criteria' (for new passwords) in this format: !METHOD:Iterations!METHOD2:Iterations2#0
+			Note: time stored as os.day():os.time()
+
+	Types:
+		codex:password_data { ( !METHOD:Iterations!METHOD2:Iterations2\FHP#0salt )
+			IHP = {
+				method = METHOD,
+				iv = Iterations,
+				saltHashed = 0, (0=false, 1=true)
+			},
+			FHP = {
+				method = METHOD2,
+				iv = Iterations2,
+				hash = FHP,
+				salt = salt,
+			}
+		}
+		codex:password_criteria { ( !METHOD:Iterations!METHOD2:Iterations2 )
+			IHP = {
+				method = METHOD,
+				iv = Iterations,
+				hashedSalt = hashSalt
+			},
+			FHP = {
+				method = METHOD2,
+				iv = Iterations2,
+			}
+		}
+
+		codex:user {
+			type="codex:user",
+			user = InternalSystem.CodeX.Users[userID],
+			userID = ""
+		}
+		codex:group {
+			type="codex:group",
+			group = InternalSystem.CodeX.Groups[userID],
+			groupID = ""
+		}
+
+
+	{CODEX:<USER | GROUP>:<ID>}
+
+	Users:
+	{Users}
+		{2401079198}							|> User ID is the CRC32 of the username (lowercase)
+			[cudScheme](number)1						| Account scheme version
+
+			[username](string)Administrator				| User name
+			[fullName](string)Administrator 			| Full name
+			[comment](string)Default account			| Additional comments
+			[profilePath](string)/Users/$username		| Path to the user's profile
+
+			[creation](time)0:0							| Time when the account was created
+			[creationBy](string)CodeX User Manager CUM 	| Who(/What) created the account
+
+			[pwSignature](string)SHA256 hash of 'pw' and the RSMK (RitoOS System Master Key)
+			[pw](codex:password_data)!METHOD:Iterations!METHOD2:Iterations2\FHP#0salt 		| !IHP Method : IHP Iterations ! FHP Method : FHP Iterations \ FHP # (Encrypted = 1) salt (Converted to charmap)
+			[pwCriteria](codex:password_criteria)!METHOD:Iterations!METHOD2:Iterations2#0	| !IHP Method : IHP Iterations ! FHP Method : FHP Iterations # Encrypt salt (use to generate new passwords)
+			[pwCriteriaCustom](boolean)true 			| Use the user's pwCriteria rather than default
+
+			[expires](time)0:0							| When the password expires
+			[locked](boolean)true						| Account locked?
+			{last}
+				[login](time)0:0						| Last SUCCESSFUL login time
+				[failed](time)0:0						| Last FAILED login time
+				[changed](time)0:0						| Last time the password was changed
+				[changedBy](codex:user)2401079198
+			/}
+			[badPasswordCount](number)0					| Number of failed login attempts
+			[loginCount](number)0						| Number of successful login attempts
+
+			{Groups}								| User is apart of these groups
+				[0](codex:group)2705061997			| Group user is apart of (the index represents order of application, primary, 1, 2, ..., n )
+			/}
+		/}
+	/}
+
+	Groups:
+	{Groups}
+		{2705061997}
+			[name](string)Administrators
+			[comment](string)
+	
+			[managedBy](codex:user)2401079198			| Inherits permissions to add/remove users
+
+			{Users}
+				[0](codex:user)2401079198				| Replaced by the 'user' type during runtime
+			/}
+		/}
+		{1933103605}
+			[name](string)Users
+			[comment](string)Default users group
+
+			[managedBy](codex:user)2401079198
+
+			{Users}
+				[0](codex:user)2401079198
+			/}
+		/}
+	/}
+
+
+
+
+
+
+	Password management:
+
+
+	"Salt": 32 random characters (char set: 1->255) >-> Saved to file, BUT encrypted first using AES.
+
+	>><< PBKDF2(password,salt,iv,length)
+
+
+
+	Intermediate Hashed Password:
+						.------ Pepper (System security token (protects remote attacks ..?? -- need to breach two databases))
+						V
+		password ---> PBKDF2 (25 iterations IHP.iv) <---- Pepper
+						|
+						V
+				Salt <-AES (decrypt salt) (Note: potential point of weakness, therefore this is optional)
+						|
+						|<--- Pepper (System security token)
+						V
+		password ---> PBKDF2 (25 iterations IHP.iv)
+						|
+						|---> System memory (IHP)
+						V
+					** IHP **
+
+
+
+
+	Final Hashed Password:
+			Unknown methods: SHA256
+			Primary Method @ Secondary Method @ nTH Method
+			(
+
+				Example: PBKDF2@SHA256   |    PBKDF2 --> SHA256 --> FHP
+
+				Example: SHA256@RS@PBKDF2@SHA256   |   SHA256 --> RandomString --> PBKDF2 --> SHA256 --> FHP
+
+			)
+			*.N means salt is NOT added in to method *
+			*.G mean salt is "salted" then added in to method *
+			*.%D (digit) means do %D passes of method *
+
+			   Method SHA256:
+		IHP -->    SHA256    --> SHA256>FHP
+		
+				 Method RS:
+		IHP --> RandomString --> SHA256>FHP
+				(Char 32-126)
+
+			   Method PBKDF2:
+		IHP -->    PBKDF2    --> SHA256>FHP
+			 (IV always FHP.iv)
+
+]]
+
+
+--[[
+	-- For creating a new <X>
+	Template.GetUser()
+	Template.GetGroup()
+
+	AddUser(table userData)
+	DeleteUser(string userID | table codex:user)
+
+	NewGroup(table groupData)
+	DeleteGroup(string groupID | table codex:group)
+
+	
+	NewPassword(IHP newPassword) -- Permission based off of callerKey
+	ChangePassword(IHP oldPassword, IHP newPassword)
+	
+
+
+	Is administrator
+
+
+
+
+
+	TO DO:
+
+
+	BUGS:
+		FHP method: .G fails
+		salt encryption fails
+
+
+
+	remember IHP is typically a boolean flag that marks if password is the IHP or not
+
+	function CodeX.Version()
+	function CodeX.GetUserID(username)
+	function CodeX.GetUsername(searchData)
+	function CodeX.GetUserList()
+	function CodeX.RandomString(l,s,cL,cU,r)
+	function CodeX.GenerateSalt(s) -- string s (s -> salt seed)
+	function CodeX.GetUserSalt(username, password[, ?IHP, pwCriteria]) -- Internal ??
+	function CodeX.GetIHP(username, password[, salt, pwCriteria])
+	function CodeX.GetFHP(username, password[, ?IHP, salt, pwCriteria])
+	function CodeX.ValidatePassword(username, password[, ?IHP])
+	function CodeX.SavePassword(username, password[, ?IHP])
+	function CodeX.DeleteUser(username, password[, ?IHP])
+	function CodeX.AddUser(username, password, userData) -- Just pass the username and (user data (table with predefined settings) if wanted)
+	function CodeX.SetGroupPriority(username, groupID, priority)
+	function CodeX.AddGroup(username, groupID, priority)
+	function CodeX.RemoveGroup(username, groupID)
+	function CodeX.ListGroups(username)
+	function CodeX.ChangeUsername(currentUsername, newUsername)
+	function CodeX.SetUserProperty(username, property, value)
+	function CodeX.GetUserProperty(username, property)
+	function CodeX.ControlPannel() -- Manage user data
+	function CodeX.InitiateUser(userID, IHP) -- Initiate a user or 'log' them in.
+	function CodeX.FirstRun(force)
+	function CodeX.DrawLogin(gui, textMode)
+	function CodeX.Initial() -- Initial, the login screen. Called by the bootloader when boot is 'completed'
+
+
+
+	Login (initiateUser):
+		Obtain the userID, IHP, username, CUM entry, and account data (CUD, preferences)
+		call InternalSystem.TaskMan.NewSession(userPackage)
+
+		userPackage: {
+				[username],
+				[userID],
+				[IHP],
+				[CUD],
+			}
+
+]]

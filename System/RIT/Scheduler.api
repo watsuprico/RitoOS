@@ -1,0 +1,570 @@
+--[[
+
+	Jello Scheduler
+
+
+	Developed with love by @Watsuprico
+]]
+
+local args = {...}
+local Internal = args[1]
+
+if (Internal == nil or type(Internal) ~= "table") then
+	error("Missing Internal object!")
+end
+local oc = Internal.Platform == "oc" and true or false
+
+
+
+local lastPid = 0
+
+
+local Scheduler = {};
+
+
+
+Scheduler.GlobalEventQueue = {}; -- If events are globally queue, they live here
+
+Scheduler.QueueSizeLimit = 25; -- Queue will be pushed to threads once growing to this size. (Once QueueSizeLimit number of events have been received, we push all queued events to the threads)
+Scheduler.QueueEvents = false; -- Disable, having this enabled adds overhead and slows it down. If disabled, two things above mean nothing.
+Scheduler.ExitOnNoThreads = true; -- Exits the main loop when all threads have stopped.
+Scheduler.NoThreadsHandler = nil; -- Function that is called when all threads close. This Scheduler object is passed as the first (and only) parameter. If you return true, the Scheduler exits
+Scheduler.ExitOnEvent = false; -- Allows the Scheduler to stop upon receiving a special event (Scheduler.ExitEvent)
+Scheduler.ExitEvent = "terminate"; -- If Scheduler.ExitOnEvent is true, this is the event that needs to be queued for the Scheduler to exit. When captured, Scheduler returns "furnit::Scheduler::exitevent",Scheduler.ExitEvent
+
+
+
+
+
+
+
+local ProcessObj = {}
+ProcessObj.__index = ProcessObj
+
+--[[
+	Creates a new process, this automatically loads the application and runs it in a new thread (coroutine).
+	All code is loaded via the ApplicationGuard
+
+	processInformation:
+		Path -- parent directory (?)
+		PackageName -- name of RitoOS package
+		ExecutableName -- name of executable (non-RitoOS application)
+
+		CompatibilityModes: {
+			cc: "full", "minimum" -- ComputerCraft compatibility
+		}
+
+
+]]
+function ProcessObj.New(parentSession, processInformation, environment, ...)
+	System.CheckArgument(1, processInformation, "table")
+	System.CheckArgument(2, environment, "table", "nil")
+
+	local runArguments = {...}
+
+	local self = {}
+	Internal.Native.setmetatable(self, ProcessObj)
+
+	print(processInformation.Path)
+	print(processInformation.ExecutableName)
+	if (type(processInformation.Path) ~= "string" or (type(processInformation.PackageName) ~= "string" and type(processInformation.ExecutableName) ~= "string")) then
+		error("No executable path provided.")
+	end
+	if (processInformation.PackageName ~= nil and processInformation.ExecutableName ~= nil) then
+		error("Only one executable path may be provided")
+	end
+
+	if (type(processInformation.CompatibilityModes) ~= "table") then
+		processInformation.CompatibilityModes = {}
+	end
+
+	self.PID = lastPid
+	lastPid = lastPid + 1
+
+	self.Session = parentSession
+
+	self.Path = processInformation.Path
+	self.PackageName = processInformation.PackageName
+	self.ExecutableName = processInformation.ExecutableName
+	self.CompatibilityModes = {
+		["cc"] = processInformation.CompatibilityModes.cc
+	}
+
+	self.Threads = {}
+
+	local processEnvironment = self:GetProcessEnvrionment()
+	-- Internal.Native.setmetatable(processEnvironment, environment)
+
+	-- run the program
+	-- local mainFunction, err = Session.ApplicationGuard.GetMain({["Path"] = self.Path, ["PackageName"] = self.PackageName, ["ExecutableName"] = self.ExecutableName}, processEnvironment, ...)
+	local program = tostring(self.Path) .. tostring(self.ExecutableName or self.PackageName)
+	local mainFunction, err = Internal.Native.loadfile(program, nil, processEnvironment)
+	if (mainFunction ~= nil) then
+		local mainThread = {
+			["status"] = "suspended",
+			["coroutine"] = Internal.Native.coroutine.create(function()
+				local ok, err = pcall(function()
+					if #runArguments>=1 and (type(runArguments[1]) ~= "table" or (type(runArguments[1]) == "table" and #runArguments[1]>=1)) then
+						mainFunction(System.Table.unpack(runArguments))
+					else
+						mainFunction()
+					end
+				end)
+				if not ok then
+					print(err)
+				end
+			end)
+		}
+		System.Table.insert(self.Threads,mainThread)
+	else
+		error("Failed to load application, error: " .. err)
+	end
+
+	return self
+end
+
+--[[
+	Creates a new thread running the passed function.
+]]
+function ProcessObj:NewThread(func, ...)
+	System.CheckArgument(1, func, "function")
+	local args = {...}
+	local newThread = {
+		["status"] = "suspended",
+		["coroutine"] = Internal.Native.coroutine.create(function() func(System.Table.unpack(args)) end)
+	}
+	System.Table.insert(self.Threads,mainThread)
+end
+
+function ProcessObj:GetProcessEnvrionment()
+	-- This creates the "sandbox" environment used by applications within this session
+	local processEnvironment = { -- this is the environment itself
+		["Application"] = System.Table.Copy(self), -- us
+		["Session"] = self.Session, -- remove things later!
+		["System"] = System,
+		setmetatable = setmetatable,
+		term = term,
+		pcall = pcall,
+		print = print,
+		error = error
+	}
+	processEnvironment._G = processEnvironment
+
+	-- hmmm, if only we had some abstraction layer stuff, maybe like a folder ??
+	if (self.CompatibilityModes.cc == "minimum" or self.CompatibilityModes.cc == "full") then
+		-- copy (create) 'require'
+		local make_package = Internal.BootConfig.DoFile("rom/modules/main/cc/require.lua").make
+		processEnvironment.shell = {
+			["dir"] = function() return self.Path end
+		}
+		local function createShellEnv(dir)
+			local env = { shell = processEnvironment.shell, multishell = Internal.Native.multishell }
+			env.require, env.package = make_package(env, dir)
+			return env
+		end
+		local require
+		do
+			local env = setmetatable(createShellEnv("/rom/programs"), { __index = _ENV })
+			processEnvironment.require = env.require
+			processEnvironment.package = env.package
+		end
+
+		processEnvironment.os = {
+			["dofile"] = function(filePath)
+				self.Session:NewProcess({
+					["Path"] = processEnvironment.System.FileSystem.GetParent(filePath),
+					["ExecutableName"] = processEnvironment.System.FileSystem.GetName(filePath),
+					CompatibilityModes = {
+						["cc"] = self.CompatibilityModes.cc
+					}
+				}, processEnvironment)
+			end,
+			["pullEvent"] = function(event) return processEnvironment.System.EventEmitter.Pull(event) end,
+			["pullEventRaw"] = function(event) return processEnvironment.System.EventEmitter.Pull(event) end
+		}
+		processEnvironment.dofile = processEnvironment.os.dofile
+	end
+
+	if (self.CompatibilityModes.cc == "full") then
+		processEnvironment.table = System.Table
+		processEnvironment.colours = _ENV.colours
+		processEnvironment.colors = _ENV.colors
+	end
+
+	local mt = {
+		__index = function(_, k)
+			if processEnvironment[k] ~= nil then
+				-- print("processEnvironment["..k.."]")
+				return processEnvironment[k]
+			else
+				-- print("NIL::processEnvironment["..k.."]")
+				return _G[k]
+			end
+		end,
+		__newindex = function(_, k, v)
+			processEnvironment[k] = v
+		end
+	}
+
+
+	-- clean out things
+	processEnvironment.Session.SessionLog = nil
+
+	local proxy = {}
+	setmetatable(proxy, mt)
+
+	return proxy
+	-- return System.Table.Protect(processEnvironment)
+end
+
+function ProcessObj:Exit(exitCode, reason)
+	-- return to parent in some manner .. .. ..
+
+	pcall(function() self:HandleEvent("exit", self, exitCode, reason) end) -- ??
+	-- once event processes ..
+	self:Kill()
+end
+
+function ProcessObj:Kill()
+	System.Table.ZeroOut(self.Threads) -- boom, gone
+	self.Threads = {}
+	pcall(function() Internal.Sessions[self.Session.Username].Processes[self.PID] = nil end)
+	self.Session = {}
+	self.Parent = nil
+	self = nil
+end
+
+
+function ProcessObj:HandleEvent(...)
+	event = {...}
+	local aliveCount = 0
+	for _, thread in ipairs(self.Threads) do
+		if (type(thread) == "table" and thread.coroutine ~= nil) then
+			if (thread.status ~= "dead") then
+				local ok, err = pcall(function() Internal.Native.coroutine.resume(thread.coroutine, System.Table.unpack(event)) end)
+				if not ok then
+					SessionLogs[self.UserId].Warn("PROCESS["..self.PID.."]:THREAD[".._.."]!Error: " .. tostring(err))
+				end
+				thread.status = Internal.Native.coroutine.status(thread.coroutine)
+				if (thread.status == "dead") then
+					thread = nil -- bye, bye
+				else
+					aliveCount = aliveCount + 1
+				end
+			end
+		end
+	end
+
+	if (aliveCount <= 0) then
+		-- no more threads!
+		self:Kill()
+	end
+end
+
+
+
+
+
+
+
+--[[
+
+	Session
+
+]]
+
+local IHPs = {} -- cannot be stored in the session !
+local SessionLogs = {} -- ^^
+local SessionObj = {}
+SessionObj.__index = SessionObj
+
+SessionObj.Errors = {
+	["NoSuchProcess"] = "No such process",
+}
+
+function SessionObj.New(userId, username, userIHP)
+	-- userId is obvious
+	-- cud is the user's account (CodeX User Data)
+	-- IHP is the "Intermediate Hashed Password" (user's password hash stored in memory, only know by the system and not stored!)
+
+	local self = {}
+	Internal.Native.setmetatable(self, SessionObj)
+
+	self.EventEmitter = System.GetAPI("EventEmitter", true)
+	SessionLogs[userId] = System.GetLog("Session::" .. userId, Internal.RuntimeKey)
+
+	self.Username = username
+	self.UserId = userId
+	IHPs[userId] = userIHP
+
+	self.Processes = {}
+
+	return self
+end
+
+
+function SessionObj:GetSessionEnvironment() -- Read-only and sealed
+	if self == nil then
+		error("You must use `:` not `.`. So, Session:GetSessionEnvironment()")
+	end
+
+	-- This creates the "sandbox" environment used by applications within this session
+	local sessionEnvironment = { -- this is the environment itself
+		["Session"] = self, -- remove things later!
+		["System"] = System,
+	}
+
+	-- clean out things
+	sessionEnvironment.Session.IPH = nil
+	sessionEnvironment.Session.SessionLog = nil
+
+	return System.Table.Seal(sessionEnvironment)
+end
+
+--[[
+	Creates a new process and adds it to the user's session.
+	When a process is created, and after it's added to the process stack, we'll fire the "init" event.
+]]
+function SessionObj:NewProcess(processInformation, environment, ...)
+	if self == nil then
+		error("You must use `:` not `.`. So, Session:NewProcess()")
+	end
+
+	local runArguments = {...}
+
+	local process = ProcessObj.New(self, processInformation, environment, #runArguments>=1 and Internal.System.Table.unpack(runArguments) or nil)
+	self.Processes[process.PID] = process
+	SessionLogs[self.UserId].Info("Created new process " .. process.PID)
+	process:HandleEvent({})
+	return process
+end
+
+--[[
+	Returns the processes for a session
+]]
+function SessionObj:GetProcesses()
+	if self == nil then
+		error("You must use `:` not `.`. So, Session:GetProcesses()")
+	end
+
+	return self.Processes
+end
+
+function SessionObj:KillProcess(pid)
+	if self == nil then
+		error("You must use `:` not `.`. So, Session:KillProcess()")
+	end
+
+	System.CheckArgument(1, pid, "number")
+
+	SessionLogs[self.UserId].Warn("Killing PID: " .. pid)
+	for _,i in pairs(self.Processes) do
+		if (i.PID == pid) then
+			i:Kill()
+			return true
+		end
+	end
+	return false, SessionObj.Errors.NoSuchProcess
+end
+
+function SessionObj:EndProcess(pid)
+	if self == nil then
+		error("You must use `:` not `.`. So, Session:EndProcess()")
+	end
+
+	System.CheckArgument(1, pid, "number")
+
+	SessionLogs[self.UserId].Info("Ending PID " .. pid)
+	for _,i in pairs(self.Processes) do
+		if (i.PID == pid) then
+			i:End()
+			return true
+		end
+	end
+	return false, SessionObj.Errors.NoSuchProcess
+end
+
+
+
+--[[
+	Effectively logs the user out
+
+	`causes` is the reason for the logout. This allows us to further specify to applications what's happening.
+		Valid causes:
+			unknown -- generic
+			shutdown -- computer is shutting down
+			restart -- computer is restarting
+			system -- system logged the user out
+			user -- user logged themselves out
+			application -- an application requested the logout
+
+	This pushes the "session::logout" event to the session along with a table:
+	{
+		["Reason"] = "",
+		["GraceDuration"] = 10, -- minimum time to be allocated before processes begin to be killed
+	}
+]]
+function SessionObj:Logout(cause, delay)
+	if self == nil then
+		error("You must use `:` not `.`. So, Session:Logout()")
+	end
+
+
+	local reason = "unknown"
+	delay = type(delay) == "number" and delay or 10
+	delay = delay > 120 and 120 or delay
+	delay = delay < 0 and 0 or delay
+
+	if (type(cause) == "string") then
+		cause = Internal.Native.string.lower(cause)
+		if (cause == "shutdown" or cause == "restart" or cause == "system" or cause == "user" or cause == "application" or cause == "unknown") then
+			reason = cause
+		end
+	end
+
+	SessionLogs[self.UserId].Warn("Logging out! Reason: " .. reason)
+
+	-- Push logout event, specify whether shutting down or not.
+	-- local startTime = Internal.Native.os.clock()
+	self.EventEmitter.Emit("session_logout", {
+		["Reason"] = reason,
+		["GraceDuration"] = delay, -- eventually pulled from Session.Configuration or something
+	}) -- this will be fired synchronously...so we can't actually enforce that grace period ... but attempts were made!
+
+	System.EventEmitter.PullRaw(nil, delay) -- wait 10 seconds, this also releases control back to the system scheduler
+	
+	-- So anyway, I started blasting
+	SessionLogs[self.UserId].Info("Killing ("..#self.Processes..") processes")
+	for _,process in pairs(self.Processes) do
+		local ok, err = pcall(function() process:Kill() end)
+		SessionLogs[self.UserId].Error("Failed to kill "..process.PID..": " .. tostring(err))
+		process = nil -- bye, bye
+	end
+	self.Processes = nil
+
+	SessionLogs[self.UserId].Info("Goodbye!")
+	System.EventEmitter.Emit("sessionend_"..self.Username)
+	Internal.Sessions[self.Username] = nil
+	self = nil
+end
+
+--[[
+	Pushes an event to the user's session
+]]
+function SessionObj:HandleEvent(...)
+	--self.EventEmitter.Emit(...) -- lol ..?
+	local event = {...}
+	if (self.Processes == nil) then
+		-- I'm sorry what
+		System.EventEmitter.Emit("sessionkill_"..self.Username)
+		self = nil
+		return
+	end
+
+	for _, process in pairs(self.Processes) do
+		if (process ~= nil) then
+			local ok, err = pcall(function() process:HandleEvent(System.Table.unpack(event)) end)
+			if not ok then
+				-- well uh dead process? kill it bro
+				print("Process error for " .. process.Name .. " |err: " .. tostring(err))
+			end
+		end
+	end
+end
+
+
+
+
+
+
+
+--[[
+
+	Scheduler
+
+]]
+
+
+
+
+Scheduler.NewSession = function(userId, username, userIHP) -- a session is a user login session
+	System.CheckArgument(1, userId, "string")
+	System.CheckArgument(2, username, "string")
+	System.CheckArgument(3, userIHP, "string")
+
+	local session = SessionObj.New(userId, username, userIHP)
+	if (session ~= nil) then
+		if (Internal.Sessions == nil) then
+			-- huh?
+			Internal.Sessions = {}
+		end
+		Internal.Sessions[username] = session
+	end
+
+	return session
+end
+
+-- NewProcess(Table ProcessData[, String UserID])
+Scheduler.NewProcess = function(processData, userId)
+end
+
+-- .NewThread(int PID[, String UserID])
+Scheduler.NewThread = function(pid, userId)
+end
+
+
+
+--[[
+
+	Remove/delete
+
+]]
+-- .RemoveSession(String UserID)
+Scheduler.RemoveSession = function()
+end
+-- .RemoveProcess(int PID[, String UserID])
+Scheduler.RemoveProcess = function()
+end
+
+
+
+
+
+-- .Run(String PathToExecutable[, boolean RitoOSAppPackage, String UserID])
+Scheduler.Run = function()
+end
+
+
+
+
+
+--[[
+
+	Get information
+
+]]
+-- .GetProcessData(int PID[, String UserID])
+Scheduler.GetProcessData = function()
+end
+
+
+-- .ListSessions()
+Scheduler.ListSessions = function()
+end
+
+-- .ListProcesses([String UserID])
+Scheduler.ListProcesses = function()
+end
+
+-- .ListThreads(int PID[, String UserID])
+Scheduler.ListThreads = function()
+end
+
+
+-- .EmptyProcessData
+Scheduler.EmptyProcessData = function()
+	-- ???
+end
+
+
+return Scheduler;

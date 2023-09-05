@@ -1,0 +1,1194 @@
+--[[
+	
+	CodeX, version 7
+
+
+]]
+local args = {...}
+local Internal = args[1]
+
+if (Internal == nil or type(Internal) ~= "table") then
+	error("Missing Internal object!")
+end
+local oc = Internal.Platform == "oc" and true or false
+
+
+
+
+local CallerKey = args[2] -- The key of who requested this API (adjust API to this)
+
+local ControlLevel = 0 -- 0=System (full access) (1 = user)
+
+local log=System.GetLog("CodeX API",Internal.RuntimeKey)
+
+local Crypto=System.GetAPI("Crypto")
+
+-- Crypto.AES.WrongCharLower = 1
+-- Crypto.AES.WrongCharUpper = 255
+-- Crypto.AES.WrongLength = 32
+
+local RG = System.GetAPI("RandomGenerator")
+local renderRCF = System.GetAPI("RCF")
+
+local Config = renderRCF("/System/Configuration/CodeX.rcf", Internal.RuntimeKey)
+
+if (not Internal.FileSystem.Exists("/System/Vault/Accounts.rcf")) then
+	Internal.FileSystem.WriteAllText("/System/Vault/Accounts.rcf", "{Users}\n/}\n{Groups}\n/}");
+end
+local CAD = renderRCF("/System/Vault/Accounts.rcf", Internal.RuntimeKey)
+
+
+for uk,uv in ipairs(CAD.Entries.Users) do
+	for gk,gv in ipairs(uv.Groups) do
+		gv = {
+			type = "codex:group",
+			group = CAF.Entries.Groups[gk],
+			groupID = gk
+		}
+	end
+end
+
+
+
+local textBoxStyle={
+	mono={
+		fg=colors.black,
+		bg=colors.lightGray,
+		fgFocused=colors.white,
+		bgFocused=colors.gray,
+		leftChFocused="[",
+		rightChFocused="]",
+	},
+	color={
+		fg=Config.Entries.UI.textboxTextColor,
+		bg=Config.Entries.UI.textboxBackgroundColor,
+		fgFocused=Config.Entries.UI.textboxTextColorActive,
+		bgFocused=Config.Entries.UI.textboxBackgroundColorActive,
+	},
+}
+local passwordStyle={
+	pwChar="*",
+	mono={
+		fg=colors.black,
+		bg=colors.lightGray,
+		fgFocused=colors.white,
+		bgFocused=colors.gray,
+		leftChFocused="[",
+		rightChFocused="]",
+	},
+	color={
+		fg=Config.Entries.UI.textboxTextColor,
+		bg=Config.Entries.UI.textboxBackgroundColor,
+		fgFocused=Config.Entries.UI.textboxTextColorActive,
+		bgFocused=Config.Entries.UI.textboxBackgroundColorActive,
+	},
+}
+
+local buttonStyles={
+	mono={
+		bg=colors.lightGray,
+		fg=colors.black,
+		fgFocused=colors.white,
+		bgFocused=colors.gray,
+		leftChFocused=">",
+		rightChFocused="<",
+	},
+	color={
+		bg=Config.Entries.UI.buttonBackgroundColor,
+		fg=Config.Entries.UI.buttonTextColor,
+		fgFocused=Config.Entries.UI.buttonTextColorActive,
+		bgFocused=Config.Entries.UI.buttonBackgroundColorActive,
+		leftChFocused="",
+		rightChFocused="",
+	},
+	textAlign="center",
+}
+
+local labelStyle={
+	mono={
+		bg=colors.lightGray,
+		fg=colors.black,
+	},
+	color={
+		bg=Config.Entries.UI.backgroundColor,
+		fg=Config.Entries.UI.textColor,
+	},
+	textAlign="center",
+}
+
+local backgroundStyle={
+	mono={
+		bg=colors.lightGray,
+	},
+	color={
+		bg=Config.Entries.UI.backgroundColor,
+	},
+}
+
+
+
+
+local CodeX={}
+Internal.CodeX = {
+	["LockoutSessions"] = false, -- if true, events are not pushed to active sessions!
+	["ActiveSession"] = nil,
+	["Hashes"] = {}
+}
+
+
+function CodeX.Version()
+	return {
+		Major = 7,
+		Minior = 0,
+		Build = 0,
+	}
+end
+
+
+
+-- Helper functions
+-- Clone table
+local function copy(obj, seen)
+	if type(obj) ~= 'table' then return obj end
+	if seen and seen[obj] then return seen[obj] end
+	local s = seen or {}
+	local res = setmetatable({}, getmetatable(obj))
+	s[obj] = res
+	for k, v in pairs(obj) do
+		if k~="_G" or k~="_ENV" then
+			res[copy(k, s)] = copy(v, s)
+		end
+	end
+	return res
+end
+
+
+-- User info
+function CodeX.GetUserID(username)
+	return ""..Crypto.CRC32(string.lower(username))
+end
+function CodeX.GetUsername(searchData)
+	if type(searchData) == "number" then searchData = ""..searchData end
+	if type(searchData) == "string" then
+		-- Probably the userID
+		if CAD.Entries.Users[searchData] ~= nil then
+			return string.lower(CAD.Entries.Users[searchData].username)
+		else
+			return nil
+		end
+	elseif type(searchData) == "table" then
+		local key = searchData.Key or searchData.key
+		local value = searchData.Value or searchData.value
+
+		for k,v in pairs(CAD.Entries.Users) do
+			if v[key] == value then
+				return string.lower(v.username)
+			end
+		end
+
+		return nil
+	else
+		return nil
+	end
+end
+function CodeX.GetUserList()
+	local users = {}
+	for k,v in pairs(CAD.Entries.Users) do
+		users[k] = v.username
+	end
+	return users
+end
+
+
+
+
+
+
+
+local function getValidUser(userSearch)
+	if not userSearch then error("Username / UserID can not be empty.") end
+	local userID = CodeX.GetUserID(userSearch)
+	local username = CodeX.GetUsername(userSearch)
+
+	if not username then
+		username = CodeX.GetUsername(userID)
+	else
+		userID = CodeX.GetUserID(username)
+	end
+
+	if not username or not userID then
+		return false, userID, nil
+	end
+
+	return true, userID, username
+end
+
+
+local function getPWData(username)
+	local valid, userID, username = getValidUser(username)
+	if not valid then
+		error("Username is invalid")
+	end
+
+	local pwData = CAD.Entries.Users[userID].pw or nil
+	if pwData ~= nil then
+		if pwData["FHP"] ~= nil and pwData["IHP"] ~= nil then
+			if pwData["FHP"]["hash"]~=nil then
+				return pwData
+			end
+		end
+	end
+	return nil
+	
+end
+local function validPWC(PWC,userID)
+	local function getPWC()
+		local pwData = getPWData(userID) or {
+				type="codex:password_data",
+				IHP = {
+					method = Config.Entries.Defaults.pwCriteria.IHP.method or "PBKDF2",
+					iv = Config.Entries.Defaults.pwCriteria.IHP.iv or 25,
+					saltHashed = Config.Entries.Defaults.pwCriteria.IHP.saltHashed or false,
+				},
+				FHP = {
+					method = Config.Entries.Defaults.pwCriteria.FHP.method or "SHA256",
+					iv = Config.Entries.Defaults.pwCriteria.FHP.iv or 25,
+				},
+			}
+		return {
+			type="codex:password_criteria",
+			FHP = {
+				method = pwData.FHP.method,
+				iv = pwData.FHP.iv,
+			},
+			IHP = {
+				method = pwData.IHP.method,
+				iv = pwData.IHP.iv,
+				hashSalt = pwData.IHP.saltHashed,
+			}
+		}
+	end
+
+	if not PWC then getPWC() end
+
+	if type(PWC) == "table" then
+		if PWC.FHP ~= nil and PWC.IHP ~= nil and PWC.type and "codex:password_criteria" then
+			if PWC.FHP.method == nil or PWC.FHP.iv == nil or PWC.IHP.hashSalt == nil or PWC.IHP.method == nil or PWC.IHP.iv == nil then
+				return getPWC()
+			else
+				return PWC
+			end
+		else
+			return getPWC()
+		end
+	else
+		return getPWC()
+	end
+end
+
+
+
+-- Crypto
+
+-- Salt
+function CodeX.RandomString(l,cL,cU,r)
+	return RG.RandomString(l,cL,cU,r) or ""
+end
+function CodeX.GenerateSalt()
+	return RG.RandomString(32,32,126) or ""
+end
+
+function CodeX.GetUserSalt(username, password, IHP, pwCriteria) -- Internal ??
+	local valid, userID, username = getValidUser(username)
+	if not valid then
+		error("Username is invalid")
+	end
+
+	local pwData = getPWData(userID)
+	local pwCriteria = validPWC(pwCriteria,userID)
+
+	if pwCriteria.IHP.hashSalt then
+		if IHP then
+			if Internal.CodeX.Hashes[userID] then
+				return Internal.CodeX.Hashes[userID].salt
+			end
+		else
+			error("!AES REQUIRED!");
+			-- return Crypto.AES.Decrypt(Crypto.PBKDF2(password,"System Credential Key",pwCriteria.IHP.iv):toHex(),pwData.FHP.salt) -- I spent 3 hours R&D'in this, so I'm leaving it in (doesn't work well...)
+		end
+		return ""
+	end
+	return pwData.FHP.salt -- Not hashed ! :)
+end
+
+-- Password
+
+function CodeX.GetIHP(username, password, salt, pwCriteria)
+	local valid, userID, username = getValidUser(username)
+	if not valid then
+		error("Username is invalid")
+	end
+
+	local pwCriteria = validPWC(pwCriteria,userID)
+
+	local salt = salt or CodeX.GetUserSalt(userID, password, false, pwCriteria)
+
+	local IHP = Crypto.PBKDF2(password, salt..Internal.SecureMachineKey, pwCriteria.IHP.iv):toHex()
+	Internal.CodeX.Hashes[userID] = {
+		IHP = IHP,
+		salt = salt
+	}
+
+	-- password = CodeX.RandomString(#password) -- Override password with garbage
+	return IHP, salt
+end
+
+function CodeX.GetFHP(username, password, IHP, salt, pwCriteria)
+	password = password or ""
+	if password:gsub(" ","") == "" then
+		password = ""
+	end
+
+	local valid, userID, username = getValidUser(username)
+	if not valid then
+		error("Username is invalid")
+	end
+
+	local pwCriteria = validPWC(pwCriteria,userID)
+
+	
+	if IHP then
+		local pwData = getPWData(userID)
+		pwCriteria.IHP.method = pwData.IHP.method
+		pwCriteria.IHP.iv = pwData.IHP.iv
+		pwCriteria.IHP.hashSalt = pwData.IHP.saltHashed
+	end
+
+	if not IHP then
+		password = CodeX.GetIHP(userID,password,salt,pwCriteria)
+	end
+
+	if not salt then
+		if Internal.CodeX.Hashes[userID] then
+			salt = salt or Internal.CodeX.Hashes[userID].salt
+		end
+	end
+
+	salt = salt or ""
+
+	for i=1, pwCriteria.FHP.iv do -- IV passes
+		sleep(0)
+		for method in string.gmatch(pwCriteria.FHP.method, "([^@]+)") do
+			local options = ""
+			local passes = 1
+			local index = method:find("%.%d*")
+			if index then
+				options = string.gsub(method:sub(index+1,#method),"[%d]","") or ""
+				local num = string.gsub(method:sub(index,#method),"[^%d]","")
+				passes = tonumber(num) or 1
+				method = method:sub(0,index-1)
+			end
+			-- We have the method, options passes -> process
+
+			for a=1, passes do
+				sleep(0)
+				-- Options
+				if method:lower() ~= "pbkdf2" then
+					if not options:find("N") then
+						if options:find("G") then
+							password = password..CodeX.GenerateSalt()
+						else
+							password = password..salt
+						end
+					end
+				end
+
+				if method:lower() == "pbkdf2" then
+					if options:find("N") then
+						password = Crypto.PBKDF2(password,"",pwCriteria.FHP.iv):toHex()
+					elseif options:find("G") then
+						password = Crypto.PBKDF2(password,CodeX.GenerateSalt(),pwCriteria.FHP.iv):toHex()
+					else
+						password = Crypto.PBKDF2(password,salt,pwCriteria.FHP.iv):toHex()
+					end
+				elseif method:lower() == "sha256" then
+					password = Crypto.Sha256(password)
+				end
+			end
+		end
+	end
+
+	return Crypto.Sha256(password), salt
+end
+
+
+
+
+
+-- (C)odeX (U)ser (M)anagement
+
+function CodeX.ValidatePassword(username, password, IHP)
+	local valid, userID, username = getValidUser(username)
+
+	if not valid then
+		error("Invalid user.")
+	end
+
+	if CAD.Entries.Users[userID] == nil then return nil end
+
+	local pwData = CAD.Entries.Users[userID].pw
+
+	local password,salt = CodeX.GetFHP(username, password, IHP)
+
+	if pwData.FHP.hash == password then
+		return true
+	else
+		CAD.Entries.Users[userID].badPasswordCount = CAD.Entries.Users[userID].badPasswordCount + 1 -- Wrong password, tick up one
+		CAD.Entries.Users[userID].last.failed = { type = "time", day = os.day(), time = os.time() } -- Update 'failed' time
+		CAD.Save(true)
+		return false
+	end
+end
+
+function CodeX.SavePassword(username, password, IHP)
+	local valid, userID, username = getValidUser(username)
+
+	if not valid then
+		error("Invalid user.")
+	end
+
+
+	local pwCriteria = CAD.Entries.Users[userID].pwCriteriaCustom == true and (CAD.Entries.Users[userID].pwCriteria or {}) or {}
+
+
+	pwCriteria = validPWC(pwCriteria,userID)
+
+
+	if IHP then
+		local pwData = getPWData(userID)
+		pwCriteria.IHP.method = pwData.IHP.method
+		pwCriteria.IHP.iv = pwData.IHP.iv
+		pwCriteria.IHP.hashSalt = pwData.IHP.saltHashed
+	end
+
+	local salt = CodeX.GenerateSalt()
+
+
+	-- Generate 'password' (FHP)
+	local password1, salt = CodeX.GetFHP(username, password, IHP, salt, pwCriteria)
+
+	
+	local backupPWCopy = copy(CAD.Entries.Users[userID].pw)
+	local backupTIMECopy = copy(CAD.Entries.Users[userID].last.changed)
+
+	CAD.Entries.Users[userID].pw = {
+		type="codex:password_data",
+		
+		IHP = {
+			method = pwCriteria.IHP.method,
+			iv = pwCriteria.IHP.iv,
+			saltHashed = pwCriteria.IHP.hashSalt,
+		},
+		FHP = {
+			method = pwCriteria.FHP.method,
+			iv = pwCriteria.FHP.iv,
+			hash = password1,
+			salt = salt,
+		},
+	}
+	CAD.Entries.Users[userID].pwCriteria = pwCriteria
+	CAD.Entries.Users[userID].last.changed = {
+		type = "time",
+		day = os.day(),
+		time = os.time()
+	}
+	CAD.Save()
+	CAD.Refresh()
+	if not CodeX.ValidatePassword(userID,password) then
+		-- Failed
+		CAD.Entries.Users[userID].pw = backupPWCopy
+		CAD.Entries.Users[userID].last.changed = backupTIMECopy
+		CAD.Save()
+		CAD.Refresh()
+		error("Failed to verify password! Settings reverted.")
+	end
+
+	-- password = CodeX.RandomString(#password)
+end
+
+
+
+
+-- CUM | CodeX User (Profile) Manager
+
+
+function CodeX.DeleteUser(username, password, IHP)
+	local valid, userID, username = getValidUser(username)
+
+	if not valid then
+		error("Invalid user.")
+	end 
+
+	local userCount = 0
+	for _ in pairs(CodeX.GetUserList()) do userCount = userCount+1 end
+
+	if userCount==1 then
+		error("Cannot remove last user")
+		return false
+	end
+
+	if CodeX.ValidatePassword(userID, password, IHP) then
+		-- Delete the user.
+		CAD.Entries.Users[userID] = nil
+		CAD.Save()
+		return true
+	else
+		error("Password is invalid")
+		return false
+	end
+end
+function CodeX.AddUser(username, password, userData) -- Just pass the username and (user data (table with predefined settings) if wanted)
+	local valid = getValidUser(username)
+	if valid then error("Username already taken.") end
+
+	local userID = CodeX.GetUserID(username)
+
+	local userData = userData or {}
+	if type(userData) ~= "table" then userData = {} end
+
+	local emptyTime = {
+		type="time",
+		day = 0,
+		time = 0,
+	}
+
+	local userProfile = {
+		cudScheme = 1,
+
+		username = username,
+		fullname = userData.fullname or "",
+		comment = userData.comment or (Config.Entries.Defaults.User.comment or ""),
+		profilePath = userData.profilePath or (Config.Entries.Defaults.User.profilePath or "/Users/$username"),
+
+		creationTime = {
+			type = "time",
+			day = os.day(),
+			time = os.time()
+		},
+		creationBy = userData.creationBy or (Config.Entries.Defaults.User.creationBy or "CUM"),
+
+		expires = userData.expires or (Config.Entries.Defaults.User.expires or emptyTime),
+		locked = userData.locked or (Config.Entries.Defaults.User.locked or emptyTime),
+		last = {
+			login = emptyTime,
+			failed = emptyTime,
+		},
+		badPasswordCount = 0,
+		loginCount = 0,
+
+		Groups = userData.Groups or (Config.Entries.Defaults.User.Groups or {
+				[0] = {
+					type = "codex:group",
+					group = CAD.Entries.Groups[1933103605],
+					groupID = "1933103605"
+				}
+			}),
+	}
+
+	CAD.Entries.Users[userID] = copy(userProfile)
+	CAD.Save()
+
+	CodeX.SavePassword(username, password)
+
+	if CAD.Entries.Users[userID].username == username then
+		return true
+	else
+		error("Failed to save user profile")
+		return false
+	end
+end
+
+
+-- Set group to a certain priority 
+function CodeX.SetGroupPriority(username, groupID, priority)
+end
+
+-- Adds a user to a group
+function CodeX.AddGroup(username, groupID, priority)
+end
+
+-- Remove a user from a group
+function CodeX.RemoveGroup(username, groupID)
+end
+
+-- List the groups a user is apart of
+function CodeX.ListGroups(username)
+end
+
+
+
+
+-- Change the username
+function CodeX.ChangeUsername(currentUsername, newUsername)
+	if type(newUsername) ~= "string" then error("New username must be a string.") end
+
+	local cValid, cUserID, cUsername = getValidUser(currentUsername)
+	local nValid, nUserID, nUsername = getValidUser(newUsername)
+
+	if not cValid then error("Current username is invalid.") end
+	if nValid then error("Username is already taken.") end
+
+	nUserID = CodeX.GetUserID(newUsername)
+	CAD.Entries.Users[nUserID] = copy(CAD.Entries.Users[cUserID])
+	local backupUserCopy = copy(CAD.Entries.Users[cUserID])
+	if CAD.Entries.Users[nUserID] ~= nil then -- Failed to copy user data
+		CAD.Entries.Users[nUserID].username = newUsername
+		CAD.Save()
+		CAD.Refresh()
+		if CAD.Entries.Users[nUserID] ~= nil then -- Copy failed, (not saved to disk?)
+			CAD.Entries.Users[cUserID] = nil
+			CAD.Save()
+			CAD.Refresh()
+			if CAD.Entries.Users[cUserID] ~= nil then -- Removal failed, (old 'user' with old username still there)
+				CAD.Entries.Users[cUserID] = backupUserCopy -- Try to restore things
+				CAD.Entries.Users[nUserID] = nil
+				CAD.Save()
+				CAD.Refresh()
+				error("Failed to remove older username!")
+			end
+		else
+			CAD.Entries.Users[nUserID] = nil
+			error("Failed to save username.")
+		end
+	else
+		error("Failed to change username.")
+	end
+end
+
+
+local function setProperty(userID, property, value)
+	CAD.Entries.Users[userID][property] = value
+	CAD.Save()
+	CAD.Refresh()
+	if CAD.Entries.Users[userID][property] ~= value then
+		error("Failed to update property \"" .. property .. "\".")
+	end
+end
+local function getProperty(userID, property)
+	if CAD.Entries.Users[userID][property] ~= nil then
+		return CAD.Entries.Users[userID][property]
+	end
+end
+
+--[[
+		Properties:
+			fullName
+			comment
+			profilePath
+			expires
+			locked
+			last
+			badPasswordCount
+			loginCount
+
+			creation 	-- Readonly...
+			creationBy	-- Readonly...
+	]]
+-- Get property
+function CodeX.SetUserProperty(username, property, value)
+	local valid, userID, username = getValidUser(username)
+	if not valid then
+		error("Username is invalid")
+	end
+
+
+	if not property then error("Property can not be nil") end
+
+	property = string.lower(property)
+	if property == "fullname" or property == "comment" then
+		if type(value) ~= "string" and type(value) ~= "number" then
+			error("Full name value must be either a string or a number.")
+		end
+		
+		setProperty(userID, property, value)
+
+	elseif property == "profilepath" then
+		-- TODO: check valid path and permitted
+
+		if Internal.Native.fs.isDir(value) then
+			setProperty(userID, "profilePath", value)
+		end
+
+	elseif property == "expires" then
+		-- Time type=:->> DAY:HOUR
+		local time=value
+		if type(value) == "string" then
+			if string.find(value,":") == nil and string.len(string.gsub(value,"[^:]","")) ~= 1 then
+				error("Invalid time value")
+			end
+
+			time = {
+				type = "time",
+				day = tonumber(string.sub(value,0,string.find(value,":")-1)) or 0,
+				hour = tonumber(string.sub(value,string.find(value,":")+1,#value)) or 0 
+			}
+		elseif type(value) == "table" and value["type"] ~= nil then
+			if value["type"] == "time" and value["day"] ~= nil and value["hour"] ~= nil then
+				if type(value["day"]) ~= "number" or type(value["hour"]) ~= "number" then
+					error("Invalid time value (day and hour values not numbers).")
+				end
+			else
+				error("Invalid time value (value not type \"time\".")
+			end
+		else
+			error("Invalid time value (value unknown type)")
+		end
+
+		setProperty(userID,"expires",time)
+	
+	elseif property == "locked" then
+		if type(value) == "string" then
+			if string.lower(value) == "true" then
+				value = true
+			elseif string.lower(value) == "false" then
+				value = false
+			else
+				error("Invalid boolean value")
+			end
+		end
+
+		if type(value) ~= "boolean" then
+			error("Value must be type boolean.")
+		end
+
+		setProperty(userID,"locked",value)
+
+	elseif property == "badpasswordcount" or proprety == "logincount" or property == "creation" or property == "creationby" or string.sub(property, 0, 4) == "last" then
+		error("Read-only property.")
+	elseif property == "pw" or property == "password" then
+		error("Unsupported from this function. Call `CodeX.ChangePassword(Username, currentPassword, newPassword)`")
+	elseif property == "username" then
+		error("Unsupported from this function. Call `CodeX.ChangeUsername(currentUsername, newUsername)`")
+	else
+		error("Invalid property.")
+	end
+
+
+end
+-- Set property
+function CodeX.GetUserProperty(username, property)
+	local valid, userID, username = getValidUser(username)
+	if not valid then
+		error("Username is invalid")
+	end
+
+
+	if not property then error("Property can not be nil") end
+
+	property = string.lower(property)
+	if property == "fullname" or property == "comment" then
+		return getProperty(userID,property)
+
+	elseif property == "profilepath" then
+		return getProperty(userID,"profilePath")
+
+	elseif property == "expires" then
+		return getProperty(userID,"expires")
+	
+	elseif property == "locked" then
+		return getProperty(userID,"locked")
+
+	elseif property == "badpasswordcount" then
+		return getProperty(userID,"badpasswordcount")
+
+	elseif proprety == "logincount" then
+		return getProperty(userID,"logincount")
+
+	elseif property == "creation" then
+		return getProperty(userID,"creation")
+
+	elseif property == "creationby" then
+		return getProperty(userID,"creationBy")
+
+	elseif string.sub(property, 0, 4) == "last" then
+		if CAD.Entries.Users[userID]["last"][string.sub(property, 5)] ~= nil then
+			return CAD.Entries.Users[userID]["last"][string.sub(property, 5)]
+		end
+
+	elseif property == "username" then
+		return username
+
+	else
+		error("Invalid property.")
+	end
+
+
+end
+
+
+
+
+
+
+-- CodeX User Interface
+
+
+function CodeX.ControlPannel() -- Manage user data
+
+end
+
+function CodeX.InitiateUser(userId, username, userIHP) -- Initiate a user or 'log' them in. //local
+
+	local session = {}
+	if (Internal.Sessions[username] ~= nil) then
+		-- log.info("Switching to " .. username)
+		-- switch to
+		session = Internal.Sessions[username]
+	else
+		log.Info("Logging in " .. username)
+
+		-- CAD.Entries.Users[userID].loginCount = (CAD.Entries.Users[userID].loginCount or 0) + 1 -- Wrong password, tick up one
+		-- CAD.Entries.Users[userID].last.login = { type = "time", day = os.day(), time = os.time() } -- Update 'failed' time
+
+		session = System.Scheduler.NewSession(userId, username, userIHP)
+		session:NewProcess({
+				-- ["Path"] = "/System/",
+				-- ["ExecutableName"] = "REPL.lua",
+				["Path"] = "/rom/programs/",
+				["ExecutableName"] = "lua.lua",
+				["CompatibilityModes"] = {["cc"] = "minimum"}
+			}, {}, {
+				["Username"] = username,
+				["UserId"] = userId,
+			});
+	end
+
+	-- this is important!
+	Internal.CodeX.LockoutSessions = false
+	Internal.CodeX.ActiveSession = username
+
+	local logout = false
+	local deactiveSession = false
+
+	while (not logout and not deactiveSession) do
+		local event = {System.EventEmitter.Pull()}
+		if (event[1] == "sessionend_"..session.Username) then
+			break;
+		elseif (event[1] == "keydown") then
+			-- print(System.Table.unpack(event[3]))
+
+			if (type(event[3]) == "table" and event[3].Ctrl == true and event[3].Shift == true and event[3].Alt == true) then -- system action modifiers pressed?
+				if (event[2] == System.Keyboard.GetKeyCode("end")) then -- logout
+					Internal.CodeX.LockoutSessions = true
+
+					-- local oldX, oldY = term.getCursorPos()
+					term.write("Would you like to sign out? Press Y to sign out, any key to cancel.")
+					local keyEvent = {System.EventEmitter.Pull("keydown")}
+					if (keyEvent[2] == Internal.System.Keyboard.GetKeyCode("y")) then
+						logout = true
+					end
+					-- term.setCursorPos(oldX, oldY)
+					-- term.clearLine()
+					-- term.setCursorPos(oldX, oldY)
+
+					Internal.CodeX.LockoutSessions = false
+				elseif (event[2] == System.Keyboard.GetKeyCode("delete")) then -- like ctrl+alt+delete
+					term.write("Press:\nL: logout\nS: switch user\nC: cancel")
+
+					local c = Internal.System.Keyboard.GetKeyCode("c")
+					local l = Internal.System.Keyboard.GetKeyCode("l")
+					local s = Internal.System.Keyboard.GetKeyCode("s")
+
+					while true do
+						local keyEvent = {System.EventEmitter.Pull("keydown")}
+						print(keyEvent[2])
+						if (keyEvent[2] == c) then
+							break
+
+						elseif (keyEvent[2] == l) then
+							term.write("logout")
+							logout = true
+							break
+
+						elseif (keyEvent[2] == s) then
+							-- hmm
+							Internal.CodeX.LockoutSessions = true
+							Internal.CodeX.ActiveSession = nil
+							deactiveSession = true
+							break
+
+						end
+					end
+				end
+			end
+		end
+	end
+
+	if logout then
+		if oc then
+			Internal.Native.computer.beep(500, .1)
+		end
+		log.Warn("Logging out via key combination...")
+		term.write("Logging out...")
+		session:Logout("system", 5)
+
+		Internal.Sessions[username] = nil
+		session = nil
+		log.Info("Logged out " .. username .. " successfully.")
+	end
+
+	-- CodeX.Logout()
+end
+
+
+
+function CodeX.FirstRun(force)
+	local userCount = 0
+	for _ in pairs(CodeX.GetUserList()) do userCount = userCount+1 end
+	if userCount ~= 0 and not force then -- Only allow if no users or forced
+		error("User count is not 0.")
+	end
+
+	-- ahh yes
+	while true do
+		term.setBackgroundColor(colors.black);
+		term.setTextColor(colors.white);
+		term.clear();
+		term.setCursorPos(1,1);
+		term.write("RitoOS Login - First time user creation");
+		term.setCursorPos(1,2);
+		term.write("New username: ");
+		term.setCursorPos(15, 2);
+		term.setTextColor(colors.lightGray);
+		local username = System.Keyboard.Read();
+		username = string.lower(username);
+
+		term.setCursorPos(1,3);
+		term.setTextColor(colors.white);
+		term.write("New password: ");
+		term.setCursorPos(15, 3);
+		term.setTextColor(colors.lightGray);
+		local password = System.Keyboard.Read("*");
+		term.setCursorPos(1,4);
+		term.setTextColor(colors.white);
+		term.write("Confirm: ");
+		term.setCursorPos(10, 4);
+		term.setTextColor(colors.lightGray);
+		local password2 = System.Keyboard.Read("*");
+		if (password == password2) then
+			CodeX.AddUser(username, password);
+			print("User created!");
+			sleep(2);
+			break;
+		else
+			print("Passwords do not match!");
+			sleep(2);
+		end
+	end
+
+end
+
+local ggui = System.GetAPI("ggui")
+
+local function textLogin()
+	-- local term = Internal.Terms["User"]; -- This is the "default" system terminal
+	log.Info("Text Login selected. Terminal? User");
+	-- term.current = function()
+		-- return term
+	-- end
+	-- term.native = term.current;
+
+	while true do
+		term.setBackgroundColor(colors.black);
+		term.setTextColor(colors.white);
+		term.clear();
+		term.setCursorPos(1,1);
+		term.write("RitoOS Login");
+		term.setCursorPos(1,2);
+		term.write("Username: ");
+		term.setCursorPos(11, 2);
+		term.setTextColor(colors.lightGray);
+		local username = System.Keyboard.Read(nil, {
+			["Default"] = "",
+		});
+		username = string.lower(username);
+
+		term.setCursorPos(1,3);
+		term.setTextColor(colors.white);
+		term.write("Password: ");
+		term.setCursorPos(11, 3);
+		term.setTextColor(colors.lightGray);
+		local password = System.Keyboard.Read("*");
+
+		local userID = CodeX.GetUserID(username);
+
+		if username == CodeX.GetUsername(userID) then
+			local userIHP = CodeX.GetIHP(userID, password);
+			-- Check password, get IHP
+			if CodeX.ValidatePassword(username, userIHP, true) then
+				-- Password valid.
+				print("\nLogging in..."); -- Valid username.
+				CodeX.InitiateUser(userID, username, userIHP);
+			else
+				print("Account data incorrect.\nPress any key...");
+				sleep(1)
+				coroutine.yield("key_up");
+			end
+		else
+			sleep(1.5)
+			print("Account data incorrect.\nPress any key...");
+			sleep(1)
+			coroutine.yield("key_up");
+
+		end
+	end
+
+	error("CodeX.loginUI.terminated::textLogin()")
+end
+
+function CodeX.DrawLogin(gui, textMode)
+	if textMode or not term.isColor() then
+		textLogin();
+		return;
+	end
+	log.Info("GUI Login active");
+
+	local logonScreen = gui or ggui.newScreen() -- Creates the new screen (must have) (testing)
+
+	local MaxX,MaxY = term.getSize()
+	local background = logonScreen.addGraphic(1,1,MaxX,MaxY)
+	logonScreen.setStyle(background,backgroundStyle)
+
+	local CenterX,CenterY = math.floor(MaxX/2), math.floor(MaxY/2)
+
+	local Core3Width = 22
+	local Core3XPoint = CenterX-(Core3Width/2) + 1
+
+	local l1 = logonScreen.addLabel(1,CenterY-2,MaxX-1,1, ","..string.char(144)..string.char(144))
+	local l2 = logonScreen.addLabel(1,CenterY-1,MaxX-1,1, string.char(166)..string.char(183)..string.char(166))
+	logonScreen.setStyle(l1,labelStyle)
+	logonScreen.setStyle(l2,labelStyle)
+
+	-- Label
+	local errorLabel=logonScreen.addLabel(1,CenterY+3,MaxX-1,1, "")
+	logonScreen.setStyle(errorLabel,labelStyle) -- The error line between pw field and 'login'
+
+	-- Username
+	local usernameInput=logonScreen.addTextField(Core3XPoint,CenterY+1,Core3Width,1)
+	logonScreen.setStyle(usernameInput,textBoxStyle)
+
+	-- Password
+	local passwordInput=logonScreen.addTextField(Core3XPoint,CenterY+2,Core3Width-4,1)
+	logonScreen.setStyle(passwordInput,textBoxStyle)
+	logonScreen.setStyle(passwordInput,passwordStyle)
+
+	-- Login
+	local loginButton = logonScreen.addButton(CenterX+((Core3Width)/2-2),CenterY+2,3,1, string.char(16))
+	logonScreen.setStyle(loginButton, buttonStyles)
+	logonScreen.addEventHandler({"button_activate", logonScreen.id, loginButton}, function(a)
+		local ok,err = pcall(function() 
+			local username = logonScreen.getText(usernameInput);
+			local userID = CodeX.GetUserID(username);
+			local password = logonScreen.getText(passwordInput);
+			local userIHP = CodeX.GetIHP(userID, password);
+			-- Check password, get IHP
+			if CodeX.ValidatePassword(username, userIHP, true) then
+				term.clear()
+				-- Password valid.
+				print("\nLogging in..."); -- Valid username.
+				CodeX.InitiateUser(userID, username, userIHP);
+				
+				term.clear()
+				ggui.dirtyAll(logonScreen);
+			else
+				logonScreen.setText(errorLabel,"Incorrect username or password")
+			end
+		end)
+		if not ok then
+			logonScreen.setText(errorLabel,"Incorrect username or password")
+		end
+	end)
+
+	local exitButton = logonScreen.addButton(MaxX-3,MaxY-1,3,1,"X")
+
+	logonScreen.setStyle(exitButton, buttonStyles)
+
+	logonScreen.addEventHandler({"button_activate", logonScreen.id, exitButton}, function(test) error("Closed") end)
+
+	parallel.waitForAny(function() ggui.run(logonScreen) end, function()
+	-- Caps lock listener (check if capital letters are coming out)
+		local shift = false
+		while true do
+			local event, key, held = System.EventEmitter.Pull()
+
+			if event == "keyup" then
+				if key == 54 or key == 42 then
+					shift = false
+				end
+			end
+			if event == "keydown" and not held then
+				if key == 42 or key == 54 then
+					shift = true
+				end
+			end
+			if event == "character" then
+				if not shift then
+					local text = logonScreen.getText(passwordInput)
+					local text = text:sub(#text)
+					logonScreen.setText(errorLabel,text)
+				
+					if text:match("%u") then
+						logonScreen.setText(errorLabel,"Check caps lock")
+					else
+						logonScreen.setText(errorLabel,"")
+					end
+				end
+			end
+			
+		end
+	end)
+
+	
+	
+	
+	-- Buttons
+	-- local loginButton=logonScreen.addButton(cords.global.X,cords.loginButton.Y,cords.global.XMax,1,LANG.SYS.CODEX[5]) logonScreen.setStyle(loginButton,buttonStyles)
+	-- local shutdownButton=logonScreen.addButton(cords.global.X,cords.shutdownButton.Y,cords.global.XMax,1,LANG.SYS.CODEX[6]) logonScreen.setStyle(shutdownButton, buttonStyles)
+	-- local restartButton=logonScreen.addButton(cords.global.X,cords.restartButton.Y,cords.global.XMax,1,LANG.SYS.CODEX[7]) logonScreen.setStyle(restartButton, buttonStyles)
+
+	-- Set focus
+	logonScreen.setFocus(usernameInput)
+
+	error("CodeX.loginUI.terminated::DrawLogin()")
+end
+
+
+function CodeX.Initial() -- Initial, the login screen. Called by the bootloader when boot is 'completed'
+	local userCount = 0
+	for _ in pairs(CodeX.GetUserList()) do userCount = userCount+1 end
+
+	if userCount==0 then
+		CodeX.FirstRun()
+	end
+
+	while true do
+		CodeX.DrawLogin(nil, true);
+	end
+end
+
+
+
+if ControlLevel == 0 then
+	return CodeX
+else
+	-- Return 'safe' functions (no password manipulation, username changing, etc etc)
+	return {
+		Version = Version,
+		GetUserID = GetUserID,
+		GetUsername = GetUsername,
+		GetUserList = GetUserList,
+		RandomString = RandomString,
+		GenerateSalt = GenerateSalt,
+		ValidatePassword = ValidatePassword,
+	}
+end

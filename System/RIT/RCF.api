@@ -1,0 +1,281 @@
+local args = {...}
+
+local InternalSystem=args[1]
+
+local Logger=System.GetLog("RCF API","")
+
+return function(location, key)
+	local config={}
+	local key=key or "nil"
+	if not location then
+		error("Expect location, got nil")
+	end
+	-- location=InternalSystem.strip(location)
+	if not InternalSystem.Native.fs.exists(location) then
+		Logger.Info("Failed to load  "..location.." configuration file as it does not exist.")
+		error("System.getConfig().Configuration_File_Not_Found")
+	end
+	Logger.Info("Setting up "..location.." configuration file. (HANDLEID: "..tostring(config)..")")
+
+	local function stringToChars(s)
+		local final = ""
+		local table = {tostring(s):byte(1,-1)}
+		for k,v in ipairs(table) do
+			final = final .. tostring(v)..","
+		end
+		return final:sub(0,#final-1)
+	end
+
+	config.Refresh = function()
+		Logger.Info("Refreshing "..location.." configuration file. (HANDLEID: "..tostring(config)..")")
+		local raw = InternalSystem.FileSystem.ReadAllLines(location)
+
+		local function numberOf(char, str) -- Returns the number of time 'char' is in the string 'str'
+			str = str or ""
+			if type(char) == "number" then
+				if char<0 or char>255 then return 0 end -- Out of range
+				char = string.char(char)
+			end
+			if type(char) == "string" then  
+				if #char ~=1 then return 0 end -- Not a character
+			end
+			local _, count = string.gsub(str, "["..char.."]","")
+			return count
+		end
+
+		local function charsToString(s)
+			if numberOf("^%d%,",s) > 1 then return s end -- Not char map
+			local final = ""
+			for char in string.gmatch(s, "([^,]+)") do
+				final = final .. string.char(char)
+			end
+			return final
+		end
+
+		local function totype(type, value)
+			if type=="boolean" then if value=="true" then return true else return false end
+			elseif type=="string" or type=="char" then
+				return ""..value
+			elseif type=="charmap" then
+				return charsToString(value)
+			elseif type=="number" then return tonumber(value)
+			elseif type=="color" then return System.stringToColor(tostring(value))
+			-- Custom
+			elseif type=="time" then
+				if string.find(value,":") == nil and string.len(string.gsub(value,"[^:]","")) ~= 1  then return { type="time", day=0, time=0 } end -- DAY:time
+				return { type="time", day=tonumber(string.sub(value,0,string.find(value,":")-1)) or 0, time=tonumber(string.sub(value,string.find(value,":")+1,#value)) or 0 }
+			elseif type=="codex:password_criteria" then
+				if numberOf("!",value) ~= 2 or numberOf(":",value) ~= 2 or numberOf("#",value) ~= 1 then -- Invalid format...
+					return {
+						type="codex:password_criteria",
+						IHP = {
+							method = "PBKDF2",
+							iv = 25,
+							hashSalt = false,
+						},
+						FHP = {
+							method = "SHA256",
+							iv = 25,
+						}
+					}
+				end
+
+
+				local ihpB, ihpE = string.find(value,".+!")
+				local IHP = string.sub(value,ihpB+1,ihpE-1)
+				local FHP = string.sub(value,ihpE+1,#value-1)
+
+				local saltLocation = string.find(value,"#")+1
+
+				return {
+					type="codex:password_criteria",
+					IHP = {
+						method = string.sub(IHP,0,string.find(IHP,":")-1):gsub("[^%d%w@]",""),
+						iv = string.sub(IHP,string.find(IHP,":")+1):gsub("[^%d]",""),
+						hashSalt = string.sub(value,saltLocation,saltLocation):gsub("[^%d]","") == "1",
+					},
+					FHP = {
+						method = string.sub(FHP,0,string.find(FHP,":")-1),
+						iv = string.sub(FHP,string.find(FHP,":")+1):gsub("[^%d]",""),
+					}
+				}
+			elseif type=="codex:password_data" then
+				if numberOf("!",value) ~= 2 or numberOf(":",value) ~= 2 or numberOf("\\",value) ~= 1 or numberOf("#",value) ~= 1 then -- Invalid format...
+					return {
+						type="codex:password_data",
+						IHP = {
+							method = "",
+							iv = 0,
+							saltHashed = false,
+						},
+						FHP = {
+							method = "",
+							iv = 0,
+							hash = nil,
+							salt = "",
+						}
+					}
+				end
+				local methods = string.match(value,"!.*\\")
+
+				local ihpB, ihpE = string.find(methods,".+!")
+				local IHP = string.sub(methods,ihpB+1,ihpE-1)
+				local FHP = string.sub(methods,ihpE+1,#methods-1)
+
+				local saltLocation = string.find(value,"#")+1
+
+				return {
+					type="codex:password_data",
+					IHP = {
+						method = string.sub(IHP,0,string.find(IHP,":")-1):gsub("[^%d%w@]",""),
+						iv = string.sub(IHP,string.find(IHP,":")+1):gsub("[^%d]",""),
+						saltHashed = string.sub(value,saltLocation,saltLocation):gsub("[^%d]","") == "1",
+					},
+					FHP = {
+						method = string.sub(FHP,0,string.find(FHP,":")-1),
+						iv = string.sub(FHP,string.find(FHP,":")+1):gsub("[^%d]",""),
+						hash = string.sub(value,string.find(value,"\\")+1,saltLocation-2),
+						salt = charsToString(string.sub(value,saltLocation+1,#value)),
+					}
+				}
+			-- elseif type=="codex:user" then
+			-- 	if InternalSystem["CodeX"]["Users"] ~= nil then
+			-- 		if InternalSystem["CodeX"]["Users"][value] ~= nil then
+			-- 			return {
+			-- 				type="codex:user",
+			-- 				userID = value,
+			-- 				user = InternalSystem["CodeX"]["Users"][value],
+			-- 			}
+			-- 		end
+			-- 	end
+			-- 	return {
+			-- 		type="codex:user",
+			-- 		userID = value,
+			-- 	}
+			-- elseif type=="codex:group" then
+			-- 	if InternalSystem["CodeX"]["Groups"] ~= nil then
+			-- 		if InternalSystem["CodeX"]["Groups"][value] ~= nil then
+			-- 			return {
+			-- 				type="codex:group",
+			-- 				groupID = value,
+			-- 				user = InternalSystem["CodeX"]["Groups"][value],
+			-- 			}
+			-- 		end
+			-- 	end
+			-- 	return {
+			-- 		type="codex:group",
+			-- 		groupID = value,
+			-- 	}
+			else return value end
+		end
+
+		-- Now sort this into the config.Entries table
+		config.Entries = {}
+		local function runFolder(index) -- Return a table with the folder contents in the root ({["variable"]="value"})
+			local fileTable={}
+			local i,a=index+1,1
+			while i<=#raw and a>0 do -- Find the end of the folder
+				local _,last = string.find(raw[i],"%s+")
+				last = last or 0
+				raw[i] = string.sub(raw[i],last+1,#raw[i])
+				if string.sub(raw[i],1,1)=="{" then
+					a=a+1
+				end
+				if string.sub(raw[i],1,2)=="/}" then
+					a=a-1
+				end
+				i=i+1
+			end
+			local folderEnd=i-1 local i=index+1
+			while i<folderEnd do
+
+				local v=raw[i]
+				local _,last = string.find(v,"%s+")
+				last = last or 0
+				v = string.sub(v,last+1,#v)
+				if string.sub(v,1,1)=="[" then -- This is an entry
+					fileTable[string.sub(v,2,string.find(v,"]")-1)]=totype(string.sub(v,string.find(v,"]")+2,string.find(v,")")-1),string.sub(v,string.find(v,")")+1,string.len(v))) i=i+1
+				elseif string.sub(v,1,1)=="{" then -- This is a folder
+					fileTable[string.sub(v,2,string.find(v,"}")-1)],i=runFolder(i)
+				else i=i+1 end
+			end
+			return fileTable,folderEnd
+		end
+
+		local i=1
+		while i<=#raw do
+			local v=raw[i]
+			local _,last = string.find(v,"%s+")
+			last = last or 0
+			v = string.sub(v,last+1,#v)
+			if string.sub(v,1,1)=="[" then -- This is an entry
+				local key = string.sub(v,2,string.find(v,"]")-1) -- [THIS](boolean)true
+				local t = string.sub(v,string.find(v,"]")+2,string.find(v,")")-1) -- [runThat](THIS)true
+				local value = string.sub(v,string.find(v,")")+1,string.len(v)) -- [runThat](boolean)THIS
+				config.Entries[key]=totype(t,value)
+				i=i+1
+			elseif string.sub(v,1,1)=="{" then -- This is a folder
+				config.Entries[string.sub(v,2,string.find(v,"}")-1)],i=runFolder(i)
+			else i=i+1 end
+
+			if i%25 == 1 then
+				System.GetAPI("EventEmitter").Pull(nil, 0)
+			end
+		end
+	end
+	config.Save=function() -- Do the inverse of refresh
+		-- if not System.KeyManager.isAdministratorKey(key) then return false, "Config.Save().Access_Denied" end
+		Logger.Info("Saving "..location.." configuration file. (HANDLEID: "..tostring(config)..")")
+		local function serialize(fold,depth)
+			local tab = ""
+			if depth then
+				for i=1, depth do
+					tab = tab.."\t"
+				end
+			end
+			depth = depth or 0
+			local Entries=""
+			for i,v in pairs(fold) do
+				if type(v)=="table" then
+					local folder = true
+					if v["type"] ~= nil then
+						if string.lower(v["type"]) == "time" and v["day"] ~= nil and v["time"] ~= nil then
+							folder=false
+							Entries=Entries..tab.."["..i.."](time)"..v["day"]..":"..v["time"].."\n"
+						elseif string.lower(v["type"]) == "codex:password_data" and v["FHP"] ~= nil and v["IHP"] ~= nil then
+							folder=false
+							if v["FHP"]["iv"] ~= nil and v["FHP"]["method"] ~= nil and v["FHP"]["salt"] ~= nil and v["FHP"]["hash"] ~= nil and v["IHP"]["iv"] ~= nil and v["IHP"]["method"] ~= nil and v["IHP"]["saltHashed"] ~= nil then
+								Entries=Entries..tab.."["..i.."](codex:password_data)!"..v["IHP"]["method"]..":"..v["IHP"]["iv"].."!"..v["FHP"]["method"]..":"..v["FHP"]["iv"].."\\"..v["FHP"]["hash"].."#"..(v["IHP"]["saltHashed"]==true and 1 or 0)..stringToChars(v["FHP"]["salt"]).."\n"
+							end
+						elseif string.lower(v["type"]) == "codex:password_criteria" and v["FHP"] ~= nil and v["IHP"] ~= nil then
+							folder = false
+							if v["FHP"]["iv"] ~= nil and v["FHP"]["method"] ~= nil and v["IHP"]["iv"] ~= nil and v["IHP"]["method"] ~= nil and v["IHP"]["hashSalt"] ~= nil then
+								Entries=Entries..tab.."["..i.."](codex:password_criteria)!"..v["IHP"]["method"]..":"..v["IHP"]["iv"].."!"..v["FHP"]["method"]..":"..v["FHP"]["iv"].."#"..(v["IHP"]["saltHashed"]==true and 1 or 0).."\n"
+							end
+						end
+					end
+					if folder then
+						local a=serialize(v,depth+1)
+						Entries=Entries..tab.."{"..i.."}\n"..a..tab.."/}\n"
+					end
+				elseif type(v)=="boolean" then
+					if v then Entries=Entries..tab.."["..i.."](boolean)true\n" else Entries=Entries..tab.."["..i.."]".."(boolean)false\n" end
+				elseif type(v)=="number" or type(v)=="char" then
+					Entries=Entries..tab.."["..i.."]("..type(v)..")"..tostring(v).."\n"
+				elseif type(v)=="string" then
+					Entries=Entries..tab.."["..i.."](string)"..v.."\n"
+					-- Entries=Entries..tab.."["..i.."](charmap)"..stringToChars(v).."\n"
+				end -- We skip anything else (because we can't really save them to and bring them back from a file)
+			end
+			return Entries
+		end
+
+		-- Finally, save it.
+		local saveThis=serialize(config.Entries)
+		local f=InternalSystem.Native.fs.open(location,"w")
+		f.write(saveThis)
+		f.close()
+	end
+	config.Refresh()
+	return config
+end

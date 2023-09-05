@@ -1,0 +1,190 @@
+--[[
+
+	Task Manager 2.0
+
+
+	Example task:
+
+		["example_task_id"] = {
+			name = "Minesweeper Game",
+			term = term_obj -- This CAN be a reference to the 'control' window from the DWM | Where the program outputs
+	
+			environment = {} -- This is the program environment the program runs in
+			parent_environment = {} -- The read-only parent environment we pull keys from
+
+			key = "" -- Task key (used for identification)
+
+			threads = { -- Coroutines
+				[0] = { -- Main thread
+					coroutine = theCoroutine -- The thread's coroutine
+					priority = 0 -- The thread's runtime priority
+				},
+			},
+
+			priority = 0 -- The tasks's runtime priority
+
+			userID = "" -- The ID of the user that owns this task
+
+			initiatorID = "" -- The ID of the Task that started this task
+
+			-- Application data
+
+			path = "/Apps/Minesweeper/" -- The path to the folder of the executable
+			executable = "minesweeper.rap" -- The name of the program executable (under path)
+
+			executableHash = "" -- Hash of the executable
+			executableSignature = "" -- The signature of the hash
+
+			appPackage = true -- RitoOS App Package?
+		},
+
+	Thread priorities:
+		0: 'Real-time' -- Run every other thread/process
+		1-3: High -- Ran twice a tick
+		4-6: Above normal -- Not utilized. Treated as normal
+		7-9: Normal (12 <-- default) -- Run normally every tick
+		10-12: Below normal -- These run every-other tick
+		13-15: Low -- One of these is ran every tick. (SO we run thread A tick one, thread B tick two, then back to thread A in tick three.)
+		99: Suspended (not activated) -- These are not actively ran.
+
+
+
+
+	Tasks are stored in "Sessions". Inspiration was taken from Windows' sessions here
+	There are TWO sessions after a user logs in.
+	Session 0 is the system's session. All system tasks are stored here.
+	Session 1 is the first user (that logs in)'s session. All of their tasks are stored here.
+	Each session contains four "desktops" (or window/term objects). The four desktops are: LockScreen, UserSpace, SecureUserSpace, and SOUCSpace.
+		LockScreen is the term used by CodeX to display the user's lock screen and grab user details. Only CodeX is allowed to execute and modify this term.
+		UserSpace is the term used by any and all insecure user 'tasks'
+		SecureUserSpace is the term used by a program whenever it wants to ensure private and secure user interactions. Only one 'task' can access this space at one time. A user can force a task out of this space with a key combination
+		OS2U (OS to User) is used for secure OS -> User communications (similar to UAC in windows). Only the OS can access this space. The user can tell they're in this space via key combination
+
+	Each session contains a list of 'tasks' (or processes).
+		Each process mimics the above 'example task'.
+		Each process contains a list of "threads" with thread[0] being the main executable. When an executable is loaded by the RitoOS Executioner, we place 'breaks' or coroutine.yields() within the executable's code. By doing so we prevent a process from hanging the system. This is because in lua you can not have two 'threads' or coroutines running at the SAME time (truly). Some 'get around' this by having the thread yielding and giving control back to the parent coroutine. We can safely assume this would happen, (otherwise the whole computer crashes from 'too long without yielding'), but we want to ENSURE this will happen. To do so we will inject 'coroutine.yield()' directly into executable's code forcing them to yield. The ideal placement would be after **every** line in the program, but realistically we do not have fast enough timing to do this. So, to counter, we'll just place these yields after the begging of a loop (repeat, do, etc). This works on **simple** loops and threads, but may break on more advance programs.
+
+	How tasks and threads or called:
+		We're assuming tasks and threads are already created a in the "tasks" table.
+
+		A infinite loop repeats the following:
+			We 'queue' an OS event labeled 'tick' with the first parameter being our 'tick' number
+			We the capture os.pullEventRaw() as 'evt' `evt={os.pullEventRaw()}`. This allows us to capture OS events, (timers, clicks, key presses, etc) and pass them to our threads
+			Next we call `pushEvent(evt)` which calls the threads.
+				The function opens a for loop that transverses the 'threads' table (this is a table that houses references to the threads ONLY and is organized by priority) (the table is managed by the TaskMan API and is updated on task changes.)
+	
+--[[
+			["example_task_id"] = {
+				name = "Minesweeper Game",
+				term = term_obj -- This CAN be a reference to the 'control' window from the DWM
+				key = "" -- Task key
+				threads = { -- Coroutines
+					[0] = coroutine 1 -- Main thread
+				}
+
+				path = "/Apps/Minesweeper/" -- The path to the folder of the executable
+				executable = "minesweeper.rap" -- The name of the program executable (under path)
+
+				executableHash = "" -- Hash of the executable
+				executableSignature = "" -- The signature of the hash
+
+				appPackage = true -- RitoOS App Package?
+			},
+			
+	
+	--------------------------
+
+
+	Thread statues:
+		0: Suspended
+		1: Running
+		2: Dead
+
+
+	How things are stored:
+		{
+			['Sessions'] = { // These are the 'users' currently logged into the machine
+				["userID"] = { // The user
+					["ViewPorts"] = {
+						LockScreen = term_obj, // Lock Screen, typical contact method from OS (OS User term)
+						UserSpace = term_obj, // Where the user spends their time (OS User term)
+						SecureUserSpace = term_obj, // Where 'secure' programs live. If they want to be protected from other applications, they can request to draw to this term. Notice: one program can live here at a time
+						OS2U = term_obj, // Unused, used for secure messages from OS (OS Secure Term)
+					},
+					["Processes"] = { // List of processes
+						["pid"] = {
+							["name"] = "Example Program", // The process's friendly name
+							["term"] = term_obj, // Where the threads can draw to
+							["environment"] = {} // The program's environment
+							["parent_environment"] = {} // The 'parent' of the process's environment
+							["key"] = "", // The key used by the process to prove it's identity (or by other processes to manipulate this process without proper taskman Holtin permissions)
+							["priority"] = 8, // The process's runtime priority
+							["threads"] = { // A list of threads (coroutines)
+								[0] = {
+									["status"] = 0, // Used to determine the status of the thread's coroutine (testing shows reading this rather than calling coroutine.status() is faster.)
+									["coroutine"] = coroutine.create(function() end) // ...
+								}
+							}
+							
+							["path"] = "/Apps/HelloWrld", // The path to the parent directory of this process's executable
+							["package_name"] = "hlowrld.rap", // The code file that is running in this process (inside the path directory.)
+							["executableHash"] = "", // The hash of the code file
+							["executableSignature"] = "", // The signature data for the hash...of the code file
+						}
+					},
+					["userID"] = userID,
+					["username"] = username,
+					["CUD"] = userCUD,
+					["IHP"] = userIHP,
+
+				}
+	
+			},
+		}
+
+	TaskMan API:
+		The kernel is the one that actually runs the 'task broker'. This is what 'runs' or 'calls' each thread. TaskMan provides an interface to manage the processes and threads that this task broker is running.
+		[ --- TaskMan also provides the functions required to run your *own* task broker. This is what the kernel actually calls. The reason for exposing the task broker function is to provide developers with an already predefined task management solution. --- ] (NOTE: this has yet to be actually implemented. Currently the kernel uses its own task broker. The reason being is taskman has no secure way of allowing developers to provide the 'table' taskman will modify.)
+		Goals:
+			Add, remove, and list sessions, processes, and threads.
+			Modify any aspects of sessions, processes, and/or threads.
+			Read session, process, and thread data.
+			Interact (send events) to threads/processes
+		
+		-------------------------------------------------
+
+		.NewSession(String UserID) **
+		.NewProcess(Table ProcessData[, String UserID])
+		.NewThread(int PID[, String UserID])
+		.Run(String PathToExecutable[, boolean RitoOSAppPackage, String UserID])
+
+		.ListSessions()
+		.ListProcesses([String UserID])
+		.ListThreads(int PID[, String UserID])
+
+		.RemoveSession(String UserID)
+		.RemoveProcess(int PID[, String UserID])
+		.RemoveThread(int PID[, String UserID])
+
+
+		.GetProcessData(int PID[, String UserID])
+
+		.SetPriority(int PID, int Priority[, String UserID])
+
+		===================
+
+		.EmptyProcessData
+
+		===================
+
+		.TaskBroker()
+
+
+
+	TaskMan Holtin permissions:
+		taskman.system -- Manage System tasks/processes/threads
+			.create
+			.list
+			.kill
+			.kill.force
+]]

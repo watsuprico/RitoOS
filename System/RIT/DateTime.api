@@ -1,0 +1,88 @@
+--[[
+
+	RIT DateTime
+		@since 1.0
+		@brief Date and time helpers
+
+]]
+
+
+local args = {...}
+local Internal = args[1]
+
+if (Internal == nil or type(Internal) ~= "table") then
+	error("Missing Internal object!")
+end
+local oc = Internal.Platform == "oc" and true or false
+
+
+local DateTime = {}
+DateTime.__index = DateTime
+
+function DateTime.Now()
+	local now = os.date() -- grab the time as fast as possible!
+
+	local self = {}
+	setmetatable(self, DateTime)
+
+
+	local monthNames = {
+		Jan = 1, Feb = 2, Mar = 3, Apr = 4, May = 5, Jun = 6,
+		Jul = 7, Aug = 8, Sep = 9, Oct = 10, Nov = 11, Dec = 12
+	}
+
+	month, day, hour, minute, second, year = 0,0,0,0,0,0
+
+	if oc then
+		local pattern = "(%d+)/(%d+)/(%d+)%s+(%d+):(%d+):(%d+)"
+		day, month, year, hour, minute, second = string.match(now, pattern)
+
+		year = tonumber(year)
+		if year < 100 then
+			year = year + 2000 -- sorry guys, this will not work in the year 3000!
+		end
+	else
+		local pattern = "%a+ (%a+) (%d+) (%d+):(%d+):(%d+) (%d+)"
+		local monthName = nil
+		monthName, day, hour, minute, second, year = string.match(now, pattern)
+		month = monthNames[monthName]
+	end
+
+	self.Year = tonumber(year)
+	self.Month = tonumber(month)
+	self.Day = tonumber(day)
+	self.Hour = tonumber(hour)
+	self.Minute = tonumber(minute)
+	self.Second = tonumber(second)
+
+	self.IsAM = self.Hour < 12
+
+	return self
+end
+
+-- Returns a DateTime object but for the in-game time/date
+function DateTime.InGame()
+end
+
+
+
+function DateTime:ToISOString()
+	-- Format values with leading zeros if necessary
+	local year = string.format("%04d", self.Year)
+	local month = string.format("%02d", self.Month)
+	local day = string.format("%02d", self.Day)
+	local hour = string.format("%02d", self.Hour)
+	local minute = string.format("%02d", self.Minute)
+	local second = string.format("%02d", self.Second)
+
+	-- Construct the ISO string
+	local isoString = year .. "-" .. month .. "-" .. day .. "T" .. hour .. ":" .. minute .. ":" .. second .. ".000Z"
+
+	return isoString
+end
+
+
+
+
+
+return DateTime
