@@ -30,6 +30,9 @@ local Crypto=System.GetAPI("Crypto")
 local RG = System.GetAPI("RandomGenerator")
 local renderRCF = System.GetAPI("RCF")
 
+if (not Internal.FileSystem.Exists("/System/Configuration/CodeX.rcf")) then
+	Internal.FileSystem.WriteAllText("/System/Configuration/CodeX.rcf", "{UI}\n	[showPowerControls](boolean)true\n	[buttonTextColorActive](number)32768\n	[enableLockScreen](boolean)true\n	[buttonBackgroundColor](number)256\n	[displayClock](boolean)true\n	[buttonTextColor](number)1\n	[buttonBackgroundColorActive](number)128\n	[textboxTextColor](number)128\n	[textboxBackgroundColorActive](number)1\n	[textboxTextColorActive](number)32768\n	[displayDomainName](boolean)true\n	[textboxBackgroundColor](number)256\n	[backgroundColor](number)8192\n	[textColor](number)1\n/}\n{Defaults}\n	{User}\n		[expires](time)0:0\n		{Groups}\n			[0](string)1933103605\n		/}\n		[locked](boolean)true\n		[profilePath](string)/Users/$username\n		[pwCriteria](codex:password_criteria)!METHOD:!METHOD2:2#0\n	/}\n	[pwCriteria](codex:password_criteria)!PBKDF2:15!SHA256:15#0\n/}\n{CAD}\n	[signature](string)\n	[encrypted](boolean)false\n	[location](string)/System/Accounts.rcf\n	[usingSyskey](boolean)true\n/}\n");
+end
 local Config = renderRCF("/System/Configuration/CodeX.rcf", Internal.RuntimeKey)
 
 if (not Internal.FileSystem.Exists("/System/Vault/Accounts.rcf")) then

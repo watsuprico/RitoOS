@@ -63,7 +63,7 @@ local function handleEvent(...)
 
 	if (History == nil) then History = {} end
 
-	local keyEvent = ""
+	local keyEvent = "";
 	local keyCode = event[2];
 	if (eventName == "key" or eventName == "key_up") then
 		local keyCodeString = tostring(keyCode);

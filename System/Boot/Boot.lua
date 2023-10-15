@@ -31,6 +31,8 @@ _G.IsRitoOS = true
 
 -- Internal "class"
 Internal = {
+	["BootTime"] = 0,
+
 	["BootConfig"] = BootConfig,
 	["debug"] = true,
 
@@ -54,6 +56,12 @@ Internal = {
 local oc = BootConfig.Platform == 1 and true or false
 Internal.Platform = oc and "oc" or "cc"
 local debug = Internal.debug
+
+if (oc) then
+	Internal.BootTime = computer.uptime();
+else
+	Internal.BootTime = os.epoch('utc');
+end
 
 
 Internal.BootConfig.DoFile = function(filePath)
@@ -259,37 +267,45 @@ if oc then
 	platformName = "OpenComputers"
 end
 
-local driversPath = "/System/Drivers/" .. platformName .. "/"
 Internal.DriverStore = {}
 local LoadedDrivers = {}
-if (Internal.FileSystem.Exists(driversPath)) then
-	for _,file in pairs(Internal.FileSystem.list(driversPath)) do
-		local driverName = Internal.FileSystem.GetName(file)
-		if (string.sub(driverName, -4) == ".lua") then
-			driverName = string.sub(driverName, 1, -5)
-		end
-		driverName = string.lower(driverName)
+function loadDriversAt(driversPath)
+	if (Internal.FileSystem.Exists(driversPath)) then
+		for _,file in pairs(Internal.FileSystem.list(driversPath)) do
+			local driverName = Internal.FileSystem.GetName(file)
+			if (string.sub(driverName, -4) == ".lua") then
+				driverName = string.sub(driverName, 1, -5)
+				driverName = string.lower(driverName)
 
-		local driverPath = Internal.FileSystem.Combine(driversPath, file)
-		if debug then
-			writeStatus("Loading driver " .. driverName .. " from: " .. driverPath)
-		end
+				local driverPath = Internal.FileSystem.Combine(driversPath, file)
+				if debug then
+					writeStatus("Loading driver " .. driverName .. " from: " .. driverPath)
+				end
 
-		local driverChunk, err = Internal.BootConfig.LoadFile(driverPath)
-		if not driverChunk then
-			if err then
-				error("!Failed to load driver " .. driverName .. "(" .. tostring(err) .. ")")
+				local driverChunk, err = Internal.BootConfig.LoadFile(driverPath)
+				if not driverChunk then
+					if err then
+						error("!Failed to load driver " .. driverName .. "(" .. tostring(err) .. ")")
+					else
+						error("!Failed to load driver " .. driverName)
+					end
+				else
+					Internal.DriverStore[driverName] = driverChunk(Internal)
+					table.insert(LoadedDrivers, driverName)
+				end
 			else
-				error("!Failed to load driver " .. driverName)
+				-- not a driver file :p
 			end
-		else
-			Internal.DriverStore[driverName] = driverChunk(Internal)
-			table.insert(LoadedDrivers, driverName)
 		end
+	else
+		writeStatus("No drivers to load.")
 	end
-else
-	writeStatus("No drivers to load.")
 end
+
+loadDriversAt("/System/Drivers/" .. platformName .. "/")
+loadDriversAt("/System/Drivers/")
+
+
 local dStore = Internal.DriverStore
 function Internal.GetDriver(name) -- for god knows why YOU MUST use that function to get the driver!
 	return dStore[string.lower(name or "")]
@@ -308,21 +324,23 @@ if (Internal.FileSystem.Exists(halPath)) then
 		local halFileName = Internal.FileSystem.GetName(file)
 		if (string.sub(halFileName, -4) == ".lua") then
 			halFileName = string.sub(halFileName, 1, -5)
-		end
-		halFileName = string.lower(halFileName)
+			halFileName = string.lower(halFileName)
 
-		local halFilePath = Internal.FileSystem.Combine(halPath, file)
-		if debug then
-			writeStatus("Loading abstraction " .. halFileName .. " from: " .. halFilePath)
-		end
-
-		local ok, err = pcall(function() Internal.BootConfig.DoFile(halFilePath) end)
-		if not ok then
-			if err then
-				writeStatus("!Failed to abstraction layer " .. halFileName .. "(" .. tostring(err) .. ")")
-			else
-				writeStatus("!Failed to load driver " .. halFileName)
+			local halFilePath = Internal.FileSystem.Combine(halPath, file)
+			if debug then
+				writeStatus("Loading abstraction " .. halFileName .. " from: " .. halFilePath)
 			end
+
+			local ok, err = pcall(function() Internal.BootConfig.DoFile(halFilePath) end)
+			if not ok then
+				if err then
+					writeStatus("!Failed to abstraction layer " .. halFileName .. "(" .. tostring(err) .. ")")
+				else
+					writeStatus("!Failed to load driver " .. halFileName)
+				end
+			end
+		else
+			-- not a HAL file (lua)
 		end
 	end
 else

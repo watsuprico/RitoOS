@@ -180,7 +180,8 @@ function ProcessObj:GetProcessEnvrionment()
 				}, processEnvironment)
 			end,
 			["pullEvent"] = function(event) return processEnvironment.System.EventEmitter.Pull(event) end,
-			["pullEventRaw"] = function(event) return processEnvironment.System.EventEmitter.Pull(event) end
+			["pullEventRaw"] = function(event) return processEnvironment.System.EventEmitter.Pull(event) end,
+			["epoch"] = function(locale) return System.Epoch(locale) end
 		}
 		processEnvironment.dofile = processEnvironment.os.dofile
 	end

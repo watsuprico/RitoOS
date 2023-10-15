@@ -1244,7 +1244,7 @@ HFS.GetName = function(path)
 	local wasDir = false
 	if (string.sub(path, -1) == "/") then
 		wasDir = true
-		path = string.sub(string, 0, -1) -- remove trailing /
+		path = string.sub(path, 0, -1) -- remove trailing /
 	end
 	local _, index = string.find(path,".*/")
 	if index then

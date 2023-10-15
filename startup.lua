@@ -52,10 +52,15 @@ if Platform == 0 then
 	if term == nil then
 		if print then
 			print("boot_failed: term_nil")
+			pullEventRaw("key");
 			nativeShutdown();
 			return;
 		elseif write then
 			write("boot_failed: term_nil")
+			pullEventRaw("key");
+			nativeShutdown();
+			return;
+		else
 			nativeShutdown();
 			return;
 		end

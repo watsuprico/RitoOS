@@ -170,7 +170,7 @@ function KeyboardDriver.Main()
 	Internal.SysEvents.AddEventListener("char", function(...) handleEvent("char", ...) end)
 	Internal.SysEvents.AddEventListener("key_down", function(...) handleEvent("key_down", ...) end)
 	Internal.SysEvents.AddEventListener("key_up", function(...) handleEvent("key_up", ...) end)
-	Internal.SysEvents.AddEventListener("paste", function(...) handleEvent("paste", ...) end)
+	Internal.SysEvents.AddEventListener("clipboard", function(...) handleEvent("paste", ...) end)
 end
 
 return KeyboardDriver

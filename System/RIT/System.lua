@@ -119,6 +119,15 @@ System.Errors = {
 }
 
 
+function System.GetPlatform()
+	return "RitoOS", {
+		["Version"] = System.Version,
+		["Hardware"] = Internal.Platform == "oc" and "OpenComputers" or "ComputerCraft",
+		["HardwareCode"] = Internal.Platform,
+	};
+end
+
+
 --[[
 	Add some FileSystem helpers
 ]]
@@ -285,18 +294,39 @@ function System.Table.ZeroOut(t)
 	zeroOut(t)
 end
 
+function System.Table.FromHex(str)
+	if (#str % 2 ~= 0) then
+		error("Odd length string, not a valid hex string.");
+	end
+	local final = {};
+	local index = 1;
+	for i=1, #str/2 do
+		local segment = str:sub(index,index+1);
+		table.insert(final, tonumber(segment, 16));
+		index=index+2;
+	end
+	return final;
+end
+
+
+-- Returns the epoch
+function System.Epoch(locale)
+	if (oc) then
+		return Internal.Native.computer.uptime()
+	else
+		return Internal.Native.os.epoch(locale)
+	end
+end
 
 --[[
 
 	Returns the number of seconds the system has been running.
 ]]
 function System.Uptime()
-	if (oc) then
-		return Internal.Native.computer.uptime()
-	else
-		return Internal.Native.os.clock()
-	end
+	local now = System.Epoch("utc");
+	return (now - Internal.BootTime) / 1000;
 end
+
 
 
 --[[
@@ -404,7 +434,7 @@ function System.GetLog(name, key) -- "Name" is the program (or whatever) is requ
 	end
 
 	local function internalLog(State, Message)
-		local logLine = ("["..os.clock().."]["..State.."] "..name.." | "..Message.."\n")
+		local logLine = ("["..System.Uptime().."]["..State.."] "..name.." | "..Message.."\n")
 		pcall(function()
 			Internal.Log.Handles[Location].Write(logLine)
 			Internal.Log.Handles[Location].Flush()
@@ -487,7 +517,10 @@ end
 ]]
 
 -- Localization
-local languageFiles = Internal.FileSystem.List("/System/Localization")
+local languageFiles = {};
+if Internal.FileSystem.IsDirectory("/System/Localization") then
+	languageFiles = Internal.FileSystem.List("/System/Localization")
+end
 for i,fileName in ipairs(languageFiles) do
 	if (string.sub(fileName, -5) == ".lang") then
 		-- Supported
@@ -511,7 +544,7 @@ function System.Localization.GetLanguage(language)
 	if not Supported then
 		return nil, System.Errors.LanguageNotSupported
 	end
-	local handle = Internal.FileSystem.Open("/System/Locals/"..language..".lang", "r")
+	local handle = Internal.FileSystem.Open("/System/Localization/"..language..".lang", "r")
 	if (handle == nil) then return nil end
 	local contents = handle.readAll()
 	handle.close()

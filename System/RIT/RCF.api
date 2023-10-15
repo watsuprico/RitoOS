@@ -15,7 +15,7 @@ return function(location, key)
 		Logger.Info("Failed to load  "..location.." configuration file as it does not exist.")
 		error("System.getConfig().Configuration_File_Not_Found")
 	end
-	Logger.Info("Setting up "..location.." configuration file. (HANDLEID: "..tostring(config)..")")
+	Logger.Info("Setting up "..location.." configuration file. (Handle_Id: "..tostring(config)..")")
 
 	local function stringToChars(s)
 		local final = ""
@@ -27,7 +27,7 @@ return function(location, key)
 	end
 
 	config.Refresh = function()
-		Logger.Info("Refreshing "..location.." configuration file. (HANDLEID: "..tostring(config)..")")
+		Logger.Info("Refreshing "..location.." configuration file. (Handle_Id: "..tostring(config)..")")
 		local raw = InternalSystem.FileSystem.ReadAllLines(location)
 
 		local function numberOf(char, str) -- Returns the number of time 'char' is in the string 'str'
@@ -225,7 +225,7 @@ return function(location, key)
 	end
 	config.Save=function() -- Do the inverse of refresh
 		-- if not System.KeyManager.isAdministratorKey(key) then return false, "Config.Save().Access_Denied" end
-		Logger.Info("Saving "..location.." configuration file. (HANDLEID: "..tostring(config)..")")
+		Logger.Info("Saving "..location.." configuration file. (Handle_Id: "..tostring(config)..")")
 		local function serialize(fold,depth)
 			local tab = ""
 			if depth then
