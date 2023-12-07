@@ -1,0 +1,477 @@
+--[[
+	
+	RIT Viewport API
+		@since 1.0
+		@brief RIT graphics viewport API
+
+]]
+
+local args = {...}
+local Internal = args[1]
+
+if (Internal == nil or type(Internal) ~= "table") then
+    error("Missing Internal object!")
+end
+-- Is OpenComputer?
+local oc = Internal.Platform == "oc" and true or false
+
+--local gpu = Internal.DriverStore.screen.GetPrimaryScreen().GPU
+local gpu = Internal.GetDriver("graphics").GetPrimaryDisplay()
+
+
+local function checkArg(n, have, ...)
+	have = Internal.Native.type(have)
+	local function check(want, ...)
+		if not want then
+			return false
+		else
+			return have == want or check(...)
+		end
+	end
+	if not check(...) then
+		local msg = Internal.Native.string.format("bad argument #%d (%s expected, got %s)", n, table.concat({...}, " or "), have)
+		Internal.Native.error(msg, 3)
+	end
+end
+
+
+
+local Viewport = {}
+
+function Viewport.New(parent, x, y, width, height, visible)
+	local viewport = {}
+
+	if (width < 0) then
+		error("Width must be >=1.")
+	elseif (height < 0) then
+		error("Height must be >=1.")
+	end
+
+	local X = x
+	local Y = y
+	local Width = width
+	local Height = height
+
+	local Cursor = {["X"] = 1, ["Y"] = 1}
+	local ForegroundColor = 1	-- white
+	local BackgroundColor = 2^15	-- black
+	
+	-- local Buffer = {} -- 2D table, with [X][Y] => { char, fg, bg, alpha }
+	local CharBuffer = {}
+	local ForegroundBuffer = {}
+	local BackgroundBuffer = {}
+	local ActiveCharBuffer = {}
+	local ActiveForegroundBuffer = {}
+	local ActiveBackgroundBuffer = {}
+	for i = 1, Width do
+		ActiveCharBuffer[i] = {}
+		ActiveForegroundBuffer[i] = {}
+		ActiveBackgroundBuffer[i] = {}
+	end
+	for i = 1, Width do
+		for j = 1, Height do
+			ActiveCharBuffer[i][j] = " "
+			ActiveForegroundBuffer[i][j] = ForegroundColor
+			ActiveBackgroundBuffer[i][j] = BackgroundColor
+		end
+	end
+
+	local Parent = parent or Internal.GetDriver("graphics").New(gpu)
+	local OC_BufferNumber
+
+	-- Modifying colors (on screen)
+
+	-- Palette data
+	-- Get the default palette value for a color.
+	function viewport.GetNativePaletteColor(color)
+		checkArg(1, color, "number")
+		return Parent:GetNativePaletteColor(color)
+	end
+
+	-- Get the current palette for a specific color.
+	function viewport.GetPaletteColor(color)
+		checkArg(1, color, "number")
+		return Parent:GetPaletteColor(color)
+	end
+
+	-- color is the index, r can be red (0-1) or a hex color, g and b are green/blue (0-1).
+	function viewport.SetPaletteColor(color, r, g, b)
+		checkArg(1, color, "number")
+		return Parent:SetPaletteColor(color, r, g, b)
+	end
+
+	function viewport.IsColor()
+		return Parent:IsColor()
+	end
+
+
+	function viewport.SetTextColor(color)
+		checkArg(1, color, "number")
+		if (color > 16) then
+			color = math.log(color, 2)
+		end
+		ForegroundColor = color
+	end
+
+	function viewport.GetTextColor()
+		return ForegroundColor
+	end
+
+	function viewport.SetBackgroundColor(color)
+		checkArg(1, color, "number")
+		if (color > 16) then
+			color = math.log(color, 2)
+		end
+		BackgroundColor = color
+	end
+
+	function viewport.GetBackgroundColor()
+		return BackgroundColor
+	end
+
+
+	-- Manipulation
+	function viewport.Clear()
+		for i = 1, Width do
+			CharBuffer[i] = {}
+			ForegroundBuffer[i] = {}
+			BackgroundBuffer[i] = {}
+		end
+		for i = 1, Width do
+			for j = 1, Height do
+				CharBuffer[i][j] = " "
+				ForegroundBuffer[i][j] = ForegroundColor
+				BackgroundBuffer[i][j] = BackgroundColor
+			end
+		end
+
+		viewport.Draw()
+	end
+
+	function viewport.ClearLine(horizontal)
+		if (horizontal) then
+			for i = 1, #CharBuffer[Cursor.X] do
+				CharBuffer[Cursor.X][i] = " "
+				ForegroundBuffer[Cursor.X][i] = ForegroundColor
+				BackgroundBuffer[Cursor.X][i] = BackgroundColor
+			end
+		else
+			for i = 1, #CharBuffer do
+				CharBuffer[i][Cursor.Y] = " "
+				ForegroundBuffer[i][Cursor.Y] = ForegroundColor
+				BackgroundBuffer[i][Cursor.Y] = BackgroundColor
+			end
+		end
+
+		viewport.Draw()
+	end
+
+
+
+	-- Cursor/Size
+
+	function viewport.GetSize()
+		return Width, Height
+	end
+
+	-- Cursor
+
+	function viewport.GetCursorPos()
+		return Cursor.X, Cursor.Y
+	end
+
+	function viewport.SetCursorPos(x, y)
+		checkArg(1, x, "number")
+		checkArg(2, y, "number")
+		Cursor = {["X"] = x, ["Y"] = y}
+	end
+
+	-- Scroll the display up (+) or down (-)
+	function viewport.Scroll(y)
+		CharBuffer = System.Table.Shift(CharBuffer, y)
+		ForegroundBuffer = System.Table.Shift(ForegroundBuffer, y)
+		BackgroundBuffer = System.Table.Shift(BackgroundBuffer, y)
+		local startingIndex = 1
+		local lines = math.min(math.abs(y), Height)
+		if (y > 0) then
+			-- add to the bottom
+			startingIndex = math.min(math.abs(Height-1-y), Height)
+		end
+
+		for i = 1, Width do
+			for j = startingIndex, lines do
+				CharBuffer[i][j] = " "
+				ForegroundBuffer[i][j] = ForegroundColor
+				BackgroundBuffer[i][j] = BackgroundColor
+			end
+		end
+
+		viewport.Draw()
+	end
+
+
+	-- Text
+	function viewport.Blit(text, textColor, backgroundColor)
+		checkArg(1, text, "string")
+		checkArg(2, textColor, "number")
+		checkArg(3, backgroundColor, "number")
+		if (textColor < 1 or math.log(textColor,2) > 15) then
+			error("textColor out of range (" .. tostring(textColor) .. ").")
+		elseif (backgroundColor < 1 or math.log(backgroundColor, 2) > 15) then
+			error("backgroundColor out of range (" .. tostring(backgroundColor) .. ").")
+		end
+
+		local oldFg, oldBg = ForegroundColor, BackgroundColor
+
+		ForegroundColor, BackgroundColor = textColor, backgroundColor
+		viewport.Write(text)
+		ForegroundColor, BackgroundColor = oldFg, oldBg
+	end
+
+	function viewport.Write(text, x, y)
+		checkArg(1, text, "string")
+		checkArg(2, x, "nil", "number")
+		checkArg(3, y, "nil", "number")
+
+		local endOfLine = (Width-Cursor.X)<=#text
+		local allowedLength = math.max(Width-Cursor.X, #text)
+		text = text:sub(1, allowedLength)
+		for i = Cursor.X, allowedLength do
+			CharBuffer[i][Cursor.Y] = (text or ""):sub(i,i)
+			ForegroundBuffer[i][Cursor.Y] = ForegroundColor
+			BackgroundBuffer[i][Cursor.Y] = BackgroundColor
+		end
+		Cursor.X = Cursor.X + allowedLength
+		
+		if (endOfLine) then
+			Cursor.Y = Cursor.Y + 1
+		end
+
+		viewport.Draw()
+		if (endOfLine) then
+			return 1
+		end
+		return 0
+	end
+
+
+	-- Higher level
+
+	function viewport.WriteLine(text, wrap)
+
+	end
+
+	local function getBufferChangesAndClear()
+		local changedPixels = {} -- Table to store changed pixels
+		for x = 1, Width do
+			for y = 1, Height do
+				-- Check if character, foreground or background changed
+				local changed = CharBuffer[x][y] ~= ActiveCharBuffer[x][y]
+				changed = changed or ForegroundBuffer[x][y] ~= ActiveForegroundBuffer[x][y]
+				changed = changed or BackgroundBuffer[x][y] ~= ActiveBackgroundBuffer[x][y]
+
+				if changed then
+					-- Add changed pixel data to table
+					table.insert(changedPixels, {
+						x = x,
+						y = y,
+						char = CharBuffer[x][y],
+						fg = ForegroundBuffer[x][y],
+						bg = BackgroundBuffer[x][y]
+					})
+
+					-- Update active buffers with new data
+					ActiveCharBuffer[x][y] = CharBuffer[x][y]
+					ActiveForegroundBuffer[x][y] = ForegroundBuffer[x][y]
+					ActiveBackgroundBuffer[x][y] = BackgroundBuffer[x][y]
+				end
+			end
+		end
+		return changedPixels
+	end
+
+	-- Render
+	local function fallbackDraw(overDrive)
+		local calls = 0
+
+		local changedPixels = getBufferChangesAndClear()
+
+		-- Draw changed pixels only
+		for _, pixel in ipairs(changedPixels) do
+			if (oc) then
+				Parent:SetTextColor(pixel.fg)
+				Parent:SetBackgroundColor(pixel.bg)
+				Parent:GetNativeAPI().set(pixel.x + X - 1, pixel.y + Y - 1, pixel.char)
+			else
+				-- computercraft, use blit
+				Parent:SetCursorPos(pixel.x + X - 1, pixel.y + Y - 1)
+				Parent:SetTextColor(pixel.fg)
+				Parent:SetBackgroundColor(pixel.bg)
+				Parent:Write(pixel.char)
+				-- print(pixel)
+			end
+
+			calls = calls + 1
+			if not overDrive and calls % 500 == 1 then -- throttle calls every 250 characters
+				sleep(0)
+			end
+		end
+	end
+
+	local function ocBufferDraw()
+		-- create buffer, set buffer active, draw to buffer, copy buffer, free buffer
+		gpu = Parent:GetNativeAPI()
+		local oldBuffer = gpu.getActiveBuffer()
+		if (OC_BufferNumber == nil) then
+			OC_BufferNumber = gpu.allocateBuffer(Width, Height)
+		end
+		gpu.setActiveBuffer(OC_BufferNumber)
+		gpu.setDepth(4)
+		fallbackDraw(true)
+		-- gpu.bitblt(oldBuffer, 1, 1, Width, Height, OC_BufferNumber, 1, 1)
+		gpu.bitblt()
+		gpu.setActiveBuffer(oldBuffer)
+		--gpu.freeBuffer(newBuffer)
+	end
+
+	function ccBlitDraw()
+		local lineString, fgString, bgString = "", "", ""
+
+		for y = 1, #CharBuffer[1] do
+			for x = 1, #CharBuffer do
+				-- Convert color numbers to hex
+				local fg = math.log(ForegroundBuffer[x][y] or 1,2)
+				local bg = math.log(BackgroundBuffer[x][y] or 1,2)
+				local fgHex = string.format("%x", fg or 0)
+				local bgHex = string.format("%x", bg or 0)
+				lineString = lineString .. (CharBuffer[x][y] or " ")
+				fgString = fgString .. fgHex
+				bgString = bgString .. bgHex
+			end
+			-- print("LS.len: "..string.len(lineString), "FG.len: "..string.len(fgString), "BG.len: "..string.len(bgString))
+			Parent:GetNativeAPI().blit(lineString, fgString, bgString)
+			lineString, fgString, bgString = "", "", "" -- reset
+		end
+	end
+
+	function viewport.Draw()
+		--[[
+			This can be sped up many, many ways.
+			One of those ways would be tracking which pixels to update.
+		]]
+
+		local ok, err = pcall(function()
+			if (oc) then
+				ocBufferDraw()
+			else
+				-- error(err)
+				ccBlitDraw()
+			end
+		end)
+
+		if (not ok) then
+			fallbackDraw()
+		end
+	end
+
+	function viewport.Reposition(x,y, newWidth, newHeight)
+		checkArg(1, x, "number")
+		checkArg(2, y, "number")
+		checkArg(3, newWidth, "number")
+		checkArg(4, newHeight, "number")
+
+		if (newWidth < 0) then
+			error("newWidth must be >0.")
+		end
+		if (newHeight < 0) then
+			error("newHeight must be >0.")
+		end
+
+		X = x
+		Y = y
+		Width = newWidth
+		Height = newHeight
+
+		-- copy table data over
+		local newBuffer = {}
+		for i = 1, Width do
+			newBuffer[i] = {}
+		end
+
+		for i = 1, Width do
+			for j = 1, Height do
+				local pixel = {
+					[1] = " ",
+					[2] = ForegroundColor,
+					[3] = BackgroundColor
+				}
+
+				if (#Buffer >= i) then -- within old width?
+					if (#Buffer[i] >= j) then -- in bounds of old buffer?
+						pixel = Buffer[i][j] or pixel
+					end
+				end
+				
+				newBuffer[i][j] = pixel
+			end
+		end
+		Buffer = newBuffer
+
+		viewport.Draw()
+	end
+
+	function viewport.GetBuffer()
+		return System.Table.Copy(Buffer)
+	end
+	function viewport.GetBufferReference()
+		return Buffer
+	end
+
+
+
+
+
+	-- CC naming compatibility
+	viewport.nativePaletteColor = viewport.GetNativePaletteColor
+	viewport.nativePaletteColour = viewport.GetNativePaletteColor
+	viewport.getPaletteColor = viewport.GetPaletteColor
+	viewport.getPaletteColour = viewport.GetPaletteColor
+	viewport.setPaletteColor = viewport.SetPaletteColor
+	viewport.setPaletteColour = viewport.SetPaletteColor
+	viewport.getSize = viewport.GetSize
+	viewport.write = viewport.Write
+	viewport.scroll = viewport.Scroll
+	viewport.getCursorPos = viewport.GetCursorPos
+	viewport.setCursorPos = viewport.SetCursorPos
+	viewport.clear = viewport.Clear
+	viewport.clearLine = viewport.ClearLine
+	viewport.getTextColor = viewport.GetTextColor
+	viewport.getTextColour = viewport.GetTextColor
+	viewport.setTextColor = viewport.SetTextColor
+	viewport.setTextColour = viewport.SetTextColor
+	viewport.getBackgroundColor = viewport.GetBackgroundColor
+	viewport.getBackgroundColour = viewport.GetBackgroundColor
+	viewport.setBackgroundColor = viewport.SetBackgroundColor
+	viewport.setBackgroundColour = viewport.SetBackgroundColor
+	viewport.isColor = viewport.IsColor
+	viewport.isColour = viewport.IsColor
+	viewport.blit = viewport.Blit
+	viewport.current = function() return viewport end
+	viewport.redirect = function() end
+	viewport.native = function() return viewport end
+
+	-- For compatibility
+	function viewport.getCursorBlink()
+		return false
+	end
+	-- Does nothing, for compatibility
+	function viewport.setCursorBlink(blink)
+	end
+
+	viewport.Clear()
+	return viewport
+end
+
+
+
+return Viewport

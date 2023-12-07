@@ -71,6 +71,7 @@ Internal.BootConfig.DoFile = function(filePath)
 		if result[1] then
 			return table.unpack(result, 2, result.n)
 		else
+			pcall(function() Log.Error("DoFile error: " .. table.unpack(result)) end)
 			error(result[2])
 		end
 	else
@@ -360,7 +361,7 @@ local function drawBootScreen(termObject)
 	if not debug then
 		termObject.clear()
 	end
-	local X,Y = Internal.Native.term.getSize();
+	local X,Y = termObject.getSize();
 	local midX,midY = (X/2),(Y/2)
 	termObject.setCursorPos((X/2)-3, (Y/2)-1)
 	termObject.setTextColor(colors.white)
@@ -419,14 +420,28 @@ end
 ]]
 
 -- Setup the OS's window
-Internal.ViewPorts = {}
+Internal.Viewports = {}
+
+local graphics = Internal.GetDriver("graphics")
+local gpu = graphics.GetPrimaryDisplayInstance()
+local maxWidth, maxHeight = gpu:GetSize()
 
 -- -- Create the OS window (drawn on the current term)
+if (oc) then
+	Internal.Viewports["OS"] = System.Viewport.New(nil, 1, 1, maxWidth, maxHeight, true)
+	Internal.Viewports["OS_Secure"] = System.Viewport.New(nil, 1, 1, maxWidth, maxHeight, false)
+	Internal.Viewports["OS_User"] = System.Viewport.New(nil, 1, 1, maxWidth, maxHeight, true)
+else
+	Internal.Viewports["OS"] = Internal.Native.window.create(Internal.Native.term.native(), 1, 1, maxWidth, maxHeight, true)
+	Internal.Viewports["OS_Secure"] = Internal.Native.window.create(Internal.Native.term.native(), 1, 1, maxWidth, maxHeight, false)
+	Internal.Viewports["OS_User"] = Internal.Native.window.create(Internal.Native.term.native(), 1, 1, maxWidth, maxHeight, true)
+end
+
+
 -- Internal.Terms["OS"] = Internal.Native.window.create(Internal.Native.term.current(),1,1,Internal.Terms.Width,Internal.Terms.Height,true)
--- -- Create the Secure OS window (drawn on the native term)
+
 -- Internal.Terms["SecureOS"] = Internal.Native.window.create(Internal.Native.term.native(),1,1,Internal.Terms.Width,Internal.Terms.Height,false)
--- -- Create the Log OS window (drawn on the OS term)
--- Internal.Terms["Logs"] = Internal.Native.window.create(Internal.Terms["OS"], 1,1, Internal.Terms.Width,Internal.Terms.Height, false)
+
 -- -- User space term (drawn on the OS term)
 -- Internal.Terms["User"] = Internal.Native.window.create(Internal.Terms["OS"], 1,1, Internal.Terms.Width,Internal.Terms.Height, true)
 
@@ -457,8 +472,11 @@ Internal.ViewPorts["OS"].write("Project Hudson")
 
 ]]
 -- temp
-drawBootScreen(Internal.Native.term)
--- sleep(1);
+drawBootScreen(Internal.Viewports["OS"])
+_G.term = Internal.Viewports["OS"]
+_G.term.current = function() return Internal.Viewports["OS"] end
+_G.term.native = function() return Internal.Viewports["OS"] end
+_G.term.redirect = function() end
 
 
 
@@ -570,36 +588,49 @@ SchedulerHandleEvent = function(...)
 	return true
 end
 
-
+-- Internal.BootConfig.DoFile("/tools/testcolors.lua") -- for testing the GPU
 
 -- Setup system threads
 
 Internal.CodeXThread = coroutine.create(function() -- someone will uh get this, right?
-	Log.Info("Calling CodeX.Initial()");
-	local ok, err = pcall(function() System.CodeX.Initial(); end)
+	Log.Info("CodeX thread started");
+	-- local ok, err = pcall(function() dofile("/tools/testcolors.lua") end)
+	local ok, err = pcall(function() System.GetAPI("CodeX").Initial(); end)
 	-- local ok, err = pcall(function() System.CodeX.DrawLogin(nil, true); end)
 	if not ok then
-		print("CodeX error: " .. tostring(err))
-		error(err)
+		writeOutput("CodeX error: " .. tostring(err))
+		Log.Error("02::CODEX_EXIT ->| " .. err)
+		local k,e=pcall(function() Internal.BootConfig.DoFile("/System/RIT/CodeX.api") end)
+		Log.Error(e)
+	else
+		Log.Error("02::CODEX_EXIT ->| CodeX thread has exited.")
 	end
 end)
 
 -- "thread"
 Internal.SchedulerThread = coroutine.create(function()
-	local sysEvent = {}
-	while true do
-		sysEvent = {coroutine.yield()};
-		-- print(sysEvent[1])
-		-- if (sysEvent[1] == System.EventEmitter.Id) then
-			-- Internal.System.Table.remove(sysEvent, 1)
-			if not Internal.CodeX.LockOutSession then
-				local k, e = pcall(function() SchedulerHandleEvent(Internal.System.Table.unpack(sysEvent)) end)
-				if not k then
-					print(e)
+	local ok, err = pcall(function()
+		Log.Info("System thread started.")
+		local sysEvent = {}
+		while true do
+			sysEvent = {coroutine.yield()};
+			-- print(sysEvent[1])
+			-- if (sysEvent[1] == System.EventEmitter.Id) then
+				-- Internal.System.Table.remove(sysEvent, 1)
+				if not Internal.CodeX.LockOutSession then
+					local k, e = pcall(function() SchedulerHandleEvent(Internal.System.Table.unpack(sysEvent)) end)
+					if not k then
+						Log.error("SYS_Thread-Error: "..e)
+					end
 				end
-			end
-		-- end
-		local status = coroutine.resume(Internal.CodeXThread, System.Table.unpack(sysEvent))
+			-- end
+			local status = coroutine.resume(Internal.CodeXThread, System.Table.unpack(sysEvent))
+		end
+	end)
+	if (not ok) then
+		Log.Error("003::SchedulerThread-ERROR ->| " .. err)
+	else
+		Log.Error("003::SchedulerThread-Exit")
 	end
 end)
 
@@ -610,6 +641,7 @@ coroutine.resume(Internal.CodeXThread, {})
 
 Log.Info("SysEvent id: " .. Internal.SysEvents.Id)
 Log.Info("SystemEventEmitter id: " .. Internal.System.EventEmitter.Id)
+
 
 local scrollPrimed = false
 local coreOkay, coreError = pcall(function()
@@ -641,10 +673,11 @@ local coreOkay, coreError = pcall(function()
 			end
 		end
 
+
 		Internal.SysEvents.Emit(System.Table.unpack(hardwareEvent))
 		local status = coroutine.resume(Internal.SchedulerThread, System.Table.unpack(hardwareEvent)) -- yeah....
 		-- Internal.System.EventEmitter.Emit(System.Table.unpack(hardwareEvent))
-		if (type(hardwareEventTemp) == "table") then
+		if not oc and (type(hardwareEventTemp) == "table") then
 			Internal.SysEvents.Queue(System.Table.unpack(hardwareEventTemp))
 			local status = coroutine.resume(Internal.SchedulerThread, System.Table.unpack(hardwareEventTemp)) -- yeah....
 		end

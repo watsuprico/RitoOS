@@ -20,7 +20,7 @@ local DateTime = {}
 DateTime.__index = DateTime
 
 function DateTime.Now()
-	local now = os.date() -- grab the time as fast as possible!
+	local now = Internal.Native.os.date() -- grab the time as fast as possible!
 
 	local self = {}
 	setmetatable(self, DateTime)

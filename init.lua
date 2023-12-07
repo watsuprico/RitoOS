@@ -23,7 +23,7 @@ local args = {...}
 
 ]]
 
-local debug = true
+-- local debug = true
 
 
 if computer ~= nil and component ~= nil then
@@ -158,11 +158,11 @@ if Platform == 1 then
   end
   read = readInput -- eh
 
+  local sandbox = {}
   local function runLuaCode(code)
     if (code == "r") then
       computer.shutdown(true)
     end
-    local sandbox = {}
     setmetatable(sandbox, { __index = _G })
     local chunk, err = load(code, "LUA-CODE", "t", sandbox)
     if chunk then
@@ -179,6 +179,17 @@ if Platform == 1 then
     else
       writeOutput("\nSyntax Error: " .. tostring(err))
     end
+  end
+
+
+  local function handleError(err)
+    cy = 1
+    gpu.setBackground(0x000000)
+    gpu.setForeground(0xFF6666)
+    writeOutput("\nRuntime Error: ")
+    writeOutput(err)
+    writeOutput("\n\nTraceback: ")
+    writeOutput(debug.traceback())
   end
 
 
@@ -214,8 +225,7 @@ if Platform == 1 then
     for i=1,10 do computer.beep(500-(i*15), 0) end
     if not ok then
       if err ~= nil then
-        writeOutput("\nRuntime Error: ")
-        writeOutput(err)
+        handleError(err)
       else
         writeOutput("\nFailed to boot!")
       end

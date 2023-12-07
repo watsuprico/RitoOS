@@ -447,7 +447,8 @@ function CodeX.ValidatePassword(username, password, IHP)
 		return true
 	else
 		CAD.Entries.Users[userID].badPasswordCount = CAD.Entries.Users[userID].badPasswordCount + 1 -- Wrong password, tick up one
-		CAD.Entries.Users[userID].last.failed = { type = "time", day = os.day(), time = os.time() } -- Update 'failed' time
+		-- CAD.Entries.Users[userID].last.failed = { type = "time", day = os.day(), time = os.time() } -- Update 'failed' time
+		CAD.Entries.Users[userID].last.failed = { type = "time", day = "0", time = "0" } -- Update 'failed' time
 		CAD.Save(true)
 		return false
 	end
@@ -843,6 +844,10 @@ end
 function CodeX.InitiateUser(userId, username, userIHP) -- Initiate a user or 'log' them in. //local
 
 	local session = {}
+	if type(Internal.Sessions) ~= "table" then
+		Internal.Sessions = {}
+		return;
+	end
 	if (Internal.Sessions[username] ~= nil) then
 		-- log.info("Switching to " .. username)
 		-- switch to
@@ -854,7 +859,18 @@ function CodeX.InitiateUser(userId, username, userIHP) -- Initiate a user or 'lo
 		-- CAD.Entries.Users[userID].last.login = { type = "time", day = os.day(), time = os.time() } -- Update 'failed' time
 
 		session = System.Scheduler.NewSession(userId, username, userIHP)
-		session:NewProcess({
+		log.Info("Creating shell process.")
+		if (oc) then
+			session:NewProcess({
+				["Path"] = "/System/",
+				["ExecutableName"] = "REPL.lua",
+				-- ["CompatibilityModes"] = {["cc"] = "minimum"}
+			}, {}, {
+				["Username"] = username,
+				["UserId"] = userId,
+			});
+		else
+			session:NewProcess({
 				-- ["Path"] = "/System/",
 				-- ["ExecutableName"] = "REPL.lua",
 				["Path"] = "/rom/programs/",
@@ -864,6 +880,7 @@ function CodeX.InitiateUser(userId, username, userIHP) -- Initiate a user or 'lo
 				["Username"] = username,
 				["UserId"] = userId,
 			});
+		end
 	end
 
 	-- this is important!
@@ -1011,8 +1028,13 @@ local function textLogin()
 		term.write("Username: ");
 		term.setCursorPos(11, 2);
 		term.setTextColor(colors.lightGray);
+		local firstUser = ""
+		for k,v in pairs(CAD.Entries.Users) do
+			firstUser = v.username
+			break
+		end
 		local username = System.Keyboard.Read(nil, {
-			["Default"] = "",
+			["Default"] = firstUser,
 		});
 		username = string.lower(username);
 
@@ -1186,12 +1208,12 @@ if ControlLevel == 0 then
 else
 	-- Return 'safe' functions (no password manipulation, username changing, etc etc)
 	return {
-		Version = Version,
-		GetUserID = GetUserID,
-		GetUsername = GetUsername,
-		GetUserList = GetUserList,
-		RandomString = RandomString,
-		GenerateSalt = GenerateSalt,
-		ValidatePassword = ValidatePassword,
+		Version = CodeX.Version,
+		GetUserID = CodeX.GetUserID,
+		GetUsername = CodeX.GetUsername,
+		GetUserList = CodeX.GetUserList,
+		RandomString = CodeX.RandomString,
+		GenerateSalt = CodeX.GenerateSalt,
+		ValidatePassword = CodeX.ValidatePassword,
 	}
 end

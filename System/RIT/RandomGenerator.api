@@ -96,37 +96,6 @@ RandomGenerator.SecureRandom = (function()
 	feed(tostring(getEpoch()));
 	digest();
 
-	-- Add entropy by counting.
-	local countTable = {};
-	local inner = "";
-	local countf = "";
-	if (oc) then
-	    inner = "function()return{" .. ("e'',"):rep(256) .. "}end";
-	    countf = assert(load("local e=Internal.Native.os.time return " .. inner))();
-	else
-	    inner = "function()return{" .. ("e'utc',"):rep(256) .. "}end";
-	    countf = assert(load("local e=Internal.Native.os.epoch return " .. inner))();
-	end
-
-	for i = 1, 300 do
-	    while true do
-	        local t = countf();
-	        local t1 = t[1];
-	        if t1 ~= t[256] then
-	            for j = 1, 256 do
-	                if t1 ~= t[j] then
-	                    countTable[i] = j - 1;
-	                    break
-	                end
-	            end
-	            break;
-	        end
-	    end
-	end
-
-	feed(mapToStr(countTable));
-	digest();
-
 	local function save()
 	    feed("save");
 	    feed(tostring(getEpoch()));

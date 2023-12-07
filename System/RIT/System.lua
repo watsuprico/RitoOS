@@ -188,6 +188,29 @@ end
 
 
 System.Table = table
+local nativeUnpack = table.unpack
+if (not oc) then
+	System.Table.Unpack = System.Table.unpack
+else
+	function System.Table.Unpack(t, num)
+		if type(t) == "string" then
+			local bytes = {}
+			if num then
+				for i = num, #t do
+					bytes[#bytes + 1] = string.byte(t, i)
+				end
+			else
+				for i = 1, #t do
+					bytes[#bytes + 1] = string.byte(t, i)
+				end
+			end
+			return bytes
+		else
+			return nativeUnpack(t, num)
+		end
+	end
+end
+
 --[[
 	Inserts a value into a table if the value is not already there.
 ]]
@@ -307,6 +330,30 @@ function System.Table.FromHex(str)
 	end
 	return final;
 end
+
+function System.Table.Shift(t, amount)
+	if amount == 0 then
+		return t
+	end
+
+	if (math.abs(amount) > #t) then
+		return {}
+	end
+
+	local newTable = {}
+	for i = 1, #t do
+		local originalIndex = i-amount
+		if (originalIndex >= 1 and originalIndex <= #t) then
+			-- copy
+			newTable[i] = t[originalIndex]
+		else
+			-- nothing to copy
+			newTable[i] = nil
+		end
+	end
+	return newTable
+end
+
 
 
 -- Returns the epoch

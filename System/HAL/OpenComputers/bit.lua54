@@ -1,0 +1,43 @@
+-- Custom bit library functions for Lua 5.4
+local function bnot(n)
+    return ~n
+end
+
+local function band(a, b)
+    return a & b
+end
+
+local function bor(a, b)
+    return a | b
+end
+
+local function bxor(a, b)
+    return a ^ b
+end
+
+local function brshift(n, bits)
+    return n >> bits
+end
+
+local function blshift(n, bits)
+    return n << bits
+end
+
+local function blogic_rshift(n, bits)
+    if n < 0 then
+        return (n >> bits) | ((math.abs(n) - 1) >> (bits - 1))
+    else
+        return n >> bits
+    end
+end
+
+_G.bit = {
+    bnot = bnot,
+    band = band,
+    bor = bor,
+    bxor = bxor,
+    brshift = brshift,
+    blshift = blshift,
+    blogic_rshift = blogic_rshift,
+}
+_G.bit32 = _G.bit

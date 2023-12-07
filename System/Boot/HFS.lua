@@ -1191,7 +1191,7 @@ function HFS.Mount(driveComponent, path, name, makeReadOnly)
 		drive.Name = name
 	else
 		if oc then
-			drive.Name = driveComponent.getLabel()
+			drive.Name = driveComponent.getLabel() or path
 		else
 			drive.Name = path
 		end

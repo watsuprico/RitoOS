@@ -1,11 +1,17 @@
 --test colors
+while true do
 for k in pairs(colors) do
 	if type(colors[k]) == "number" then
 		term.setBackgroundColor(colors[k])
 		term.clear()
-		print(k)
-		os.pullEvent("key")
+		term.setCursorPos(1, 1)
+		term.write(k .. ": " .. tostring(colors[k]))
+		-- System.EventEmitter.Pull("keydown")
+		sleep(1)
+		term.write("TICK")
 	end
 end
+end
 term.setBackgroundColor(colors.black)
-print("Done")
+term.setCursorPos(1, 1)
+term.write("done")

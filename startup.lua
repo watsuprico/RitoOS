@@ -146,10 +146,10 @@ if Platform == 0 then
 		end)
 
 		if not ok then
+			t.setCursorPos(1,1)
 			if not debug then
 				t.setBackgroundColor(colors.black)
 				t.clear()
-				t.setCursorPos(1,1)
 				local index = string.find(err,":") or 0
 			end
 
